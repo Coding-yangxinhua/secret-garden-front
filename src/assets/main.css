@@ -1,0 +1,26 @@
+@import './base.css';
+
+
+@media (min-width: 780px) {
+  #app {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+}
+@media (min-height: 780px) {
+  #app {
+    max-height: 1080px;
+    margin: 0 auto;
+  }
+}
+
+
+
+/* 全局样式 */
+body, html { 
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5; /* 灰色调背景色 */
+  color: #333;
+}
