@@ -2,7 +2,9 @@
 import { onMounted, ref, computed, watch } from 'vue'
 import request from '@/utils/request'
 import timestampToFormattedDate from '@/utils/common'
-import { showLoadingToast, showNotify, Toast } from 'vant'
+import { showLoadingToast, showNotify } from 'vant'
+import flowerUtil from '@/utils/flowerUtil'
+import CustomArrayStepper from '@/components/icons/CustomArrayStepper.vue'
 
 // 搜索内容
 const searchSeed = ref('')
@@ -22,7 +24,7 @@ const saleOptions = [
 const challengeOptions = [
   { text: '关闭', value: 0 },
   { text: '免费挑战', value: 1 },
-  { text: '付费挑战', value: 2 },
+  { text: '付费挑战（问题待修复）', value: 2 },
 ]
 
 const donateOptions = [
@@ -32,9 +34,9 @@ const donateOptions = [
   { text: '10玉石', value: 3 },
 ]
 
-const altOptions = [{ text: '仅摸花', value: 0 }]
+const altOptions = [{ text: '基础功能', value: 0 }]
 const altOptions1 = [
-  { text: '仅摸花', value: 0 },
+  { text: '基础功能（摸花/爬架子）', value: 0 },
   { text: '完整功能', value: 1 },
 ]
 
@@ -54,7 +56,7 @@ const plantOptions = [
 
 // 响应式数据
 const otherUsers = ref()
-const currentUser = ref()
+const currentUser = ref(localStorage.getItem('currentUser'))
 const selectTime = ref()
 const selectFlower = ref()
 const showTimePicker = ref(false)
@@ -66,49 +68,75 @@ const friendInfo = ref({ flowers: [], exchangeCount: 10 })
 const friendKey = ref()
 const friendValue = ref()
 const cascaderValue = ref([])
+const tradeMap = flowerUtil.getFlowerTradeMap()
 
 // 用户配置信息
-const userGameConfig = ref({
-  enable: false,
-  autoPlant: false,
-  autoSale: false,
-  flowers: [],
-  periods: [],
-  steals: [],
-  userAlts: [],
-  shopItems: [],
+const accountInfo = ref({
   running: false,
-  refreshNeed: false,
-  gameId: 0,
-  gameName: '',
-  userName: '',
-  userSubscribe: null,
-  subscribeId: 0,
-  autoComplete: 0,
-  autoChallenge: 0,
-  orderMaxNum: 0,
-  autoAccept: false,
-  autoSteal: false,
-  autoSell: false,
-  autoGuildPlant: false,
-  autoDonate: 0,
-  autoCultivate: false,
-  autoShop: false,
-  autoMonster: false,
-  autoRob: false,
-  betterGame: false,
-  autoGame: false,
-  autoBuy: false,
-  altsUser: [],
-  allFlowers: [],
-  gameUser: { friends: [] },
-  otherUsers: [],
-  autoAd: false,
 })
+
+const user = computed(
+  () =>
+    accountInfo.value.user || {
+      refreshNeed: false,
+      subscribe: { subscribeId: -1 },
+      gameUser: {},
+      otherUsers: [],
+      userName: '',
+    },
+)
+
+const config = computed(
+  () =>
+    accountInfo.value.config || {
+      enable: false,
+      autoPlant: 0,
+      autoSale: false,
+      flowers: [],
+      periods: [],
+      steals: [],
+      userAlts: [],
+      shopItems: [],
+      autoComplete: 0,
+      autoChallenge: 0,
+      orderMaxNum: 0,
+      autoAccept: false,
+      autoSteal: false,
+      autoSell: false,
+      autoGuildPlant: false,
+      autoDonate: 0,
+      autoCultivate: false,
+      autoShop: false,
+      autoMonster: false,
+      autoRob: false,
+      betterGame: false,
+      autoGame: false,
+      autoBuy: false,
+      altsUser: [],
+      gameUser: { friends: [] },
+      autoAd: false,
+    },
+)
+
+const allFlowers = flowerUtil.getAllFlowers()
+
+const tradeInfo = (out) => {
+  if (!out || !out.seedId) {
+    return [0]
+  }
+  if (out.seedId == -1) {
+    return ['低价', '平价', '高价']
+  }
+  const trade = tradeMap.get(out.seedId)
+  if (trade == null) {
+    return [0]
+  }
+  return [trade.minPrice, trade.defaultPrice, trade.maxPrice]
+}
 
 // 运行状态计算属性（增强视觉区分）
 const runningStatus = computed(() => {
-  if (userGameConfig.value.refreshNeed) {
+  if (user.value.refreshNeed == 1) {
     return {
       icon: 'close',
       text: '需要重新登录游戏',
@@ -117,7 +145,7 @@ const runningStatus = computed(() => {
       borderColor: 'rgba(255, 77, 79, 0.2)',
     }
   }
-  if (!userGameConfig.value.enable) {
+  if (!config.value.enable) {
     return {
       icon: 'play-circle-o',
       text: '状态：未启用',
@@ -126,7 +154,7 @@ const runningStatus = computed(() => {
       borderColor: 'rgba(140, 140, 140, 0.2)',
     }
   }
-  if (userGameConfig.value.running) {
+  if (accountInfo.value.running) {
     return {
       icon: 'passed',
       text: '状态：运行中...',
@@ -142,18 +170,6 @@ const runningStatus = computed(() => {
     bgColor: 'rgba(250, 140, 22, 0.1)',
     borderColor: 'rgba(250, 140, 22, 0.2)',
   }
-})
-
-// VIP状态样式计算
-const vipStatusStyle = computed(() => {
-  const subscribe = userGameConfig.value.userSubscribe
-  if (!subscribe) {
-    return { color: '#8c8c8c', bgColor: 'rgba(140, 140, 140, 0.1)' }
-  }
-  if (!subscribe.validUtil) {
-    return { color: '#722ed1', bgColor: 'rgba(114, 46, 209, 0.1)' }
-  }
-  return { color: '#1890ff', bgColor: 'rgba(24, 144, 255, 0.1)' }
 })
 
 // 格式化时间
@@ -181,9 +197,11 @@ const showTime = (period, field) => {
   showTimePicker.value = true
 }
 
-const showFlower = (period) => {
-  seedList.value = userGameConfig.value.flowers
-  selectFlower.value = period
+const showFlower = (flower) => {
+  seedList.value = []
+  seedList.value.push(...allFlowers.filter((f) => accountInfo.value.flowers.includes(f.value)))
+  tempSeedList.value = seedList.value
+  selectFlower.value = flower
   showFlowerPicker.value = true
 }
 
@@ -198,11 +216,11 @@ const showFriendAccept = (accept) => {
 const showFriendSteal = (steal, limit = true) => {
   friendKey.value = 'townName'
   friendValue.value = 'userId'
-  let altUserOpenIds = userGameConfig.value.altsUser.map((friend) => friend.openId)
+  let altUserOpenIds = accountInfo.value.altsUser.map((friend) => friend.openId)
   friendList.value = friends.value.filter(
     (friend) => altUserOpenIds.includes(friend.value) || !limit,
   )
-  if (userGameConfig.value.subscribeId != 0) {
+  if (user.value.subscribe.subscribeId != 0) {
     friendList.value = [{ value: '-1', text: '所有人' }, ...friendList.value]
   }
   selectFlower.value = steal
@@ -213,10 +231,11 @@ const showFriendFlower = async (steal) => {
   let friendFlowerIds = [...friendInfo.value.flowers]
   seedList.value = [{ value: '-1', text: '所有花' }]
   seedList.value.push(
-    ...userGameConfig.value.allFlowers.filter(
+    ...allFlowers.filter(
       (flower) => friendFlowerIds.length == 0 || friendFlowerIds.includes(flower.value),
     ),
   )
+  tempSeedList.value = seedList.value
   selectFlower.value = steal
   showFlowerPicker.value = true
 }
@@ -235,11 +254,23 @@ const removeTextAfterBracket = (inputString) => {
 }
 
 // VIP状态
-const vipStatus = (userSubscribe) => {
-  if (!userSubscribe) return '暂无套餐'
-  if (!userSubscribe.validUtil) return '永久有效'
-  return `${timestampToFormattedDate(userSubscribe.validUtil)} 到期`
+const vipStatus = () => {
+  if (!user.value.subscribe || user.value.subscribe.subscribeId == -1) return '暂无VIP'
+  if (!user.value.subscribe.validUtil) return '永久有效'
+  return `${timestampToFormattedDate(user.value.subscribe.validUtil)} 到期`
 }
+
+// VIP状态样式计算
+const vipStatusStyle = computed(() => {
+  const subscribe = user.value.subscribe
+  if (!subscribe && subscribe.subscribeId == -1) {
+    return { color: '#8c8c8c', bgColor: 'rgba(140, 140, 140, 0.1)' }
+  }
+  if (subscribe.subscribeId != -1 && !subscribe.validUtil) {
+    return { color: '#722ed1', bgColor: 'rgba(114, 46, 209, 0.1)' }
+  }
+  return { color: '#1890ff', bgColor: 'rgba(24, 144, 255, 0.1)' }
+})
 
 // 确认选择
 const confirmFlower = ({ selectedOptions }) => {
@@ -263,13 +294,13 @@ const confirmFriend = async ({ selectedOptions }) => {
 const onFinishPlant = ({ selectedOptions }) => {
   showPlant.value = false
   plantText.value = selectedOptions.map((option) => option.text).join('并且')
-  userGameConfig.value.autoPlant = selectedOptions[selectedOptions.length - 1].value
+  config.value.autoPlant = selectedOptions[selectedOptions.length - 1].value
   cascaderValue.value = []
 }
 
 // 添加/删除配置
 const addPlant = () => {
-  userGameConfig.value.periods.push({
+  config.value.periods.push({
     beginTime: 0,
     endTime: 86400000,
     seedId: '',
@@ -278,7 +309,7 @@ const addPlant = () => {
 }
 
 const addSteal = () => {
-  userGameConfig.value.steals.push({
+  config.value.steals.push({
     userId: '-1',
     townName: '所有人',
     seedId: '-1',
@@ -289,8 +320,28 @@ const addSteal = () => {
   })
 }
 
+const addTradeOut = () => {
+  config.value.trade.outs.push({
+    seedId: '-2',
+    seedName: '无',
+    price: 0,
+    count: -1,
+    enable: true,
+  })
+}
+
+const addTradeIn = () => {
+  config.value.trade.ins.push({
+    seedId: '-1',
+    seedName: '所有花',
+    price: 0,
+    count: -1,
+    enable: true,
+  })
+}
+
 const addStealLow = () => {
-  userGameConfig.value.steals.push({
+  config.value.steals.push({
     userId: '0',
     townName: '无',
     seedId: '-1',
@@ -302,7 +353,7 @@ const addStealLow = () => {
 }
 
 const addUserAlts = () => {
-  userGameConfig.value.userAlts.push({
+  accountInfo.value.userAlts.push({
     openId: '',
     userName: '',
     type: 0,
@@ -310,20 +361,28 @@ const addUserAlts = () => {
 }
 
 const deletePlant = (index) => {
-  userGameConfig.value.periods.splice(index, 1)
+  config.value.periods.splice(index, 1)
 }
 
 const deleteSteal = (index) => {
-  userGameConfig.value.steals.splice(index, 1)
+  config.value.steals.splice(index, 1)
+}
+
+const deleteTradeOut = (index) => {
+  config.value.trade.outs.splice(index, 1)
+}
+
+const deleteTradeIn = (index) => {
+  config.value.trade.ins.splice(index, 1)
 }
 
 const deleteUserAlts = (index) => {
-  userGameConfig.value.userAlts.splice(index, 1)
+  accountInfo.value.userAlts.splice(index, 1)
 }
 
 // 保存配置
 const saveConfig = async () => {
-  if (!userGameConfig.value) return
+  if (!accountInfo.value) return
 
   let url = '/config/update'
   if (currentUser.value) {
@@ -339,10 +398,11 @@ const saveConfig = async () => {
   })
 
   try {
+    const { flowers, ...newData } = accountInfo.value || {}
     const { code, remark } = await request({
       method: 'post',
       url,
-      data: userGameConfig.value,
+      data: newData,
     })
 
     if (code === 200) {
@@ -381,27 +441,34 @@ const getFriendInfo = async (openId) => {
     })
     return data
   } catch (error) {
-    Toast('获取好友信息失败')
+    showNotify({
+      type: 'danger',
+      message: '获取好友信息失败，请重新登录游戏',
+      duration: 3000,
+      className: 'custom-notify',
+    })
     return { flowers: [], exchangeCount: 10 }
   }
 }
 
 // 获取图标URL
 const getBaseIconUrl = () => {
-  if ([1, 2].includes(userGameConfig.value.gameId)) {
+  if ([1, 2].includes(accountInfo.value.gameId)) {
     return 'https://static.fthformal.com/flower/flower_newWX/ver/257/resource/assets/h5icon/i'
-  } else if (userGameConfig.value.gameId === 3) {
+  } else if (accountInfo.value.gameId === 3) {
     return 'https://static22.supermoon.fun/beach_wxRL/ver/2.1.9/1/resource/assets/h5icon/i'
-  } else if (userGameConfig.value.gameId === 4) {
+  } else if (accountInfo.value.gameId === 4) {
     return 'https://cdn-fth5-release.zhen-u.com/client/r1.0.86/resource/assets/h5icon/i'
   }
   return ''
 }
-
+const tempSeedList = ref([])
 // 过滤方法
 const filterSeed = () => {
-  if (!userGameConfig.value?.flowers) return
-  seedList.value = userGameConfig.value.flowers.filter((flower) =>
+  if (seedList.value.length == 0) {
+    seedList.value = tempSeedList.value
+  }
+  seedList.value = seedList.value.filter((flower) =>
     flower.text.toLowerCase().includes(searchSeed.value.toLowerCase()),
   )
 }
@@ -419,26 +486,27 @@ const getConfig = async () => {
   let url = '/config/get'
   if (currentUser.value) {
     url = url + '?userId=' + currentUser.value
+    localStorage.setItem('currentUser', currentUser.value)
   }
 
   try {
-    const { data, code, remark } = await request({
+    const { data, code } = await request({
       method: 'get',
       url,
     })
 
     if (code !== 200) {
-      showNotify({ type: 'warning', message: remark || '获取配置失败' })
+      showNotify({ type: 'warning', message: '请先登陆游戏！' })
       return
     }
 
-    userGameConfig.value = { ...userGameConfig.value, ...data }
-    friends.value = data.gameUser.friends.map((item) => ({
+    accountInfo.value = { ...accountInfo.value, ...data }
+    friends.value = user.value.gameUser.friends.map((item) => ({
       value: item.userId,
       text: item.townName,
     }))
 
-    otherUsers.value = data.otherUsers.map((item) => ({
+    otherUsers.value = user.value.otherUsers.map((item) => ({
       value: item.id,
       text: item.userName,
     }))
@@ -446,8 +514,7 @@ const getConfig = async () => {
     if (!currentUser.value && otherUsers.value?.length) {
       currentUser.value = otherUsers.value[0].value
     }
-
-    plantText.value = autoPlantArr[userGameConfig.value.autoPlant]
+    plantText.value = autoPlantArr[config.value.autoPlant]
   } catch (error) {
     showNotify({ type: 'danger', message: '网络错误，无法获取配置' })
   }
@@ -469,24 +536,23 @@ const getConfigPart = async () => {
 
     if (code !== 200) return
 
-    userGameConfig.value = {
-      ...userGameConfig.value,
+    accountInfo.value = {
+      ...accountInfo.value,
       shopItems: data.shopItems,
       running: data.running,
-      refreshNeed: data.refreshNeed,
     }
 
-    friends.value = data.gameUser.friends.map((item) => ({
+    friends.value = user.value.gameUser.friends.map((item) => ({
       value: item.userId,
       text: item.townName,
     }))
 
-    otherUsers.value = data.otherUsers.map((item) => ({
+    otherUsers.value = user.value.otherUsers.map((item) => ({
       value: item.id,
       text: item.userName,
     }))
 
-    plantText.value = autoPlantArr[userGameConfig.value.autoPlant]
+    plantText.value = autoPlantArr[config.value.autoPlant]
   } catch (error) {
     console.error('获取配置片段失败:', error)
   }
@@ -494,10 +560,10 @@ const getConfigPart = async () => {
 
 // 监听配置变化，更新种植文本
 watch(
-  [() => userGameConfig.value.autoPlant],
+  [() => config.value.autoPlant],
   () => {
-    if (userGameConfig.value) {
-      plantText.value = autoPlantArr[userGameConfig.value.autoPlant]
+    if (config.value) {
+      plantText.value = autoPlantArr[config.value.autoPlant]
     }
   },
   { immediate: true },
@@ -506,7 +572,7 @@ watch(
 // 初始化
 onMounted(() => {
   getConfig()
-  const interval = setInterval(getConfigPart, 10000)
+  const interval = setInterval(getConfigPart, 20000)
 
   // 清理定时器
   const cleanup = () => clearInterval(interval)
@@ -526,15 +592,20 @@ onMounted(() => {
     <!-- 导航栏 -->
     <van-nav-bar
       class="custom-nav"
-      :title="
-        userGameConfig.refreshNeed ? '请重新登录游戏' : userGameConfig.gameName || '秘密花园HD'
-      "
-      right-text="保存"
-      :right-disabled="!userGameConfig"
+      title="莳花小助手v0.9.8"
+      left-text="兑换"
+      right-text="充值"
+      :right-disabled="!accountInfo"
       @click-right="saveConfig"
     >
       <template #right>
-        <div class="save-btn" @click="saveConfig" :class="{ disabled: !userGameConfig }">保存</div>
+        <div
+          class="save-btn"
+          @click="saveConfig"
+          :class="{ disabled: !accountInfo && user.subscribe.subscribeId != -1 }"
+        >
+          保存
+        </div>
       </template>
     </van-nav-bar>
 
@@ -563,11 +634,11 @@ onMounted(() => {
           }"
         >
           <van-icon name="diamond-o" size="28" :color="vipStatusStyle.color" />
-          <div class="status-text">{{ vipStatus(userGameConfig.userSubscribe) }}</div>
+          <div class="status-text">{{ vipStatus(user.subscribe) }}</div>
         </div>
 
         <!-- 用户选择卡片 -->
-        <div class="status-card user-card" v-if="userGameConfig?.otherUsers?.length > 1">
+        <div class="status-card user-card" v-if="otherUsers?.length > 1">
           <van-icon name="contact-o" size="28" color="#ff6767" />
           <van-dropdown-menu direction="down" class="user-dropdown">
             <van-dropdown-item
@@ -583,13 +654,13 @@ onMounted(() => {
         <!-- 用户名展示 -->
         <div class="status-card user-card" v-else>
           <van-icon name="flower-o" size="28" color="#ff6767" />
-          <div class="status-text username-text">{{ userGameConfig.userName || '未登录' }}</div>
+          <div class="status-text username-text">{{ user.userName || '未登录' }}</div>
         </div>
       </div>
     </div>
 
     <!-- 主要配置区域 -->
-    <div class="config-wrapper">
+    <div class="config-wrapper" v-if="user && user?.subscribe?.subscribeId >= 0">
       <!-- 功能总开关 -->
       <div class="config-card main-switch-card">
         <div class="card-header">
@@ -605,10 +676,8 @@ onMounted(() => {
           >
             <template #right-icon>
               <van-switch
-                :disabled="
-                  !userGameConfig || userGameConfig.refreshNeed || !userGameConfig.userSubscribe
-                "
-                v-model="userGameConfig.enable"
+                :disabled="!user || user.refreshNeed || !user.subscribe"
+                v-model="config.enable"
                 size="28"
                 class="main-switch"
               />
@@ -618,27 +687,7 @@ onMounted(() => {
       </div>
 
       <!-- VIP用户配置 -->
-      <div
-        v-if="userGameConfig && userGameConfig?.userSubscribe?.subscribeId != 0"
-        class="config-section"
-      >
-        <!-- 自动广告 -->
-        <div class="config-card feature-card">
-          <div class="card-header">
-            <van-icon name="play-circle-o" size="20" color="#722ed1" />
-            <span class="card-title">自动广告</span>
-          </div>
-          <div class="card-content">
-            <van-cell class="feature-cell" center label="自动领取所有类型广告奖励（含快乐大转盘）">
-              <template #title>
-                <span class="feature-title">广告奖励</span>
-              </template>
-              <template #right-icon>
-                <van-switch :disabled="!userGameConfig" v-model="userGameConfig.autoAd" size="24" />
-              </template>
-            </van-cell>
-          </div>
-        </div>
+      <div v-if="user && user?.subscribe?.subscribeId > 0" class="config-section">
         <van-popup v-model:show="showPlant" round position="bottom" class="custom-popup">
           <div class="popup-header">
             <span class="popup-title">选择种植模式</span>
@@ -675,22 +724,18 @@ onMounted(() => {
             </van-cell>
 
             <!-- 种植时间段配置 -->
-            <div v-show="userGameConfig.autoPlant == 1" class="plant-periods-section">
+            <div v-show="config.autoPlant == 1" class="plant-periods-section">
               <div class="section-title">
                 <van-icon name="clock-o" size="16" color="#8c8c8c" />
                 <span>种植时间配置</span>
               </div>
 
-              <div v-if="userGameConfig.periods.length === 0" class="empty-state">
-                <van-empty
-                  image="empty-order"
-                  description="暂无种植配置，点击添加按钮创建"
-                  class="empty-content"
-                />
+              <div v-if="config.periods.length === 0" class="empty-state">
+                <van-empty description="暂无种植配置，点击添加按钮创建" class="empty-content" />
               </div>
 
               <div
-                v-for="(period, index) in userGameConfig.periods"
+                v-for="(period, index) in config.periods"
                 :key="`plant-${index}`"
                 class="config-item-row"
               >
@@ -754,7 +799,7 @@ onMounted(() => {
               </template>
               <van-dropdown-menu class="feature-dropdown">
                 <van-dropdown-item
-                  v-model="userGameConfig.autoComplete"
+                  v-model="config.autoComplete"
                   :options="saleOptions"
                   placeholder="请选择"
                   class="dropdown-item"
@@ -768,7 +813,7 @@ onMounted(() => {
               </template>
               <van-dropdown-menu class="feature-dropdown">
                 <van-dropdown-item
-                  v-model="userGameConfig.autoSale"
+                  v-model="config.autoSale"
                   :options="saleOptions"
                   placeholder="请选择"
                   class="dropdown-item"
@@ -777,7 +822,7 @@ onMounted(() => {
             </van-cell>
 
             <!-- 订单高级配置 -->
-            <div v-show="userGameConfig.autoSale != 0" class="order-advanced-section">
+            <div v-show="config.autoSale != 0" class="order-advanced-section">
               <div class="section-title">
                 <van-icon name="setting-o" size="16" color="#8c8c8c" />
                 <span>订单高级设置</span>
@@ -789,14 +834,13 @@ onMounted(() => {
                 label="达到指定数量后自动停止"
               >
                 <van-stepper
-                  v-model="userGameConfig.orderMaxNum"
+                  v-model="config.orderMaxNum"
                   step="100"
                   integer
                   min="0"
                   max="1500"
                   theme="round"
                   button-size="24px"
-                  disable-input
                   class="stepper-control"
                 />
               </van-cell>
@@ -808,7 +852,7 @@ onMounted(() => {
               >
                 <van-dropdown-menu class="feature-dropdown">
                   <van-dropdown-item
-                    v-model="userGameConfig.autoChallenge"
+                    v-model="config.autoChallenge"
                     :options="challengeOptions"
                     placeholder="请选择"
                     class="dropdown-item"
@@ -826,35 +870,32 @@ onMounted(() => {
             <span class="card-title">小号管理</span>
           </div>
           <div class="card-content">
-            <van-cell class="feature-cell" center label="只有配置的小号能进行摸花或使用完整功能">
+            <van-cell
+              class="feature-cell"
+              center
+              label="只有配置的小号能进行摸花/爬架或使用完整功能"
+            >
               <template #title>
                 <span class="feature-title">小号功能启用</span>
               </template>
               <template #right-icon>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoAccept"
-                  size="24"
-                />
+                <van-switch :disabled="!config" v-model="config.autoAccept" size="24" />
               </template>
             </van-cell>
 
             <!-- 小号列表配置 -->
-            <div v-show="userGameConfig.autoAccept" class="alt-list-section">
+            <div v-show="config.autoAccept" class="alt-list-section">
               <div class="section-title">
                 <van-icon name="user-o" size="16" color="#8c8c8c" />
                 <span>小号列表</span>
               </div>
 
-              <div v-if="userGameConfig.userAlts.length === 0" class="empty-state">
-                <van-empty
-                  description="暂无小号配置，点击添加按钮创建"
-                  class="empty-content"
-                />
+              <div v-if="accountInfo.userAlts.length === 0" class="empty-state">
+                <van-empty description="暂无小号配置，点击添加按钮创建" class="empty-content" />
               </div>
 
               <div
-                v-for="(alt, index) in userGameConfig.userAlts"
+                v-for="(alt, index) in accountInfo.userAlts"
                 :key="`alt-${index}`"
                 class="config-item-row"
               >
@@ -871,7 +912,7 @@ onMounted(() => {
                   <van-dropdown-menu class="alt-type-dropdown">
                     <van-dropdown-item
                       v-model="alt.type"
-                      :options="userGameConfig.userSubscribe.ratio > 0 ? altOptions1 : altOptions"
+                      :options="user.subscribe.ratio > 0 ? altOptions1 : altOptions"
                       placeholder="请选择"
                       class="dropdown-item"
                     />
@@ -909,29 +950,22 @@ onMounted(() => {
                 <span class="feature-title">摸花功能启用</span>
               </template>
               <template #right-icon>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoSteal"
-                  size="24"
-                />
+                <van-switch :disabled="!config" v-model="config.autoSteal" size="24" />
               </template>
             </van-cell>
 
             <!-- 摸花配置列表 -->
-            <div v-show="userGameConfig.autoSteal" class="steal-list-section">
+            <div v-show="config.autoSteal" class="steal-list-section">
               <div class="section-title">
                 <van-icon name="flower-o" size="16" color="#8c8c8c" />
                 <span>摸花配置</span>
               </div>
 
-              <div v-if="userGameConfig.steals.length === 0" class="empty-state">
-                <van-empty
-                  description="暂无摸花配置，点击添加按钮创建"
-                  class="empty-content"
-                />
+              <div v-if="config.steals.length === 0" class="empty-state">
+                <van-empty description="暂无摸花配置，点击添加按钮创建" class="empty-content" />
               </div>
               <div
-                v-for="(steal, index) in userGameConfig.steals"
+                v-for="(steal, index) in config.steals"
                 :key="`steal-${index}`"
                 class="config-item-row steal-row"
               >
@@ -966,7 +1000,7 @@ onMounted(() => {
 
                 <div class="config-item-col switch-col">
                   <div class="config-item-label">启用状态</div>
-                  <van-switch :disabled="!userGameConfig" v-model="steal.enable" size="20" />
+                  <van-switch :disabled="!config" v-model="steal.enable" size="20" />
                 </div>
 
                 <div class="config-item-col action-col">
@@ -987,6 +1021,199 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        <!-- 自动上架下架 -->
+        <div class="config-card steal-config-card">
+          <div class="card-header">
+            <van-icon name="cart-o" size="20" color="#ff6767" />
+            <span class="card-title">店铺管理</span>
+          </div>
+          <div class="card-content">
+            <van-cell class="feature-cell" center label="">
+              <template #title>
+                <span class="feature-title">自动上架</span>
+              </template>
+              <template #right-icon>
+                <van-switch :disabled="!config" v-model="config.autoTradeOut" size="24" />
+              </template>
+            </van-cell>
+
+            <!-- 上架配置列表 -->
+            <div v-show="config.autoTradeOut" class="steal-list-section">
+              <div class="section-title">
+                <van-icon name="cash-o" size="16" color="#8c8c8c" />
+                <span>上架设置</span>
+              </div>
+
+              <div v-if="config.trade?.outs?.length === 0" class="empty-state">
+                <van-empty description="暂无上架配置，点击添加按钮创建" class="empty-content" />
+              </div>
+              <div
+                v-for="(out, index) in config.trade?.outs"
+                :key="`out-${index}`"
+                class="config-item-row steal-row"
+              >
+                <div class="config-item-col trade-col">
+                  <div class="config-item-label">上架鲜花</div>
+                  <div class="config-item-value clickable" @click="showFlower(out)">
+                    <span class="value-text">{{ out.seedName || '未选择' }}</span>
+                    <van-icon name="arrow" size="14" class="arrow-icon" />
+                  </div>
+                </div>
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">上架价格</div>
+                  <custom-array-stepper
+                    :options="tradeInfo(out)"
+                    :default-value="tradeInfo(out)[1]"
+                    v-model="out.price"
+                    class="steal-stepper"
+                  >
+                  </custom-array-stepper>
+                </div>
+
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">上架次数</div>
+                  <van-stepper
+                    v-model="out.count"
+                    min="0"
+                    integer
+                    size="small"
+                    class="steal-stepper"
+                  />
+                </div>
+
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">密码</div>
+                  <van-field
+                    v-model="out.password"
+                    type="number"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="设置四位密码"
+                    clearable
+                    style="padding: 0px"
+                  />
+                </div>
+
+                <div class="config-item-col switch-col">
+                  <div class="config-item-label">启用状态</div>
+                  <van-switch v-model="out.enable" size="20" />
+                </div>
+
+                <div class="config-item-col action-col">
+                  <van-button
+                    class="delete-button"
+                    icon="delete-o"
+                    size="mini"
+                    type="danger"
+                    plain
+                    @click="deleteTradeOut(index)"
+                  />
+                </div>
+              </div>
+
+              <van-button class="add-button" block type="primary" icon="add-o" @click="addTradeOut">
+                添加上架配置
+              </van-button>
+            </div>
+          </div>
+          <div class="card-content">
+            <van-cell class="feature-cell" center label="">
+              <template #title>
+                <span class="feature-title">自动购买</span>
+              </template>
+              <template #right-icon>
+                <van-switch :disabled="!config" v-model="config.autoTradeIn" size="24" />
+              </template>
+            </van-cell>
+
+            <!-- 购买配置列表 -->
+            <div v-show="config.autoTradeIn" class="steal-list-section">
+              <div class="section-title">
+                <van-icon name="paid" size="16" color="#8c8c8c" />
+                <span>购买设置</span>
+              </div>
+
+              <div v-if="config.trade.ins.length === 0" class="empty-state">
+                <van-empty description="暂无购买配置，点击添加按钮创建" class="empty-content" />
+              </div>
+              <div
+                v-for="(inc, index) in config.trade.ins"
+                :key="`in-${index}`"
+                class="config-item-row steal-row"
+              >
+                <div class="config-item-col trade-col">
+                  <div class="config-item-label">目标好友</div>
+                  <div class="config-item-value clickable" @click="showFriendSteal(inc, false)">
+                    <span class="value-text">{{ inc.townName || '未选择' }}</span>
+                    <van-icon name="arrow" size="14" class="arrow-icon" />
+                  </div>
+                </div>
+
+                <div class="config-item-col trade-col">
+                  <div class="config-item-label">目标鲜花</div>
+                  <div class="config-item-value clickable" @click="showFriendFlower(inc)">
+                    <span class="value-text">{{ inc.seedName || '未选择' }}</span>
+                    <van-icon name="arrow" size="14" class="arrow-icon" />
+                  </div>
+                </div>
+
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">购买价格</div>
+                  <custom-array-stepper
+                    :options="tradeInfo(inc)"
+                    :default-value="tradeInfo(inc)[1]"
+                    v-model="inc.price"
+                    class="steal-stepper"
+                  >
+                  </custom-array-stepper>
+                </div>
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">每日购买数量</div>
+                  <van-stepper
+                    v-model="inc.count"
+                    min="-1"
+                    step="100"
+                    integer
+                    size="small"
+                    class="steal-stepper"
+                  />
+                </div>
+
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">密码</div>
+                  <van-field
+                    v-model="inc.password"
+                    type="number"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="设置四位密码"
+                    clearable
+                    style="padding: 0px"
+                  />
+                </div>
+                <div class="config-item-col switch-col">
+                  <div class="config-item-label">启用状态</div>
+                  <van-switch :disabled="!config" v-model="inc.enable" size="20" />
+                </div>
+
+                <div class="config-item-col action-col">
+                  <van-button
+                    class="delete-button"
+                    icon="delete-o"
+                    size="mini"
+                    type="danger"
+                    plain
+                    @click="deleteTradeIn(index)"
+                  />
+                </div>
+              </div>
+
+              <van-button class="add-button" block type="primary" icon="add-o" @click="addTradeIn">
+                添加购买配置
+              </van-button>
+            </div>
+          </div>
+        </div>
         <!-- 其他功能集合 -->
         <div class="config-card other-features-card">
           <div class="card-header">
@@ -998,17 +1225,19 @@ onMounted(() => {
               <!-- 第一行功能 -->
               <div class="feature-item">
                 <div class="feature-icon">
-                  <van-icon name="shop-o" size="20" color="#1890ff" />
+                  <van-icon name="gift-o" size="20" color="#fa8c16" />
                 </div>
                 <div class="feature-info">
-                  <div class="feature-name">自动摆台</div>
-                  <div class="feature-desc">仓库有啥摆啥</div>
+                  <div class="feature-name">社团捐献</div>
+                  <div class="feature-desc">自动捐献指定资源</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoSell"
-                  size="22"
-                />
+                <van-dropdown-menu class="mini-dropdown">
+                  <van-dropdown-item
+                    v-model="config.autoDonate"
+                    :options="donateOptions"
+                    class="mini-dropdown-item"
+                  />
+                </van-dropdown-menu>
               </div>
 
               <div class="feature-item">
@@ -1019,28 +1248,17 @@ onMounted(() => {
                   <div class="feature-name">社团收获</div>
                   <div class="feature-desc">自动收获社团花盆</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoGuildPlant"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.autoGuildPlant" size="22" />
               </div>
-
               <div class="feature-item">
                 <div class="feature-icon">
-                  <van-icon name="gift-o" size="20" color="#fa8c16" />
+                  <van-icon name="shop-o" size="20" color="#1890ff" />
                 </div>
                 <div class="feature-info">
-                  <div class="feature-name">社团捐献</div>
-                  <div class="feature-desc">自动捐献指定资源</div>
+                  <div class="feature-name">自动摆台</div>
+                  <div class="feature-desc">仓库有啥摆啥</div>
                 </div>
-                <van-dropdown-menu class="mini-dropdown">
-                  <van-dropdown-item
-                    v-model="userGameConfig.autoDonate"
-                    :options="donateOptions"
-                    class="mini-dropdown-item"
-                  />
-                </van-dropdown-menu>
+                <van-switch :disabled="!config" v-model="config.autoSell" size="22" />
               </div>
               <!-- 第二行功能 -->
               <div class="feature-item">
@@ -1051,11 +1269,7 @@ onMounted(() => {
                   <div class="feature-name">培育忘忧树</div>
                   <div class="feature-desc">自动培育最高数量道具</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoCultivate"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.autoCultivate" size="22" />
               </div>
 
               <div class="feature-item">
@@ -1066,11 +1280,7 @@ onMounted(() => {
                   <div class="feature-name">自动买商店</div>
                   <div class="feature-desc">培育商店自动购买</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoShop"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.autoShop" size="22" />
               </div>
 
               <div class="feature-item">
@@ -1081,11 +1291,7 @@ onMounted(() => {
                   <div class="feature-name">自动打地鼠</div>
                   <div class="feature-desc">每日上限50次</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoMonster"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.autoMonster" size="22" />
               </div>
 
               <!-- 第三行功能 -->
@@ -1097,11 +1303,7 @@ onMounted(() => {
                   <div class="feature-name">自动抓花农</div>
                   <div class="feature-desc">随机抓捕推荐玩家</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoRob"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.autoRob" size="22" />
               </div>
 
               <div class="feature-item">
@@ -1112,11 +1314,7 @@ onMounted(() => {
                   <div class="feature-name">更好的游戏</div>
                   <div class="feature-desc">跳过广告/一键操作</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.betterGame"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.betterGame" size="22" />
               </div>
 
               <div class="feature-item">
@@ -1127,44 +1325,54 @@ onMounted(() => {
                   <div class="feature-name">自动小游戏</div>
                   <div class="feature-desc">完成活动游戏任务</div>
                 </div>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoGame"
-                  size="22"
-                />
+                <van-switch :disabled="!config" v-model="config.autoGame" size="22" />
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <van-icon name="play-circle-o" size="20" color="#5cadff" />
+                </div>
+                <div class="feature-info">
+                  <div class="feature-name">自动看广告</div>
+                  <div class="feature-desc">自动领取所有类型广告奖励（含快乐大转盘）</div>
+                </div>
+                <van-switch :disabled="!config" v-model="config.autoAd" size="22" />
               </div>
             </div>
           </div>
         </div>
 
         <!-- VIP专属功能 -->
-        <div v-if="userGameConfig?.userSubscribe?.subscribeId == 3" class="config-card vip3-card">
+        <div v-if="user?.subscribe?.subscribeId == 3" class="config-card vip3-card">
           <div class="card-header vip3-header">
             <van-icon name="crown-o" size="20" color="#faad14" />
             <span class="card-title vip3-title">专享</span>
           </div>
           <div class="card-content">
-            <van-cell class="vip3-feature-cell" center label="每日自动获取4000水滴、加速券、好评券">
+            <van-cell
+              class="vip3-feature-cell"
+              center
+              label="每日自动获取4000水滴、加速券、好评券，页面数据每30秒更新一次"
+            >
               <template #title>
                 <span class="feature-title vip3-feature-title">自动领取资源</span>
               </template>
               <template #right-icon>
                 <van-switch
-                  :disabled="userGameConfig?.userSubscribe?.subscribeId != 3"
-                  v-model="userGameConfig.autoBuy"
+                  :disabled="user?.subscribe?.subscribeId != 3"
+                  v-model="config.autoBuy"
                   size="24"
                 />
               </template>
             </van-cell>
 
-            <div v-show="userGameConfig.autoBuy" class="resources-progress-section">
+            <div v-show="config.autoBuy" class="resources-progress-section">
               <div class="section-title">
                 <van-icon name="waterdrop-o" size="16" color="#1890ff" />
                 <span>今日资源获取进度</span>
               </div>
 
               <div
-                v-for="shopItem in userGameConfig.shopItems"
+                v-for="shopItem in config.shopItems"
                 :key="`shop-${shopItem.itemId}`"
                 class="resource-item"
               >
@@ -1183,11 +1391,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 非VIP用户配置 -->
-      <div
-        v-if="userGameConfig?.userSubscribe?.subscribeId == 0"
-        class="config-section non-vip-section"
-      >
+      <!-- 小号用户配置 -->
+      <div v-if="user?.subscribe?.subscribeId == 0" class="config-section non-vip-section">
         <div class="config-card non-vip-steal-card">
           <div class="card-header">
             <van-icon name="hand-o-right" size="20" color="#ff6767" />
@@ -1199,22 +1404,18 @@ onMounted(() => {
                 <span class="feature-title">自动摸花</span>
               </template>
               <template #right-icon>
-                <van-switch
-                  :disabled="!userGameConfig"
-                  v-model="userGameConfig.autoSteal"
-                  size="24"
-                />
+                <van-switch :disabled="!config" v-model="config.autoSteal" size="24" />
               </template>
             </van-cell>
 
             <!-- 基础摸花配置 -->
-            <div v-show="userGameConfig.autoSteal" class="basic-steal-section">
+            <div v-show="config.autoSteal" class="basic-steal-section">
               <div class="section-title">
                 <van-icon name="flower-o" size="16" color="#8c8c8c" />
                 <span>摸花配置</span>
               </div>
 
-              <div v-if="userGameConfig.steals.length === 0" class="empty-state">
+              <div v-if="config.steals.length === 0" class="empty-state">
                 <van-empty
                   image="empty-search"
                   description="暂无摸花配置，点击添加按钮创建"
@@ -1223,7 +1424,7 @@ onMounted(() => {
               </div>
 
               <div
-                v-for="(steal, index) in userGameConfig.steals"
+                v-for="(steal, index) in config.steals"
                 :key="`steal-low-${index}`"
                 class="config-item-row basic-steal-row"
               >
@@ -1254,25 +1455,131 @@ onMounted(() => {
                   />
                 </div>
               </div>
-
               <van-button class="add-button" block type="primary" icon="add-o" @click="addStealLow">
                 添加摸花配置
               </van-button>
             </div>
           </div>
         </div>
+        <!-- 自动上架下架 -->
+        <div class="config-card steal-config-card">
+          <div class="card-header">
+            <van-icon name="cart-o" size="20" color="#ff6767" />
+            <span class="card-title">店铺管理</span>
+          </div>
+          <div class="card-content">
+            <van-cell class="feature-cell" center label="">
+              <template #title>
+                <span class="feature-title">自动购买</span>
+              </template>
+              <template #right-icon>
+                <van-switch :disabled="!config" v-model="config.autoTradeIn" size="24" />
+              </template>
+            </van-cell>
 
-        <!-- 升级提示 -->
-        <div class="upgrade-tip-card">
-          <div class="upgrade-icon">
-            <van-icon name="arrow-up" size="24" color="#faad14" />
+            <div v-show="config.autoTradeIn" class="steal-list-section">
+              <div class="section-title">
+                <van-icon name="paid" size="16" color="#8c8c8c" />
+                <span>购买设置</span>
+              </div>
+
+              <div v-if="config.trade.ins.length === 0" class="empty-state">
+                <van-empty description="暂无购买配置，点击添加按钮创建" class="empty-content" />
+              </div>
+              <div
+                v-for="(inc, index) in config.trade.ins"
+                :key="`in-${index}`"
+                class="config-item-row steal-row"
+              >
+                <div class="config-item-col trade-col">
+                  <div class="config-item-label">目标好友</div>
+                  <div class="config-item-value clickable" @click="showFriendSteal(inc, false)">
+                    <span class="value-text">{{ inc.townName || '未选择' }}</span>
+                    <van-icon name="arrow" size="14" class="arrow-icon" />
+                  </div>
+                </div>
+
+                <div class="config-item-col trade-col">
+                  <div class="config-item-label">目标鲜花</div>
+                  <div class="config-item-value clickable" @click="showFriendFlower(inc)">
+                    <span class="value-text">{{ inc.seedName || '未选择' }}</span>
+                    <van-icon name="arrow" size="14" class="arrow-icon" />
+                  </div>
+                </div>
+
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">购买价格</div>
+                  <custom-array-stepper
+                    :options="tradeInfo(inc)"
+                    :default-value="tradeInfo(inc)[1]"
+                    v-model="inc.price"
+                    class="steal-stepper"
+                  >
+                  </custom-array-stepper>
+                </div>
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">每日购买数量</div>
+                  <van-stepper
+                    v-model="inc.count"
+                    min="-1"
+                    step="100"
+                    integer
+                    size="small"
+                    class="steal-stepper"
+                  />
+                </div>
+
+                <div class="config-item-col count-col">
+                  <div class="config-item-label">密码</div>
+                  <van-field
+                    v-model="inc.password"
+                    type="number"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="设置四位密码"
+                    clearable
+                    style="padding: 0px"
+                  />
+                </div>
+                <div class="config-item-col switch-col">
+                  <div class="config-item-label">启用状态</div>
+                  <van-switch :disabled="!config" v-model="inc.enable" size="20" />
+                </div>
+
+                <div class="config-item-col action-col">
+                  <van-button
+                    class="delete-button"
+                    icon="delete-o"
+                    size="mini"
+                    type="danger"
+                    plain
+                    @click="deleteTradeIn(index)"
+                  />
+                </div>
+              </div>
+
+              <van-button class="add-button" block type="primary" icon="add-o" @click="addTradeIn">
+                添加购买配置
+              </van-button>
+            </div>
           </div>
-          <div class="upgrade-content">
-            <div class="upgrade-title">升级VIP解锁更多功能</div>
-            <div class="upgrade-desc">自动种植、订单管理、社团功能、资源自动领取等更多高级功能</div>
-          </div>
-          <van-button type="warning" size="small" plain class="upgrade-btn"> 立即升级 </van-button>
         </div>
+      </div>
+    </div>
+    <div
+      v-if="!user?.subscribe || user?.subscribe?.subscribeId < 1"
+      class="config-section non-vip-section"
+    >
+      <!-- 升级提示 -->
+      <div class="upgrade-tip-card">
+        <div class="upgrade-icon">
+          <van-icon name="arrow-up" size="24" color="#faad14" />
+        </div>
+        <div class="upgrade-content">
+          <div class="upgrade-title">升级VIP解锁更多功能</div>
+          <div class="upgrade-desc">自动种植、订单管理、社团功能、资源自动领取等更多高级功能</div>
+        </div>
+        <van-button type="warning" size="small" plain class="upgrade-btn"> 立即升级 </van-button>
       </div>
     </div>
 
@@ -1432,14 +1739,14 @@ onMounted(() => {
 .user-dropdown {
   flex: 1;
   margin-left: 4px;
-    /* 屏蔽背景色 */
+  /* 屏蔽背景色 */
   --van-dropdown-menu-background: transparent !important;
   /* 屏蔽默认阴影 */
   --van-dropdown-menu-shadow: none !important;
 }
 
 .alt-type-dropdown {
-    /* 屏蔽背景色 */
+  /* 屏蔽背景色 */
   --van-dropdown-menu-background: transparent !important;
   /* 屏蔽默认阴影 */
   --van-dropdown-menu-shadow: none !important;
@@ -1531,7 +1838,7 @@ onMounted(() => {
 
 .feature-dropdown {
   width: 160px;
-      /* 屏蔽背景色 */
+  /* 屏蔽背景色 */
   --van-dropdown-menu-background: transparent !important;
   /* 屏蔽默认阴影 */
   --van-dropdown-menu-shadow: none !important;
@@ -1609,6 +1916,10 @@ onMounted(() => {
 }
 
 .count-col {
+  flex: 1.5;
+}
+
+.trade-col {
   flex: 1.5;
 }
 
@@ -1771,7 +2082,7 @@ onMounted(() => {
 }
 
 .mini-dropdown {
-    /* 屏蔽背景色 */
+  /* 屏蔽背景色 */
   --van-dropdown-menu-background: transparent !important;
   /* 屏蔽默认阴影 */
   --van-dropdown-menu-shadow: none !important;

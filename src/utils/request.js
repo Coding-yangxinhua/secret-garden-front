@@ -10,10 +10,8 @@ const service = axios.create({
  
 // 请求拦截器
 service.interceptors.request.use(config => {
-  const userId = config.params?.userId || config.data?.userId; // 从请求参数或请求体中获取userId
-  const isOdd = userId % 2 !== 0; // 判断userId是否为奇数
   // 根据userId的奇偶性设置baseURL
-  config.baseURL = isOdd ? import.meta.env.VITE_API_ODD_BASE_URL : import.meta.env.VITE_API_EVEN_BASE_URL;
+  config.baseURL =  import.meta.env.VITE_API_BASE_URL
   // 添加Authorization头
   return config
 })
