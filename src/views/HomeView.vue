@@ -5,6 +5,7 @@ import timestampToFormattedDate from '@/utils/common'
 import { showLoadingToast, showNotify } from 'vant'
 import flowerUtil from '@/utils/flowerUtil'
 import CustomArrayStepper from '@/components/icons/CustomArrayStepper.vue'
+import ExchangeModal from '@/components/icons/ExchangeModal.vue'
 
 // 搜索内容
 const searchSeed = ref('')
@@ -24,7 +25,7 @@ const saleOptions = [
 const challengeOptions = [
   { text: '关闭', value: 0 },
   { text: '免费挑战', value: 1 },
-  { text: '付费挑战（问题待修复）', value: 2 },
+  { text: '付费挑战', value: 2 },
 ]
 
 const donateOptions = [
@@ -69,11 +70,18 @@ const friendKey = ref()
 const friendValue = ref()
 const cascaderValue = ref([])
 const tradeMap = flowerUtil.getFlowerTradeMap()
+const exchangeModalRef = ref(null)
+
+const openExchangeModal = () => {
+  exchangeModalRef.value.openModal()
+}
 
 // 用户配置信息
 const accountInfo = ref({
   running: false,
 })
+
+const gameId = computed(() => accountInfo.value.user.gameId)
 
 const user = computed(
   () =>
@@ -115,6 +123,7 @@ const config = computed(
       altsUser: [],
       gameUser: { friends: [] },
       autoAd: false,
+      autoGuildAd: false, // 新增社团广告开关
     },
 )
 
@@ -191,6 +200,43 @@ const formatter = (type, option) => {
   return option
 }
 
+// 折叠面板状态
+const expandStates = ref({})
+
+// 初始化折叠面板状态
+const initExpandStates = () => {
+  const userId = currentUser.value || 'default'
+  const savedStates = JSON.parse(localStorage.getItem(`expandStates_${userId}`) || '{}')
+
+  expandStates.value = {
+    mainSwitch: savedStates.mainSwitch ?? true,
+    plantConfig: savedStates.plantConfig ?? true,
+    orderConfig: savedStates.orderConfig ?? true,
+    altConfig: savedStates.altConfig ?? true,
+    stealConfig: savedStates.stealConfig ?? true,
+    guildConfig: savedStates.guildConfig ?? true,
+    otherFeatures: savedStates.otherFeatures ?? true,
+    vip3Config: savedStates.vip3Config ?? true,
+    tradeConfig: savedStates.tradeConfig ?? true,
+    nonVipSteal: savedStates.nonVipSteal ?? true,
+    tradeInConfig: savedStates.tradeInConfig ?? true,
+  }
+}
+
+// 保存折叠状态到本地存储
+const saveExpandState = (key, state) => {
+  const userId = currentUser.value || 'default'
+  const states = JSON.parse(localStorage.getItem(`expandStates_${userId}`) || '{}')
+  states[key] = state
+  localStorage.setItem(`expandStates_${userId}`, JSON.stringify(states))
+}
+
+// 切换折叠状态
+const toggleExpand = (key) => {
+  expandStates.value[key] = !expandStates.value[key]
+  saveExpandState(key, expandStates.value[key])
+}
+
 // 弹出层方法
 const showTime = (period, field) => {
   selectTime.value = [period, field]
@@ -199,7 +245,9 @@ const showTime = (period, field) => {
 
 const showFlower = (flower) => {
   seedList.value = []
-  seedList.value.push(...allFlowers.filter((f) => accountInfo.value.flowers.includes(f.value)))
+  seedList.value.push(
+    ...allFlowers[gameId.value].filter((f) => accountInfo.value.flowers.includes(f.value)),
+  )
   tempSeedList.value = seedList.value
   selectFlower.value = flower
   showFlowerPicker.value = true
@@ -231,7 +279,7 @@ const showFriendFlower = async (steal) => {
   let friendFlowerIds = [...friendInfo.value.flowers]
   seedList.value = [{ value: '-1', text: '所有花' }]
   seedList.value.push(
-    ...allFlowers.filter(
+    ...allFlowers[gameId.value].filter(
       (flower) => friendFlowerIds.length == 0 || friendFlowerIds.includes(flower.value),
     ),
   )
@@ -263,12 +311,15 @@ const vipStatus = () => {
 // VIP状态样式计算
 const vipStatusStyle = computed(() => {
   const subscribe = user.value.subscribe
-  if (!subscribe && subscribe.subscribeId == -1) {
+  // 无套餐
+  if (!subscribe || subscribe.subscribeId == -1) {
     return { color: '#8c8c8c', bgColor: 'rgba(140, 140, 140, 0.1)' }
   }
+  // 永久有效
   if (subscribe.subscribeId != -1 && !subscribe.validUtil) {
     return { color: '#722ed1', bgColor: 'rgba(114, 46, 209, 0.1)' }
   }
+  // 普通日期
   return { color: '#1890ff', bgColor: 'rgba(24, 144, 255, 0.1)' }
 })
 
@@ -515,6 +566,9 @@ const getConfig = async () => {
       currentUser.value = otherUsers.value[0].value
     }
     plantText.value = autoPlantArr[config.value.autoPlant]
+
+    // 初始化折叠状态
+    initExpandStates()
   } catch (error) {
     showNotify({ type: 'danger', message: '网络错误，无法获取配置' })
   }
@@ -569,6 +623,11 @@ watch(
   { immediate: true },
 )
 
+// 监听用户切换，重新初始化折叠状态
+watch(currentUser, () => {
+  initExpandStates()
+})
+
 // 初始化
 onMounted(() => {
   getConfig()
@@ -588,14 +647,15 @@ onMounted(() => {
   <main class="page-container">
     <!-- 顶部渐变装饰 -->
     <div class="top-decoration"></div>
-
+    <exchange-modal ref="exchangeModalRef" :default-open-id="user.openId"></exchange-modal>
     <!-- 导航栏 -->
     <van-nav-bar
       class="custom-nav"
-      title="莳花小助手v0.9.8"
+      title="莳花小助手v1.0.0"
       left-text="兑换"
       right-text="充值"
       :right-disabled="!accountInfo"
+      @click-left="openExchangeModal"
       @click-right="saveConfig"
     >
       <template #right>
@@ -664,10 +724,9 @@ onMounted(() => {
       <!-- 功能总开关 -->
       <div class="config-card main-switch-card">
         <div class="card-header">
-          <van-icon name="poweroff" size="20" color="#1890ff" />
           <span class="card-title">核心控制</span>
         </div>
-        <div class="card-content">
+        <div class="card-content" v-show="expandStates.mainSwitch">
           <van-cell
             class="main-switch-cell"
             center
@@ -703,11 +762,17 @@ onMounted(() => {
         </van-popup>
         <!-- 自动种植配置 -->
         <div class="config-card plant-config-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('plantConfig')">
             <van-icon name="flower-o" size="20" color="#52c41a" />
             <span class="card-title">自动种植</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.plantConfig }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.plantConfig">
             <van-cell class="plant-mode-cell" center label="配置种植策略和时间计划">
               <template #title>
                 <span class="feature-title">种植模式</span>
@@ -788,11 +853,17 @@ onMounted(() => {
         </div>
         <!-- 订单配置 -->
         <div class="config-card order-config-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('orderConfig')">
             <van-icon name="completed-o" size="20" color="#fa8c16" />
             <span class="card-title">订单管理</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.orderConfig }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.orderConfig">
             <van-cell class="feature-cell" center label="若无订单所需种子，则会自动拒绝">
               <template #title>
                 <span class="feature-title">客户订单</span>
@@ -865,11 +936,17 @@ onMounted(() => {
 
         <!-- 小号配置 -->
         <div class="config-card alt-config-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('altConfig')">
             <van-icon name="friends-o" size="20" color="#1890ff" />
             <span class="card-title">小号管理</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.altConfig }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.altConfig">
             <van-cell
               class="feature-cell"
               center
@@ -940,11 +1017,17 @@ onMounted(() => {
 
         <!-- 自动摸花 -->
         <div class="config-card steal-config-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('stealConfig')">
             <van-icon name="gift-o" size="20" color="#ff6767" />
             <span class="card-title">自动摸花</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.stealConfig }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.stealConfig">
             <van-cell class="feature-cell" center label="可配置摸花好友、花种和次数上限">
               <template #title>
                 <span class="feature-title">摸花功能启用</span>
@@ -1021,13 +1104,20 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
         <!-- 自动上架下架 -->
         <div class="config-card steal-config-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('tradeConfig')">
             <van-icon name="cart-o" size="20" color="#ff6767" />
             <span class="card-title">店铺管理</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.tradeConfig }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.tradeConfig">
             <van-cell class="feature-cell" center label="">
               <template #title>
                 <span class="feature-title">自动上架</span>
@@ -1116,7 +1206,8 @@ onMounted(() => {
               </van-button>
             </div>
           </div>
-          <div class="card-content">
+
+          <div class="card-content" v-show="expandStates.tradeConfig">
             <van-cell class="feature-cell" center label="">
               <template #title>
                 <span class="feature-title">自动购买</span>
@@ -1214,42 +1305,66 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- 社团功能集合 -->
+        <div class="config-card other-features-card">
+          <div class="card-header" @click="toggleExpand('guildConfig')">
+            <van-icon name="cluster-o" size="20" color="#52c41a" />
+            <span class="card-title">社团功能</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.guildConfig }"
+              class="expand-icon"
+            />
+          </div>
+          <div class="card-content" v-show="expandStates.guildConfig">
+            <van-cell class="feature-cell" center label="自动捐献指定资源">
+              <template #title>
+                <span class="feature-title">社团捐献</span>
+              </template>
+              <van-dropdown-menu class="feature-dropdown">
+                <van-dropdown-item
+                  v-model="config.autoDonate"
+                  :options="donateOptions"
+                  class="dropdown-item"
+                />
+              </van-dropdown-menu>
+            </van-cell>
+            <van-cell class="feature-cell" center label="自动收获社团花盆">
+              <template #title>
+                <span class="feature-title">社团收获</span>
+              </template>
+              <template #right-icon>
+                <van-switch :disabled="!config" v-model="config.autoGuildPlant" size="24" />
+              </template>
+            </van-cell>
+            <van-cell class="feature-cell" center label="自动观看社团广告获取奖励">
+              <template #title>
+                <span class="feature-title">视频捐献</span>
+              </template>
+              <template #right-icon>
+                <van-switch :disabled="!config" v-model="config.autoGuildAd" size="24" />
+              </template>
+            </van-cell>
+          </div>
+        </div>
+
         <!-- 其他功能集合 -->
         <div class="config-card other-features-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('otherFeatures')">
             <van-icon name="apps-o" size="20" color="#722ed1" />
             <span class="card-title">更多功能</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.otherFeatures }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.otherFeatures">
             <div class="features-grid">
               <!-- 第一行功能 -->
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="gift-o" size="20" color="#fa8c16" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">社团捐献</div>
-                  <div class="feature-desc">自动捐献指定资源</div>
-                </div>
-                <van-dropdown-menu class="mini-dropdown">
-                  <van-dropdown-item
-                    v-model="config.autoDonate"
-                    :options="donateOptions"
-                    class="mini-dropdown-item"
-                  />
-                </van-dropdown-menu>
-              </div>
-
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="cluster-o" size="20" color="#52c41a" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">社团收获</div>
-                  <div class="feature-desc">自动收获社团花盆</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoGuildPlant" size="22" />
-              </div>
               <div class="feature-item">
                 <div class="feature-icon">
                   <van-icon name="shop-o" size="20" color="#1890ff" />
@@ -1260,6 +1375,7 @@ onMounted(() => {
                 </div>
                 <van-switch :disabled="!config" v-model="config.autoSell" size="22" />
               </div>
+
               <!-- 第二行功能 -->
               <div class="feature-item">
                 <div class="feature-icon">
@@ -1312,7 +1428,7 @@ onMounted(() => {
                 </div>
                 <div class="feature-info">
                   <div class="feature-name">更好的游戏</div>
-                  <div class="feature-desc">跳过广告/一键操作</div>
+                  <div class="feature-desc">VIP功能/免广告</div>
                 </div>
                 <van-switch :disabled="!config" v-model="config.betterGame" size="22" />
               </div>
@@ -1332,8 +1448,8 @@ onMounted(() => {
                   <van-icon name="play-circle-o" size="20" color="#5cadff" />
                 </div>
                 <div class="feature-info">
-                  <div class="feature-name">自动看广告</div>
-                  <div class="feature-desc">自动领取所有类型广告奖励（含快乐大转盘）</div>
+                  <div class="feature-name">自动领取</div>
+                  <div class="feature-desc">领取所有广告奖励、转盘奖励、活动水滴）</div>
                 </div>
                 <van-switch :disabled="!config" v-model="config.autoAd" size="22" />
               </div>
@@ -1343,11 +1459,17 @@ onMounted(() => {
 
         <!-- VIP专属功能 -->
         <div v-if="user?.subscribe?.subscribeId == 3" class="config-card vip3-card">
-          <div class="card-header vip3-header">
+          <div class="card-header vip3-header" @click="toggleExpand('vip3Config')">
             <van-icon name="crown-o" size="20" color="#faad14" />
             <span class="card-title vip3-title">专享</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.vip3Config }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.vip3Config">
             <van-cell
               class="vip3-feature-cell"
               center
@@ -1394,11 +1516,17 @@ onMounted(() => {
       <!-- 小号用户配置 -->
       <div v-if="user?.subscribe?.subscribeId == 0" class="config-section non-vip-section">
         <div class="config-card non-vip-steal-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('nonVipSteal')">
             <van-icon name="hand-o-right" size="20" color="#ff6767" />
             <span class="card-title">基础摸花功能</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.nonVipSteal }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.nonVipSteal">
             <van-cell class="feature-cell" center label="小号只能摸被配置的好友，无其他高级功能">
               <template #title>
                 <span class="feature-title">自动摸花</span>
@@ -1461,13 +1589,19 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <!-- 自动上架下架 -->
+        <!-- 自动购买 -->
         <div class="config-card steal-config-card">
-          <div class="card-header">
+          <div class="card-header" @click="toggleExpand('tradeInConfig')">
             <van-icon name="cart-o" size="20" color="#ff6767" />
             <span class="card-title">店铺管理</span>
+            <van-icon
+              name="arrow-down"
+              size="16"
+              :class="{ 'rotate-180': expandStates.tradeInConfig }"
+              class="expand-icon"
+            />
           </div>
-          <div class="card-content">
+          <div class="card-content" v-show="expandStates.tradeInConfig">
             <van-cell class="feature-cell" center label="">
               <template #title>
                 <span class="feature-title">自动购买</span>
@@ -1706,6 +1840,7 @@ onMounted(() => {
 }
 
 .status-card {
+  max-height: 65px;
   padding: 16px;
   border-radius: 16px;
   border: 1px solid transparent;
@@ -1791,16 +1926,26 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
 }
 
 .card-title {
   font-size: 16px;
   font-weight: 600;
   color: #1f2937;
+  flex: 1;
 }
 
 .card-content {
   padding: 16px 20px;
+}
+
+.expand-icon {
+  transition: transform 0.3s ease;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
 }
 
 /* 主要开关卡片 */

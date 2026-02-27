@@ -77,14 +77,22 @@ const findMatchedIndex = (targetVal, options) => {
   return -1
 }
 
-// 初始化默认索引
+// 初始化默认索引，并同步更新父组件的 modelValue
 const initDefaultIndex = () => {
+  let newIndex = 0
   if (props.modelValue !== null && props.modelValue !== undefined) {
     const matchedIndex = findMatchedIndex(props.modelValue, optionsArr.value)
     // 如果匹配到则使用匹配的索引，否则用默认索引（第二个元素或第一个）
-    currentIndex.value = matchedIndex >= 0 ? matchedIndex : (optionsArr.value.length >= 2 ? 1 : 0)
+    newIndex = matchedIndex >= 0 ? matchedIndex : (optionsArr.value.length >= 2 ? 1 : 0)
   } else {
-    currentIndex.value = optionsArr.value.length >= 2 ? 1 : 0
+    newIndex = optionsArr.value.length >= 2 ? 1 : 0
+  }
+
+  // 关键修复：更新索引后，主动派发事件同步到父组件
+  if (newIndex !== currentIndex.value) {
+    currentIndex.value = newIndex
+    const newVal = optionsArr.value[currentIndex.value]
+    emit('update:modelValue', newVal) // 新增：同步更新父组件的 v-model 值
   }
 }
 
@@ -93,7 +101,7 @@ watch(
   () => props.options,
   (newVal) => {
     optionsArr.value = [...newVal]
-    initDefaultIndex()
+    initDefaultIndex() // options 变化时重新初始化索引并同步父组件
   },
   { immediate: true, deep: true } // 增加 deep: true 监听数组元素变化
 )

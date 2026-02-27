@@ -1,12 +1,13 @@
+import DS_FLOWER_INFO_LIST from '@/config/ds.flower.info'
 import FLOWER_TRADE_LIST from '@/config/flower.trade'
 
-import FLOWER_INFO_LIST from '@/config/flower.info'
+import SG_FLOWER_INFO_LIST from '@/config/sg.flower.info'
 
 let flowerNameMapCache = null
 
 const getFlowerNameMap = () => {
   if (flowerNameMapCache) return flowerNameMapCache // 缓存命中直接返回
-  flowerNameMapCache = (FLOWER_INFO_LIST || []).reduce((map, item) => {
+  flowerNameMapCache = (SG_FLOWER_INFO_LIST || []).reduce((map, item) => {
     // 非空判断
     if (item && item.id !== undefined && item.id !== null) {
       map.set(item.id, item)
@@ -31,12 +32,19 @@ const getFlowerTradeInfo = (flower) => {
 }
 
 const getAllFlowers = () => {
-  return FLOWER_INFO_LIST.filter(
+  const sg = SG_FLOWER_INFO_LIST.filter(
     (item) => item && item.id !== undefined && item.id !== null && item.name,
   ).map((item) => ({
     text: item.name,
     value: item.id,
   }))
+  const ds = DS_FLOWER_INFO_LIST.filter(
+    (item) => item && item.id !== undefined && item.id !== null && item.name,
+  ).map((item) => ({
+    text: item.name,
+    value: item.id,
+  }))
+  return [[], sg, ds]
 }
 
 /**
