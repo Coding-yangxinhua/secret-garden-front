@@ -271,7 +271,6 @@ const showFlower = (flower) => {
   seedList.value.push(
     ...allFlowers[gameId.value].filter((f) => accountInfo.value.flowers.includes(f.value)),
   )
-  tempSeedList.value = seedList.value
   selectFlower.value = flower
   showFlowerPicker.value = true
 }
@@ -306,7 +305,6 @@ const showFriendFlower = async (steal) => {
       (flower) => friendFlowerIds.length == 0 || friendFlowerIds.includes(flower.value),
     ),
   )
-  tempSeedList.value = seedList.value
   selectFlower.value = steal
   showFlowerPicker.value = true
 }
@@ -594,12 +592,9 @@ const getBaseIconUrl = () => {
   }
   return ''
 }
-const tempSeedList = ref([])
+
 // 过滤方法
 const filterSeed = () => {
-  if (seedList.value.length == 0) {
-    seedList.value = tempSeedList.value
-  }
   seedList.value = seedList.value.filter((flower) =>
     flower.text.toLowerCase().includes(searchSeed.value.toLowerCase()),
   )
@@ -739,6 +734,12 @@ onMounted(() => {
 
 <template>
   <main class="page-container">
+    <!-- 【新增】顶部标题区域 -->
+    <div class="top-title-bar">
+      <h1 class="app-title">莳花小助手</h1>
+      <span class="version-number">v1.0.2</span>
+    </div>
+
     <!-- 顶部渐变装饰 -->
     <div class="top-decoration"></div>
     <exchange-modal ref="exchangeModalRef" :default-open-id="user.openId"></exchange-modal>
@@ -795,30 +796,6 @@ onMounted(() => {
 
     <!-- 主要配置区域 -->
     <div class="config-wrapper" v-if="user && user?.subscribe?.subscribeId >= 0">
-      <!-- 功能总开关 -->
-      <div class="config-card main-switch-card">
-        <div class="card-header">
-          <span class="card-title">核心控制</span>
-        </div>
-        <div class="card-content" v-show="expandStates.mainSwitch">
-          <van-cell
-            class="main-switch-cell"
-            center
-            title="功能启用"
-            label="开启后将自动执行所有配置的挂机任务"
-          >
-            <template #right-icon>
-              <van-switch
-                :disabled="!user || user.refreshNeed || !user.subscribe"
-                v-model="config.enable"
-                size="28"
-                class="main-switch"
-              />
-            </template>
-          </van-cell>
-        </div>
-      </div>
-
       <!-- VIP用户配置 -->
       <div v-if="user && user?.subscribe?.subscribeId > 0" class="config-section">
         <van-popup v-model:show="showPlant" round position="bottom" class="custom-popup">
@@ -1892,7 +1869,13 @@ onMounted(() => {
           @click="triggerRobot"
         >
           <van-icon
-            :name="runningStatus == 0 ? 'play-circle-o' : runningStatus == -1 ? 'replay' : 'stop-circle-o'"
+            :name="
+              runningStatus == 0
+                ? 'play-circle-o'
+                : runningStatus == -1
+                  ? 'replay'
+                  : 'stop-circle-o'
+            "
             :color="runningStatus == 0 ? '#52c41a' : runningStatus == -1 ? '#d9d9d9' : '#ff6767'"
             size="28"
           />
@@ -1923,13 +1906,40 @@ onMounted(() => {
 /* 全局样式重置和基础设置 */
 .page-container {
   min-height: 100vh;
+  max-width: 780px;
   background: linear-gradient(to bottom, #f8f9fa 0%, #e8f4f8 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
   padding-bottom: 120px; /* 为底部导航栏预留空间 */
+  margin: auto;
 }
 
+/* 【新增】顶部标题区域样式 */
+.top-title-bar {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 10px 16px 10px;
+  text-align: center;
+  background-color: #fff;
+  border-bottom: 1px solid #f5f5f5;
+}
 
+.app-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 1px;
+}
+
+.version-number {
+  font-size: 14px;
+  color: #9ca3af; /* 灰色调 */
+  font-weight: normal;
+  align-self: flex-end;
+  margin-left: 5px; /* 增加左边距，使版本号离标题远一些 */
+}
 /* 状态卡片区域 */
 .status-section {
   padding: 20px 16px 16px;
@@ -2019,7 +2029,6 @@ onMounted(() => {
 }
 
 .config-card:active {
-  /* 移除 transform: translateY(-2px); */
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12); /* 增强阴影，保留点击反馈 */
 }
 
@@ -2582,7 +2591,6 @@ onMounted(() => {
   pointer-events: none;
 }
 
-
 /* 【新增】二级菜单样式 */
 .more-menu {
   position: absolute;
@@ -2684,11 +2692,6 @@ onMounted(() => {
 }
 .config-card:nth-child(5) {
   animation-delay: 0.25s;
-}
-
-/* 工具方法 - 资源进度条颜色 */
-.getResourceColor {
-  color: #1890ff;
 }
 
 :deep(.van-cell__value) {
