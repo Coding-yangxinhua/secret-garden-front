@@ -22,6 +22,12 @@ const saleOptions = [
   { text: '缺花不处理', value: 2 },
 ]
 
+const harvestOptions = [
+  { text: '自动', value: 0 },
+  { text: '手动', value: 1 },
+  { text: '定时', value: 2 },
+]
+
 const challengeOptions = [
   { text: '关闭', value: 0 },
   { text: '免费挑战', value: 1 },
@@ -72,6 +78,10 @@ const cascaderValue = ref([])
 const tradeMap = flowerUtil.getFlowerTradeMap()
 const exchangeModalRef = ref(null)
 
+// 【新增】底部导航栏相关状态
+const showMoreMenu = ref(false) // 控制"更多"二级菜单显示
+const moreMenuRef = ref(null) // 更多菜单的DOM引用，用于点击外部关闭
+
 const openExchangeModal = () => {
   exchangeModalRef.value.openModal()
 }
@@ -108,6 +118,8 @@ const config = computed(
       autoComplete: 0,
       autoChallenge: 0,
       orderMaxNum: 0,
+      autoHarvest: 0,
+      harvestWaitingTime: 30,
       autoAccept: false,
       autoSteal: false,
       autoSell: false,
@@ -144,8 +156,8 @@ const tradeInfo = (out) => {
 }
 
 // 运行状态计算属性（增强视觉区分）
-const runningStatus = computed(() => {
-  if (user.value.refreshNeed == 1) {
+const runningStatusDesc = computed(() => {
+  if (runningStatus.value == -1) {
     return {
       icon: 'close',
       text: '需要重新登录游戏',
@@ -153,8 +165,7 @@ const runningStatus = computed(() => {
       bgColor: 'rgba(255, 77, 79, 0.1)',
       borderColor: 'rgba(255, 77, 79, 0.2)',
     }
-  }
-  if (!config.value.enable) {
+  } else if (runningStatus.value == 0) {
     return {
       icon: 'play-circle-o',
       text: '状态：未启用',
@@ -162,8 +173,7 @@ const runningStatus = computed(() => {
       bgColor: 'rgba(140, 140, 140, 0.1)',
       borderColor: 'rgba(140, 140, 140, 0.2)',
     }
-  }
-  if (accountInfo.value.running) {
+  } else if (runningStatus.value == 1) {
     return {
       icon: 'passed',
       text: '状态：运行中...',
@@ -179,6 +189,19 @@ const runningStatus = computed(() => {
     bgColor: 'rgba(250, 140, 22, 0.1)',
     borderColor: 'rgba(250, 140, 22, 0.2)',
   }
+})
+
+const runningStatus = computed(() => {
+  // 需要重新登录
+  if (user.value.refreshNeed == 1) {
+    return -1
+  }
+  // 运行中
+  if (accountInfo.value.running) {
+    return 1
+  }
+  // 未启用
+  return 0
 })
 
 // 格式化时间
@@ -502,6 +525,64 @@ const getFriendInfo = async (openId) => {
   }
 }
 
+const triggerRobot = async () => {
+  if (!accountInfo.value) return
+  let url = '/config/'
+  let msg = ''
+  if (runningStatus.value == 0) {
+    url += 'run'
+    msg = '启动'
+  } else if (runningStatus.value == 1) {
+    url += 'stop'
+    msg = '停止'
+  } else {
+    return
+  }
+  if (currentUser.value) {
+    url += '?userId=' + currentUser.value
+  }
+
+  saveToast.value = showLoadingToast({
+    duration: 0,
+    forbidClick: true,
+    message: msg + '中...',
+    loadingType: 'spinner',
+    className: 'custom-loading-toast',
+  })
+  try {
+    const { code, remark } = await request({
+      method: 'get',
+      url,
+    })
+
+    if (code === 200) {
+      showNotify({
+        type: 'success',
+        message: msg + '成功！',
+        duration: 2000,
+        className: 'custom-notify',
+      })
+      getConfigPart()
+    } else {
+      showNotify({
+        type: 'danger',
+        message: remark || msg + '失败!',
+        duration: 3000,
+        className: 'custom-notify',
+      })
+    }
+  } catch (error) {
+    showNotify({
+      type: 'danger',
+      message: '网络错误，请重试',
+      duration: 3000,
+      className: 'custom-notify',
+    })
+  } finally {
+    saveToast.value?.close()
+  }
+}
+
 // 获取图标URL
 const getBaseIconUrl = () => {
   if ([1, 2].includes(accountInfo.value.gameId)) {
@@ -628,13 +709,26 @@ watch(currentUser, () => {
   initExpandStates()
 })
 
+// 【新增】监听点击事件，关闭更多菜单
+const handleClickOutside = (event) => {
+  if (moreMenuRef.value && !moreMenuRef.value.contains(event.target)) {
+    showMoreMenu.value = false
+  }
+}
+
 // 初始化
 onMounted(() => {
   getConfig()
   const interval = setInterval(getConfigPart, 20000)
 
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleClickOutside)
+
   // 清理定时器
-  const cleanup = () => clearInterval(interval)
+  const cleanup = () => {
+    clearInterval(interval)
+    document.removeEventListener('click', handleClickOutside)
+  }
   window.addEventListener('beforeunload', cleanup)
   return () => {
     cleanup()
@@ -648,26 +742,6 @@ onMounted(() => {
     <!-- 顶部渐变装饰 -->
     <div class="top-decoration"></div>
     <exchange-modal ref="exchangeModalRef" :default-open-id="user.openId"></exchange-modal>
-    <!-- 导航栏 -->
-    <van-nav-bar
-      class="custom-nav"
-      title="莳花小助手v1.0.0"
-      left-text="兑换"
-      right-text="充值"
-      :right-disabled="!accountInfo"
-      @click-left="openExchangeModal"
-      @click-right="saveConfig"
-    >
-      <template #right>
-        <div
-          class="save-btn"
-          @click="saveConfig"
-          :class="{ disabled: !accountInfo && user.subscribe.subscribeId != -1 }"
-        >
-          保存
-        </div>
-      </template>
-    </van-nav-bar>
 
     <!-- 状态卡片区域 -->
     <div class="status-section">
@@ -676,13 +750,13 @@ onMounted(() => {
         <div
           class="status-card"
           :style="{
-            backgroundColor: runningStatus.bgColor,
-            borderColor: runningStatus.borderColor,
-            color: runningStatus.color,
+            backgroundColor: runningStatusDesc.bgColor,
+            borderColor: runningStatusDesc.borderColor,
+            color: runningStatusDesc.color,
           }"
         >
-          <van-icon :name="runningStatus.icon" size="28" :color="runningStatus.color" />
-          <div class="status-text">{{ runningStatus.text }}</div>
+          <van-icon :name="runningStatusDesc.icon" size="28" :color="runningStatusDesc.color" />
+          <div class="status-text">{{ runningStatusDesc.text }}</div>
         </div>
 
         <!-- VIP状态卡片 -->
@@ -773,6 +847,38 @@ onMounted(() => {
             />
           </div>
           <div class="card-content" v-show="expandStates.plantConfig">
+            <van-cell class="plant-mode-cell" center label="配置收获模式">
+              <template #title>
+                <span class="feature-title">收获模式</span>
+              </template>
+              <van-dropdown-menu class="feature-dropdown">
+                <van-dropdown-item
+                  v-model="config.autoHarvest"
+                  :options="harvestOptions"
+                  placeholder="请选择"
+                  class="dropdown-item"
+                />
+              </van-dropdown-menu>
+            </van-cell>
+            <div v-show="config.autoHarvest == 2" class="order-advanced-section">
+              <div class="section-title">
+                <van-icon name="setting-o" size="16" color="#8c8c8c" />
+                <span>收获定时设置</span>
+              </div>
+
+              <van-cell class="advanced-cell" title="定时收获" label="鲜花成熟后 N 秒收获">
+                <van-stepper
+                  v-model="config.harvestWaitingTime"
+                  step="30"
+                  integer
+                  min="0"
+                  theme="round"
+                  button-size="24px"
+                  class="stepper-control"
+                />
+              </van-cell>
+            </div>
+
             <van-cell class="plant-mode-cell" center label="配置种植策略和时间计划">
               <template #title>
                 <span class="feature-title">种植模式</span>
@@ -1768,6 +1874,48 @@ onMounted(() => {
         confirm-button-text="确认"
       />
     </van-popup>
+
+    <!-- 【新增】底部导航栏 -->
+    <div class="bottom-nav">
+      <div class="nav-container">
+        <div class="nav-item" @click="saveConfig">
+          <van-icon name="setting-o" size="24" />
+          <span>保存配置</span>
+        </div>
+        <div class="nav-item">
+          <van-icon name="records" size="24" />
+          <span>日志</span>
+        </div>
+        <div
+          class="nav-center-item"
+          :class="{ disabled: runningStatus === -1 }"
+          @click="triggerRobot"
+        >
+          <van-icon
+            :name="runningStatus == 0 ? 'play-circle-o' : runningStatus == -1 ? 'replay' : 'stop-circle-o'"
+            :color="runningStatus == 0 ? '#52c41a' : runningStatus == -1 ? '#d9d9d9' : '#ff6767'"
+            size="28"
+          />
+          <span>{{ runningStatus == 0 ? '启用' : runningStatus == -1 ? '未就绪' : '停止' }}</span>
+        </div>
+        <div class="nav-item" @click="showMoreMenu = !showMoreMenu" ref="moreMenuRef">
+          <van-icon name="more-o" size="24" />
+          <span>更多</span>
+        </div>
+        <div class="nav-item" @click="currentUser = null">
+          <van-icon name="user-o" size="24" />
+          <span>{{ currentUser ? '登出' : '登入' }}</span>
+        </div>
+      </div>
+
+      <!-- 【新增】二级菜单 -->
+      <div class="more-menu" v-show="showMoreMenu">
+        <div class="menu-item" @click="openExchangeModal">
+          <van-icon name="gift-card-o" size="20" />
+          <span>兑换码兑换</span>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -1778,54 +1926,9 @@ onMounted(() => {
   background: linear-gradient(to bottom, #f8f9fa 0%, #e8f4f8 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
+  padding-bottom: 120px; /* 为底部导航栏预留空间 */
 }
 
-/* 顶部渐变装饰 */
-.top-decoration {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
-  border-radius: 0 0 50% 50%;
-  transform: translateY(-60%);
-  z-index: 0;
-  opacity: 0.1;
-}
-
-/* 导航栏样式 */
-.custom-nav {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  position: relative;
-  z-index: 10;
-}
-
-.custom-nav :deep(.van-nav-bar__title) {
-  font-weight: 600;
-  font-size: 18px;
-  color: #1f2937;
-}
-
-.save-btn {
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1890ff;
-  transition: all 0.2s ease;
-}
-
-.save-btn.disabled {
-  color: #cccccc;
-  cursor: not-allowed;
-}
-
-.save-btn:not(.disabled):active {
-  background-color: rgba(24, 144, 255, 0.1);
-}
 
 /* 状态卡片区域 */
 .status-section {
@@ -2001,7 +2104,6 @@ onMounted(() => {
 
 .plant-selector {
   --van-field-label-width: 0;
-  --van-field-input-text-color: #1890ff;
   font-weight: 500;
 }
 
@@ -2393,6 +2495,131 @@ onMounted(() => {
   padding: 8px 16px;
 }
 
+/* 【新增】底部导航栏样式 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 12px 0;
+  background-color: #fff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  max-width: 80px;
+}
+
+.nav-item:hover {
+  background-color: #f5f7fa;
+}
+
+.nav-center-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 83px;
+  height: 80px;
+  background-color: #fff;
+  border-radius: 50%;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 0 4px #fff;
+  cursor: pointer;
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.nav-center-item:hover {
+  transform: translateX(-50%) scale(1.05);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.2),
+    0 0 0 4px #fff;
+}
+
+.nav-center-item span {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nav-item span {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nav-center-item.disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+/* 【新增】二级菜单样式 */
+.more-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  width: 160px;
+  z-index: 1002;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:hover {
+  background-color: #f5f7fa;
+}
+
+.menu-item span {
+  margin-left: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
 /* 响应式适配 */
 @media (max-width: 375px) {
   .status-grid {
@@ -2416,6 +2643,14 @@ onMounted(() => {
 
   .action-col {
     align-self: flex-end;
+  }
+
+  .nav-container {
+    padding: 12px 8px;
+  }
+
+  .nav-item {
+    max-width: 70px;
   }
 }
 
@@ -2454,5 +2689,10 @@ onMounted(() => {
 /* 工具方法 - 资源进度条颜色 */
 .getResourceColor {
   color: #1890ff;
+}
+
+:deep(.van-cell__value) {
+  display: flex;
+  justify-content: right;
 }
 </style>
