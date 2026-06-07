@@ -1,9 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ManageView from '@/views/ManageView.vue'
-import LcgklView from '@/views/LcgklView.vue'
-import SxkView from '@/views/SxkView.vue'
-
+import LoginView from '@/views/LoginView.vue'
+import LogView from '@/views/LogView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,20 +13,25 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: '/log',
+      name: 'log',
+      component: LogView,
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+    },
+    {
       path: '/manage',
       name: 'manage',
       component: ManageView,
     },
     {
-      path: '/lcgkl',
-      name: 'lcgkl',
-      component: LcgklView,
+      path: '/test-node-config',
+      name: 'testNodeConfig',
+      component: () => import('@/components/TestNodeConfig.vue'),
     },
-    {
-      path: '/sxk',
-      name: 'sxk',
-      component: SxkView,
-    }
   ],
 })
 

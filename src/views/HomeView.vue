@@ -1,803 +1,34 @@
-<script setup>
-import { onMounted, ref, computed, watch } from 'vue'
-import request from '@/utils/request'
-import timestampToFormattedDate from '@/utils/common'
-import { showLoadingToast, showNotify } from 'vant'
-import flowerUtil from '@/utils/flowerUtil'
-import CustomArrayStepper from '@/components/icons/CustomArrayStepper.vue'
-import ExchangeModal from '@/components/icons/ExchangeModal.vue'
-
-// 搜索内容
-const searchSeed = ref('')
-const searchFriend = ref('')
-const seedList = ref([])
-const friendList = ref([])
-const friends = ref([])
-const saveToast = ref()
-
-// 配置选项
-const saleOptions = [
-  { text: '关闭', value: 0 },
-  { text: '缺花自动补种', value: 1 },
-  { text: '缺花不处理', value: 2 },
-]
-
-const harvestOptions = [
-  { text: '自动', value: 0 },
-  { text: '手动', value: 1 },
-  { text: '定时', value: 2 },
-]
-
-const challengeOptions = [
-  { text: '关闭', value: 0 },
-  { text: '免费挑战', value: 1 },
-  { text: '付费挑战', value: 2 },
-]
-
-const donateOptions = [
-  { text: '关闭', value: 0 },
-  { text: '5000金币', value: 1 },
-  { text: '20000金币', value: 2 },
-  { text: '10玉石', value: 3 },
-]
-
-const altOptions = [{ text: '基础功能', value: 0 }]
-const altOptions1 = [
-  { text: '基础功能（摸花/爬架子）', value: 0 },
-  { text: '完整功能', value: 1 },
-]
-
-const plantOptions = [
-  { text: '关闭', value: 0 },
-  {
-    text: '补仓',
-    value: 2,
-    children: [
-      { text: '鲜花>=1级', value: 2 },
-      { text: '鲜花>8级', value: 3 },
-      { text: '鲜花>12级', value: 4 },
-    ],
-  },
-  { text: '自选', value: 1 },
-]
-
-// 响应式数据
-const otherUsers = ref()
-const currentUser = ref(localStorage.getItem('currentUser'))
-const selectTime = ref()
-const selectFlower = ref()
-const showTimePicker = ref(false)
-const showFlowerPicker = ref(false)
-const showFriendPicker = ref(false)
-const showPlant = ref(false)
-const plantText = ref()
-const friendInfo = ref({ flowers: [], exchangeCount: 10 })
-const friendKey = ref()
-const friendValue = ref()
-const cascaderValue = ref([])
-const tradeMap = flowerUtil.getFlowerTradeMap()
-const exchangeModalRef = ref(null)
-
-// 【新增】底部导航栏相关状态
-const showMoreMenu = ref(false) // 控制"更多"二级菜单显示
-const moreMenuRef = ref(null) // 更多菜单的DOM引用，用于点击外部关闭
-
-const openExchangeModal = () => {
-  exchangeModalRef.value.openModal()
-}
-
-// 用户配置信息
-const accountInfo = ref({
-  running: false,
-})
-
-const gameId = computed(() => accountInfo.value.user.gameId)
-
-const user = computed(
-  () =>
-    accountInfo.value.user || {
-      refreshNeed: false,
-      subscribe: { subscribeId: -1 },
-      gameUser: {},
-      otherUsers: [],
-      userName: '',
-    },
-)
-
-const config = computed(
-  () =>
-    accountInfo.value.config || {
-      enable: false,
-      autoPlant: 0,
-      autoSale: false,
-      flowers: [],
-      periods: [],
-      steals: [],
-      userAlts: [],
-      shopItems: [],
-      autoComplete: 0,
-      autoChallenge: 0,
-      orderMaxNum: 0,
-      autoHarvest: 0,
-      harvestWaitingTime: 30,
-      autoAccept: false,
-      autoSteal: false,
-      autoSell: false,
-      autoGuildPlant: false,
-      autoDonate: 0,
-      autoCultivate: false,
-      autoShop: false,
-      autoMonster: false,
-      autoRob: false,
-      betterGame: false,
-      autoGame: false,
-      autoBuy: false,
-      altsUser: [],
-      gameUser: { friends: [] },
-      autoAd: false,
-      autoGuildAd: false, // 新增社团广告开关
-    },
-)
-
-const allFlowers = flowerUtil.getAllFlowers()
-
-const tradeInfo = (out) => {
-  if (!out || !out.seedId) {
-    return [0]
-  }
-  if (out.seedId == -1) {
-    return ['低价', '平价', '高价']
-  }
-  const trade = tradeMap.get(out.seedId)
-  if (trade == null) {
-    return [0]
-  }
-  return [trade.minPrice, trade.defaultPrice, trade.maxPrice]
-}
-
-// 运行状态计算属性（增强视觉区分）
-const runningStatusDesc = computed(() => {
-  if (runningStatus.value == -1) {
-    return {
-      icon: 'close',
-      text: '需要重新登录游戏',
-      color: '#ff4d4f',
-      bgColor: 'rgba(255, 77, 79, 0.1)',
-      borderColor: 'rgba(255, 77, 79, 0.2)',
-    }
-  } else if (runningStatus.value == 0) {
-    return {
-      icon: 'play-circle-o',
-      text: '状态：未启用',
-      color: '#8c8c8c',
-      bgColor: 'rgba(140, 140, 140, 0.1)',
-      borderColor: 'rgba(140, 140, 140, 0.2)',
-    }
-  } else if (runningStatus.value == 1) {
-    return {
-      icon: 'passed',
-      text: '状态：运行中...',
-      color: '#52c41a',
-      bgColor: 'rgba(82, 196, 26, 0.1)',
-      borderColor: 'rgba(82, 196, 26, 0.2)',
-    }
-  }
-  return {
-    icon: 'close',
-    text: '状态：异常',
-    color: '#fa8c16',
-    bgColor: 'rgba(250, 140, 22, 0.1)',
-    borderColor: 'rgba(250, 140, 22, 0.2)',
-  }
-})
-
-const runningStatus = computed(() => {
-  // 需要重新登录
-  if (user.value.refreshNeed == 1) {
-    return -1
-  }
-  // 运行中
-  if (accountInfo.value.running) {
-    return 1
-  }
-  // 未启用
-  return 0
-})
-
-// 格式化时间
-const formatTime = (milliseconds) => {
-  const hours = Math.floor(milliseconds / (60 * 60 * 1000))
-  const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / (60 * 1000))
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
-
-// 日期转时间戳
-const toTime = (timeArr) => {
-  return (timeArr[0] * 60 * 60 + timeArr[1] * 60) * 1000
-}
-
-// 时间格式化器
-const formatter = (type, option) => {
-  if (type === 'hour') option.text += '时'
-  if (type === 'minute') option.text += '分'
-  return option
-}
-
-// 折叠面板状态
-const expandStates = ref({})
-
-// 初始化折叠面板状态
-const initExpandStates = () => {
-  const userId = currentUser.value || 'default'
-  const savedStates = JSON.parse(localStorage.getItem(`expandStates_${userId}`) || '{}')
-
-  expandStates.value = {
-    mainSwitch: savedStates.mainSwitch ?? true,
-    plantConfig: savedStates.plantConfig ?? true,
-    orderConfig: savedStates.orderConfig ?? true,
-    altConfig: savedStates.altConfig ?? true,
-    stealConfig: savedStates.stealConfig ?? true,
-    guildConfig: savedStates.guildConfig ?? true,
-    otherFeatures: savedStates.otherFeatures ?? true,
-    vip3Config: savedStates.vip3Config ?? true,
-    tradeConfig: savedStates.tradeConfig ?? true,
-    nonVipSteal: savedStates.nonVipSteal ?? true,
-    tradeInConfig: savedStates.tradeInConfig ?? true,
-  }
-}
-
-// 保存折叠状态到本地存储
-const saveExpandState = (key, state) => {
-  const userId = currentUser.value || 'default'
-  const states = JSON.parse(localStorage.getItem(`expandStates_${userId}`) || '{}')
-  states[key] = state
-  localStorage.setItem(`expandStates_${userId}`, JSON.stringify(states))
-}
-
-// 切换折叠状态
-const toggleExpand = (key) => {
-  expandStates.value[key] = !expandStates.value[key]
-  saveExpandState(key, expandStates.value[key])
-}
-
-// 弹出层方法
-const showTime = (period, field) => {
-  selectTime.value = [period, field]
-  showTimePicker.value = true
-}
-
-const showFlower = (flower) => {
-  seedList.value = []
-  seedList.value.push(
-    ...allFlowers[gameId.value].filter((f) => accountInfo.value.flowers.includes(f.value)),
-  )
-  selectFlower.value = flower
-  showFlowerPicker.value = true
-}
-
-const showFriendAccept = (accept) => {
-  friendList.value = [...friends.value]
-  friendKey.value = 'userName'
-  friendValue.value = 'openId'
-  selectFlower.value = accept
-  showFriendPicker.value = true
-}
-
-const showFriendSteal = (steal, limit = true) => {
-  friendKey.value = 'townName'
-  friendValue.value = 'userId'
-  let altUserOpenIds = accountInfo.value.altsUser.map((friend) => friend.openId)
-  friendList.value = friends.value.filter(
-    (friend) => altUserOpenIds.includes(friend.value) || !limit,
-  )
-  if (user.value.subscribe.subscribeId != 0) {
-    friendList.value = [{ value: '-1', text: '所有人' }, ...friendList.value]
-  }
-  selectFlower.value = steal
-  showFriendPicker.value = true
-}
-
-const showFriendFlower = async (steal) => {
-  let friendFlowerIds = [...friendInfo.value.flowers]
-  seedList.value = [{ value: '-1', text: '所有花' }]
-  seedList.value.push(
-    ...allFlowers[gameId.value].filter(
-      (flower) => friendFlowerIds.length == 0 || friendFlowerIds.includes(flower.value),
-    ),
-  )
-  selectFlower.value = steal
-  showFlowerPicker.value = true
-}
-
-// 确认选择
-const confirmTime = ({ selectedValues }) => {
-  const timestamp = toTime(selectedValues)
-  selectTime.value[0][selectTime.value[1]] = timestamp
-  showTimePicker.value = false
-}
-
-// 移除括号内容
-const removeTextAfterBracket = (inputString) => {
-  const bracketIndex = inputString.indexOf('（')
-  return bracketIndex !== -1 ? inputString.substring(0, bracketIndex) : inputString
-}
-
-// VIP状态
-const vipStatus = () => {
-  if (!user.value.subscribe || user.value.subscribe.subscribeId == -1) return '暂无VIP'
-  if (!user.value.subscribe.validUtil) return '永久有效'
-  return `${timestampToFormattedDate(user.value.subscribe.validUtil)} 到期`
-}
-
-// VIP状态样式计算
-const vipStatusStyle = computed(() => {
-  const subscribe = user.value.subscribe
-  // 无套餐
-  if (!subscribe || subscribe.subscribeId == -1) {
-    return { color: '#8c8c8c', bgColor: 'rgba(140, 140, 140, 0.1)' }
-  }
-  // 永久有效
-  if (subscribe.subscribeId != -1 && !subscribe.validUtil) {
-    return { color: '#722ed1', bgColor: 'rgba(114, 46, 209, 0.1)' }
-  }
-  // 普通日期
-  return { color: '#1890ff', bgColor: 'rgba(24, 144, 255, 0.1)' }
-})
-
-// 确认选择
-const confirmFlower = ({ selectedOptions }) => {
-  selectFlower.value['seedId'] = selectedOptions[0].value
-  selectFlower.value['seedName'] = removeTextAfterBracket(selectedOptions[0].text)
-  showFlowerPicker.value = false
-}
-
-const confirmFriend = async ({ selectedOptions }) => {
-  let openId = selectedOptions[0].value
-  selectFlower.value[friendValue.value] = openId
-  selectFlower.value[friendKey.value] = selectedOptions[0].text
-  showFriendPicker.value = false
-
-  if (openId != null && openId != -1) {
-    friendInfo.value = await getFriendInfo(openId)
-  }
-  selectFlower.value['maxExchangeCount'] = friendInfo.value.exchangeCount
-}
-
-const onFinishPlant = ({ selectedOptions }) => {
-  showPlant.value = false
-  plantText.value = selectedOptions.map((option) => option.text).join('并且')
-  config.value.autoPlant = selectedOptions[selectedOptions.length - 1].value
-  cascaderValue.value = []
-}
-
-// 添加/删除配置
-const addPlant = () => {
-  config.value.periods.push({
-    beginTime: 0,
-    endTime: 86400000,
-    seedId: '',
-    seedName: '未选择',
-  })
-}
-
-const addSteal = () => {
-  config.value.steals.push({
-    userId: '-1',
-    townName: '所有人',
-    seedId: '-1',
-    seedName: '所有花',
-    stealCount: 10,
-    maxExchangeCount: 20,
-    enable: true,
-  })
-}
-
-const addTradeOut = () => {
-  config.value.trade.outs.push({
-    seedId: '-2',
-    seedName: '无',
-    price: 0,
-    count: -1,
-    enable: true,
-  })
-}
-
-const addTradeIn = () => {
-  config.value.trade.ins.push({
-    seedId: '-1',
-    seedName: '所有花',
-    price: 0,
-    count: -1,
-    enable: true,
-  })
-}
-
-const addStealLow = () => {
-  config.value.steals.push({
-    userId: '0',
-    townName: '无',
-    seedId: '-1',
-    seedName: '所有花',
-    stealCount: 10,
-    maxExchangeCount: 10,
-    enable: true,
-  })
-}
-
-const addUserAlts = () => {
-  accountInfo.value.userAlts.push({
-    openId: '',
-    userName: '',
-    type: 0,
-  })
-}
-
-const deletePlant = (index) => {
-  config.value.periods.splice(index, 1)
-}
-
-const deleteSteal = (index) => {
-  config.value.steals.splice(index, 1)
-}
-
-const deleteTradeOut = (index) => {
-  config.value.trade.outs.splice(index, 1)
-}
-
-const deleteTradeIn = (index) => {
-  config.value.trade.ins.splice(index, 1)
-}
-
-const deleteUserAlts = (index) => {
-  accountInfo.value.userAlts.splice(index, 1)
-}
-
-// 保存配置
-const saveConfig = async () => {
-  if (!accountInfo.value) return
-
-  let url = '/config/update'
-  if (currentUser.value) {
-    url = url + '?userId=' + currentUser.value
-  }
-
-  saveToast.value = showLoadingToast({
-    duration: 0,
-    forbidClick: true,
-    message: '保存中...',
-    loadingType: 'spinner',
-    className: 'custom-loading-toast',
-  })
-
-  try {
-    const { flowers, ...newData } = accountInfo.value || {}
-    const { code, remark } = await request({
-      method: 'post',
-      url,
-      data: newData,
-    })
-
-    if (code === 200) {
-      showNotify({
-        type: 'success',
-        message: '保存成功',
-        duration: 2000,
-        className: 'custom-notify',
-      })
-    } else {
-      showNotify({
-        type: 'danger',
-        message: remark || '保存失败',
-        duration: 3000,
-        className: 'custom-notify',
-      })
-    }
-  } catch (error) {
-    showNotify({
-      type: 'danger',
-      message: '网络错误，请重试',
-      duration: 3000,
-      className: 'custom-notify',
-    })
-  } finally {
-    saveToast.value?.close()
-  }
-}
-
-// 获取好友信息
-const getFriendInfo = async (openId) => {
-  try {
-    const { data } = await request({
-      method: 'get',
-      url: `/config/friendFlowers?userId=${currentUser.value}&openId=${openId}`,
-    })
-    return data
-  } catch (error) {
-    showNotify({
-      type: 'danger',
-      message: '获取好友信息失败，请重新登录游戏',
-      duration: 3000,
-      className: 'custom-notify',
-    })
-    return { flowers: [], exchangeCount: 10 }
-  }
-}
-
-const triggerRobot = async () => {
-  if (!accountInfo.value) return
-  let url = '/config/'
-  let msg = ''
-  if (runningStatus.value == 0) {
-    url += 'run'
-    msg = '启动'
-  } else if (runningStatus.value == 1) {
-    url += 'stop'
-    msg = '停止'
-  } else {
-    return
-  }
-  if (currentUser.value) {
-    url += '?userId=' + currentUser.value
-  }
-
-  saveToast.value = showLoadingToast({
-    duration: 0,
-    forbidClick: true,
-    message: msg + '中...',
-    loadingType: 'spinner',
-    className: 'custom-loading-toast',
-  })
-  try {
-    const { code, remark } = await request({
-      method: 'get',
-      url,
-    })
-
-    if (code === 200) {
-      showNotify({
-        type: 'success',
-        message: msg + '成功！',
-        duration: 2000,
-        className: 'custom-notify',
-      })
-      getConfigPart()
-    } else {
-      showNotify({
-        type: 'danger',
-        message: remark || msg + '失败!',
-        duration: 3000,
-        className: 'custom-notify',
-      })
-    }
-  } catch (error) {
-    showNotify({
-      type: 'danger',
-      message: '网络错误，请重试',
-      duration: 3000,
-      className: 'custom-notify',
-    })
-  } finally {
-    saveToast.value?.close()
-  }
-}
-
-// 获取图标URL
-const getBaseIconUrl = () => {
-  if ([1, 2].includes(accountInfo.value.gameId)) {
-    return 'https://static.fthformal.com/flower/flower_newWX/ver/257/resource/assets/h5icon/i'
-  } else if (accountInfo.value.gameId === 3) {
-    return 'https://static22.supermoon.fun/beach_wxRL/ver/2.1.9/1/resource/assets/h5icon/i'
-  } else if (accountInfo.value.gameId === 4) {
-    return 'https://cdn-fth5-release.zhen-u.com/client/r1.0.86/resource/assets/h5icon/i'
-  }
-  return ''
-}
-
-// 过滤方法
-const filterSeed = () => {
-  seedList.value = seedList.value.filter((flower) =>
-    flower.text.toLowerCase().includes(searchSeed.value.toLowerCase()),
-  )
-}
-
-const filterFriend = () => {
-  friendList.value = friends.value.filter((friend) =>
-    friend.text.toLowerCase().includes(searchFriend.value.toLowerCase()),
-  )
-}
-
-// 获取配置
-const autoPlantArr = ['关闭', '自选', '补仓并且鲜花>=1级', '补仓并且鲜花>8级', '补仓并且鲜花>12级']
-
-const getConfig = async () => {
-  let url = '/config/get'
-  if (currentUser.value) {
-    url = url + '?userId=' + currentUser.value
-    localStorage.setItem('currentUser', currentUser.value)
-  }
-
-  try {
-    const { data, code } = await request({
-      method: 'get',
-      url,
-    })
-
-    if (code !== 200) {
-      showNotify({ type: 'warning', message: '请先登陆游戏！' })
-      return
-    }
-
-    accountInfo.value = { ...accountInfo.value, ...data }
-    friends.value = user.value.gameUser.friends.map((item) => ({
-      value: item.userId,
-      text: item.townName,
-    }))
-
-    otherUsers.value = user.value.otherUsers.map((item) => ({
-      value: item.id,
-      text: item.userName,
-    }))
-
-    if (!currentUser.value && otherUsers.value?.length) {
-      currentUser.value = otherUsers.value[0].value
-    }
-    plantText.value = autoPlantArr[config.value.autoPlant]
-
-    // 初始化折叠状态
-    initExpandStates()
-  } catch (error) {
-    showNotify({ type: 'danger', message: '网络错误，无法获取配置' })
-  }
-}
-
-const getConfigPart = async () => {
-  if (!currentUser.value) return
-
-  let url = '/config/get'
-  if (currentUser.value) {
-    url = url + '?userId=' + currentUser.value
-  }
-
-  try {
-    const { data, code } = await request({
-      method: 'get',
-      url,
-    })
-
-    if (code !== 200) return
-
-    accountInfo.value = {
-      ...accountInfo.value,
-      shopItems: data.shopItems,
-      running: data.running,
-    }
-
-    friends.value = user.value.gameUser.friends.map((item) => ({
-      value: item.userId,
-      text: item.townName,
-    }))
-
-    otherUsers.value = user.value.otherUsers.map((item) => ({
-      value: item.id,
-      text: item.userName,
-    }))
-
-    plantText.value = autoPlantArr[config.value.autoPlant]
-  } catch (error) {
-    console.error('获取配置片段失败:', error)
-  }
-}
-
-// 监听配置变化，更新种植文本
-watch(
-  [() => config.value.autoPlant],
-  () => {
-    if (config.value) {
-      plantText.value = autoPlantArr[config.value.autoPlant]
-    }
-  },
-  { immediate: true },
-)
-
-// 监听用户切换，重新初始化折叠状态
-watch(currentUser, () => {
-  initExpandStates()
-})
-
-// 【新增】监听点击事件，关闭更多菜单
-const handleClickOutside = (event) => {
-  if (moreMenuRef.value && !moreMenuRef.value.contains(event.target)) {
-    showMoreMenu.value = false
-  }
-}
-
-// 初始化
-onMounted(() => {
-  getConfig()
-  const interval = setInterval(getConfigPart, 20000)
-
-  // 添加全局点击事件监听器
-  document.addEventListener('click', handleClickOutside)
-
-  // 清理定时器
-  const cleanup = () => {
-    clearInterval(interval)
-    document.removeEventListener('click', handleClickOutside)
-  }
-  window.addEventListener('beforeunload', cleanup)
-  return () => {
-    cleanup()
-    window.removeEventListener('beforeunload', cleanup)
-  }
-})
-</script>
-
 <template>
   <main class="page-container">
-    <!-- 【新增】顶部标题区域 -->
-    <div class="top-title-bar">
-      <h1 class="app-title">莳花小助手</h1>
-      <span class="version-number">v1.0.2</span>
-    </div>
-
+    <version-checker ref="updateModalRef" v-show="currentUser.gameId == 2" />
     <!-- 顶部渐变装饰 -->
-    <div class="top-decoration"></div>
-    <exchange-modal ref="exchangeModalRef" :default-open-id="user.openId"></exchange-modal>
-
-    <!-- 状态卡片区域 -->
-    <div class="status-section">
-      <div class="status-grid">
-        <!-- 运行状态卡片 -->
-        <div
-          class="status-card"
-          :style="{
-            backgroundColor: runningStatusDesc.bgColor,
-            borderColor: runningStatusDesc.borderColor,
-            color: runningStatusDesc.color,
-          }"
-        >
-          <van-icon :name="runningStatusDesc.icon" size="28" :color="runningStatusDesc.color" />
-          <div class="status-text">{{ runningStatusDesc.text }}</div>
-        </div>
-
-        <!-- VIP状态卡片 -->
-        <div
-          class="status-card"
-          :style="{
-            backgroundColor: vipStatusStyle.bgColor,
-            color: vipStatusStyle.color,
-          }"
-        >
-          <van-icon name="diamond-o" size="28" :color="vipStatusStyle.color" />
-          <div class="status-text">{{ vipStatus(user.subscribe) }}</div>
-        </div>
-
-        <!-- 用户选择卡片 -->
-        <div class="status-card user-card" v-if="otherUsers?.length > 1">
-          <van-icon name="contact-o" size="28" color="#ff6767" />
-          <van-dropdown-menu direction="down" class="user-dropdown">
-            <van-dropdown-item
-              v-model="currentUser"
-              :options="otherUsers"
-              @change="getConfig"
-              placeholder="选择用户"
-              class="user-dropdown-item"
-            />
-          </van-dropdown-menu>
-        </div>
-
-        <!-- 用户名展示 -->
-        <div class="status-card user-card" v-else>
-          <van-icon name="flower-o" size="28" color="#ff6767" />
-          <div class="status-text username-text">{{ user.userName || '未登录' }}</div>
-        </div>
-      </div>
+    <exchange-modal
+      ref="exchangeModalRef"
+      :default-open-id="currentUser.openId"
+      @exchange-success="() => getConfig(true)"
+    ></exchange-modal>
+    <div class="fixed-top-card" v-if="config != null">
+      <user-status-card
+        class="user-status-card"
+        v-if="systemUser.currentUser"
+        :system-user="systemUser"
+        @update:current-user="handleUserChange"
+        @allot-success="() => getConfig(true)"
+      />
     </div>
 
     <!-- 主要配置区域 -->
-    <div class="config-wrapper" v-if="user && user?.subscribe?.subscribeId >= 0">
+    <div class="config-wrapper" v-if="currentUser && currentUser?.subscribe?.subscribeId >= 0">
+      <LoginConfig
+        v-model:login="config.login"
+        :current-user="currentUser"
+        :next-run-time="nextRunTime"
+        :schedule-time-info="accountInfo.scheduleTimeInfo"
+        @get-config="getConfig"
+        :key="currentUser?.id"
+      />
       <!-- VIP用户配置 -->
-      <div v-if="user && user?.subscribe?.subscribeId > 0" class="config-section">
+      <div v-if="currentUser && currentUser?.subscribe?.subscribeId > 0" class="config-section">
         <van-popup v-model:show="showPlant" round position="bottom" class="custom-popup">
           <div class="popup-header">
             <span class="popup-title">选择种植模式</span>
@@ -805,7 +36,7 @@ onMounted(() => {
           <van-cascader
             v-model="cascaderValue"
             title="种植模式"
-            :options="plantOptions"
+            :options="currentUser.gameId == 1 ? plantOptions : newPlantOptions"
             @close="showPlant = false"
             @finish="onFinishPlant"
             class="cascader-select"
@@ -824,6 +55,24 @@ onMounted(() => {
             />
           </div>
           <div class="card-content" v-show="expandStates.plantConfig">
+            <van-cell
+              class="plant-mode-cell"
+              center
+              label="低于水滴阈值将不再种植"
+              v-show="currentUser.gameId == 2"
+            >
+              <template #title>
+                <span class="feature-title">水滴阈值</span>
+              </template>
+              <custom-array-stepper
+                :min="0"
+                :step="100"
+                v-model="config.minWaterNum"
+                :inputDisabled="false"
+                class="steal-stepper"
+              >
+              </custom-array-stepper>
+            </van-cell>
             <van-cell class="plant-mode-cell" center label="配置收获模式">
               <template #title>
                 <span class="feature-title">收获模式</span>
@@ -837,7 +86,7 @@ onMounted(() => {
                 />
               </van-dropdown-menu>
             </van-cell>
-            <div v-show="config.autoHarvest == 2" class="order-advanced-section">
+            <div v-show="config.autoHarvest == 2" class="order-advanced-section indent">
               <div class="section-title">
                 <van-icon name="setting-o" size="16" color="#8c8c8c" />
                 <span>收获定时设置</span>
@@ -870,6 +119,50 @@ onMounted(() => {
                 :placeholder="plantText || '请选择种植模式'"
               />
             </van-cell>
+
+            <!-- 品质种植配置 -->
+            <div v-if="config.autoPlant == 5" class="indent order-advanced-section">
+              <div class="section-title">
+                <van-icon name="star-o" size="16" color="#8c8c8c" />
+                <span>品质种植配置</span>
+              </div>
+              <van-cell class="advanced-cell" title="补仓整齐" label="混乱or整齐，你喜欢哪个呢？">
+                <template #right-icon>
+                  <van-switch v-model="config.quality.tidy" size="24" />
+                </template>
+              </van-cell>
+                            <van-cell class="advanced-cell" title="任务整齐(测试中，未开放)" label="任务/订单种的花也保持整齐（不再按需求数量种植）">
+                <template #right-icon>
+                  <van-switch v-model="config.quality.taskTidy" size="24" />
+                </template>
+              </van-cell>
+              <van-cell class="advanced-cell" title="等级限制" label="低于该等级的鲜花不会种哦">
+                <custom-array-stepper
+                  :min="1"
+                  :max="20"
+                  :step="1"
+                  v-model="config.quality.level"
+                  :inputDisabled="false"
+                  class="steal-stepper"
+                >
+                </custom-array-stepper>
+              </van-cell>
+              <!-- 总数量输入 -->
+              <van-cell class="advanced-cell" title="总种类数量" label="设置所有品质的总种类数量">
+                <custom-array-stepper
+                  :options="[0, 1, 2, 4, 8, 16, 32, 64]"
+                  :maxValueIndex="64"
+                  :default-value="4"
+                  v-model="config.quality.categoryNum"
+                  :inputDisabled="false"
+                  class="steal-stepper"
+                >
+                </custom-array-stepper>
+              </van-cell>
+
+              <!-- 品质选择按钮组 -->
+              <QualityColorSelector v-model="config.quality.color" title="种植品质选择" />
+            </div>
 
             <!-- 种植时间段配置 -->
             <div v-show="config.autoPlant == 1" class="plant-periods-section">
@@ -947,14 +240,18 @@ onMounted(() => {
             />
           </div>
           <div class="card-content" v-show="expandStates.orderConfig">
-            <van-cell class="feature-cell" center label="若无订单所需种子，则会自动拒绝">
+            <van-cell class="feature-cell" center label="若无订单所需鲜花，则会自动拒绝">
               <template #title>
-                <span class="feature-title">客户订单</span>
+                <span class="feature-title"
+                  >{{
+                    currentUser.gameId == 1 ? '客户' : currentUser.gameId == 2 ? '顾客' : '未知'
+                  }}订单</span
+                >
               </template>
               <van-dropdown-menu class="feature-dropdown">
                 <van-dropdown-item
                   v-model="config.autoComplete"
-                  :options="saleOptions"
+                  :options="customerOptions"
                   placeholder="请选择"
                   class="dropdown-item"
                 />
@@ -963,7 +260,11 @@ onMounted(() => {
 
             <van-cell class="feature-cell" center label="当订单所需鲜花不足时，会优先自动种植">
               <template #title>
-                <span class="feature-title">鲜花订单</span>
+                <span class="feature-title"
+                  >{{
+                    currentUser.gameId == 1 ? '鲜花' : currentUser.gameId == 2 ? '居民' : '未知'
+                  }}订单</span
+                >
               </template>
               <van-dropdown-menu class="feature-dropdown">
                 <van-dropdown-item
@@ -976,49 +277,115 @@ onMounted(() => {
             </van-cell>
 
             <!-- 订单高级配置 -->
-            <div v-show="config.autoSale != 0" class="order-advanced-section">
+            <div v-show="config.autoSale != 0" class="indent order-advanced-section">
               <div class="section-title">
                 <van-icon name="setting-o" size="16" color="#8c8c8c" />
                 <span>订单高级设置</span>
               </div>
 
-              <van-cell
-                class="advanced-cell"
-                title="订单完成数量上限"
-                label="达到指定数量后自动停止"
-              >
-                <van-stepper
-                  v-model="config.orderMaxNum"
-                  step="100"
-                  integer
-                  min="0"
-                  max="1500"
-                  theme="round"
-                  button-size="24px"
-                  class="stepper-control"
-                />
-              </van-cell>
+              <div class="advanced-setting-group">
+                <van-cell class="advanced-cell" title="居民订单数量上限">
+                  <custom-array-stepper
+                    :min="0"
+                    :max="currentUser.gameId == 1 ? 1500 : 1200"
+                    :step="100"
+                    v-model="config.order.orderMaxNum"
+                    :inputDisabled="false"
+                    class="steal-stepper"
+                  >
+                  </custom-array-stepper>
+                </van-cell>
 
-              <van-cell
-                class="advanced-cell"
-                title="订单挑战自动完成"
-                label="自动参与订单相关挑战任务"
-              >
-                <van-dropdown-menu class="feature-dropdown">
-                  <van-dropdown-item
-                    v-model="config.autoChallenge"
-                    :options="challengeOptions"
-                    placeholder="请选择"
-                    class="dropdown-item"
-                  />
-                </van-dropdown-menu>
-              </van-cell>
+                <van-cell
+                  v-if="currentUser.gameId == 2"
+                  class="advanced-cell"
+                  title="云布订单数量上限"
+                >
+                  <custom-array-stepper
+                    v-model="config.order.clothOrderMaxNum"
+                    :min="0"
+                    :max="120"
+                    :step="20"
+                    :inputDisabled="false"
+                    class="steal-stepper"
+                  >
+                  </custom-array-stepper>
+                </van-cell>
+
+                <van-cell
+                  v-if="currentUser.gameId == 2"
+                  class="advanced-cell"
+                  title="材料订单数量上限"
+                >
+                  <custom-array-stepper
+                    v-model="config.order.materialOrderMaxNum"
+                    :min="0"
+                    :max="120"
+                    :step="20"
+                    :inputDisabled="false"
+                    class="steal-stepper"
+                  >
+                  </custom-array-stepper>
+                </van-cell>
+
+                <van-cell
+                  class="advanced-cell"
+                  :title="currentUser.gameId == 1 ? '订单挑战自动完成' : '组团订单自动完成'"
+                  :label="currentUser.gameId == 1 ? '自动参与订单相关挑战任务' : '自动完成团单'"
+                >
+                  <van-dropdown-menu class="feature-dropdown">
+                    <van-dropdown-item
+                      v-model="config.order.autoChallenge"
+                      :options="challengeOptions"
+                      placeholder="请选择"
+                      class="dropdown-item"
+                    />
+                  </van-dropdown-menu>
+                </van-cell>
+
+                <div
+                  class="advanced-setting-group"
+                  v-show="currentUser.gameId == 2 && config.order.autoChallenge > 0"
+                >
+                  <!-- 【新增】种子开关 -->
+                  <van-cell class="advanced-cell" title="种子筛选" :label="'只提交有种子的鲜花'">
+                    <template #right-icon>
+                      <van-switch v-model="config.order.seedOnly" size="24" />
+                    </template>
+                  </van-cell>
+                  <!-- 【修改】品质选择区域 -->
+                  <van-cell
+                    class="advanced-cell"
+                    title="品质选择"
+                    label="只会提交选择的品质"
+                    @click="toggleExpand('colorSelection')"
+                  >
+                    <template #right-icon>
+                      <van-icon
+                        name="arrow-down"
+                        size="16"
+                        :class="{ 'rotate-180': expandStates.colorSelection }"
+                      />
+                    </template>
+                  </van-cell>
+
+                  <!-- 【新增】品质选择按钮组展开内容 -->
+
+                  <!-- 在订单管理部分的品质选择区域 -->
+                  <div v-show="expandStates.colorSelection" class="color-selection-section">
+                    <QualityColorSelector
+                      v-model="config.order.color"
+                      title="订单品质选择"
+                      :show-title="false"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
         <!-- 小号配置 -->
-        <div class="config-card alt-config-card">
+        <div class="config-card alt-config-card" v-if="currentUser.gameId == 1">
           <div class="card-header" @click="toggleExpand('altConfig')">
             <van-icon name="friends-o" size="20" color="#1890ff" />
             <span class="card-title">小号管理</span>
@@ -1072,7 +439,7 @@ onMounted(() => {
                   <van-dropdown-menu class="alt-type-dropdown">
                     <van-dropdown-item
                       v-model="alt.type"
-                      :options="user.subscribe.ratio > 0 ? altOptions1 : altOptions"
+                      :options="currentUser.subscribe.ratio > 0 ? altOptions1 : altOptions"
                       placeholder="请选择"
                       class="dropdown-item"
                     />
@@ -1097,12 +464,20 @@ onMounted(() => {
             </div>
           </div>
         </div>
-
+        <StealConfig
+          v-if="currentUser.gameId == 2"
+          :user="currentUser"
+          :config="config"
+          :friends="currentUser.gameUser.friends || []"
+          :expand-states="expandStates"
+          @update:config="handleConfigUpdate"
+          @update-expand-states="handleExpandStateUpdate"
+        />
         <!-- 自动摸花 -->
-        <div class="config-card steal-config-card">
+        <div class="config-card steal-config-card" v-if="currentUser.gameId == 1">
           <div class="card-header" @click="toggleExpand('stealConfig')">
             <van-icon name="gift-o" size="20" color="#ff6767" />
-            <span class="card-title">自动摸花</span>
+            <span class="card-title">摸花管理</span>
             <van-icon
               name="arrow-down"
               size="16"
@@ -1189,7 +564,7 @@ onMounted(() => {
         </div>
 
         <!-- 自动上架下架 -->
-        <div class="config-card steal-config-card">
+        <div class="config-card steal-config-card" v-if="currentUser.gameId == 1">
           <div class="card-header" @click="toggleExpand('tradeConfig')">
             <van-icon name="cart-o" size="20" color="#ff6767" />
             <span class="card-title">店铺管理</span>
@@ -1336,6 +711,7 @@ onMounted(() => {
                   <custom-array-stepper
                     :options="tradeInfo(inc)"
                     :default-value="tradeInfo(inc)[1]"
+                    :inputDisabled="true"
                     v-model="inc.price"
                     class="steal-stepper"
                   >
@@ -1388,519 +764,1214 @@ onMounted(() => {
             </div>
           </div>
         </div>
-
-        <!-- 社团功能集合 -->
-        <div class="config-card other-features-card">
-          <div class="card-header" @click="toggleExpand('guildConfig')">
-            <van-icon name="cluster-o" size="20" color="#52c41a" />
-            <span class="card-title">社团功能</span>
+        <GuildConfig
+          :user="currentUser"
+          :config="config"
+          :expand-states="expandStates"
+          @update:config="handleConfigUpdate"
+          @update-expand-states="handleExpandStateUpdate"
+        />
+        <!-- 【新增】兑换码模块 -->
+        <div class="config-card other-features-card" v-if="currentUser.gameId == 2">
+          <div class="card-header" @click="toggleExpand('exchangeCodeConfig')">
+            <van-icon name="gift-o" size="20" color="#ff6767" />
+            <span class="card-title">兑换码功能</span>
             <van-icon
               name="arrow-down"
               size="16"
-              :class="{ 'rotate-180': expandStates.guildConfig }"
+              :class="{ 'rotate-180': expandStates.exchangeCodeConfig }"
               class="expand-icon"
             />
           </div>
-          <div class="card-content" v-show="expandStates.guildConfig">
-            <van-cell class="feature-cell" center label="自动捐献指定资源">
+          <div class="card-content" v-show="expandStates.exchangeCodeConfig">
+            <van-cell class="feature-cell" center label="开启后系统将自动兑换可用的兑换码">
               <template #title>
-                <span class="feature-title">社团捐献</span>
-              </template>
-              <van-dropdown-menu class="feature-dropdown">
-                <van-dropdown-item
-                  v-model="config.autoDonate"
-                  :options="donateOptions"
-                  class="dropdown-item"
-                />
-              </van-dropdown-menu>
-            </van-cell>
-            <van-cell class="feature-cell" center label="自动收获社团花盆">
-              <template #title>
-                <span class="feature-title">社团收获</span>
+                <span class="feature-title">自动兑换</span>
               </template>
               <template #right-icon>
-                <van-switch :disabled="!config" v-model="config.autoGuildPlant" size="24" />
-              </template>
-            </van-cell>
-            <van-cell class="feature-cell" center label="自动观看社团广告获取奖励">
-              <template #title>
-                <span class="feature-title">视频捐献</span>
-              </template>
-              <template #right-icon>
-                <van-switch :disabled="!config" v-model="config.autoGuildAd" size="24" />
-              </template>
-            </van-cell>
-          </div>
-        </div>
-
-        <!-- 其他功能集合 -->
-        <div class="config-card other-features-card">
-          <div class="card-header" @click="toggleExpand('otherFeatures')">
-            <van-icon name="apps-o" size="20" color="#722ed1" />
-            <span class="card-title">更多功能</span>
-            <van-icon
-              name="arrow-down"
-              size="16"
-              :class="{ 'rotate-180': expandStates.otherFeatures }"
-              class="expand-icon"
-            />
-          </div>
-          <div class="card-content" v-show="expandStates.otherFeatures">
-            <div class="features-grid">
-              <!-- 第一行功能 -->
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="shop-o" size="20" color="#1890ff" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">自动摆台</div>
-                  <div class="feature-desc">仓库有啥摆啥</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoSell" size="22" />
-              </div>
-
-              <!-- 第二行功能 -->
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="fire-o" size="20" color="#36cfc9" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">培育忘忧树</div>
-                  <div class="feature-desc">自动培育最高数量道具</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoCultivate" size="22" />
-              </div>
-
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="cart-o" size="20" color="#722ed1" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">自动买商店</div>
-                  <div class="feature-desc">培育商店自动购买</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoShop" size="22" />
-              </div>
-
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="aim" size="20" color="#ff7a45" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">自动打地鼠</div>
-                  <div class="feature-desc">每日上限50次</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoMonster" size="22" />
-              </div>
-
-              <!-- 第三行功能 -->
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="bulb-o" size="20" color="#ff4d4f" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">自动抓花农</div>
-                  <div class="feature-desc">随机抓捕推荐玩家</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoRob" size="22" />
-              </div>
-
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="medal-o" size="20" color="#b71de8" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">更好的游戏</div>
-                  <div class="feature-desc">VIP功能/免广告</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.betterGame" size="22" />
-              </div>
-
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="certificate" size="20" color="#5cadff" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">自动小游戏</div>
-                  <div class="feature-desc">完成活动游戏任务</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoGame" size="22" />
-              </div>
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <van-icon name="play-circle-o" size="20" color="#5cadff" />
-                </div>
-                <div class="feature-info">
-                  <div class="feature-name">自动领取</div>
-                  <div class="feature-desc">领取所有广告奖励、转盘奖励、活动水滴）</div>
-                </div>
-                <van-switch :disabled="!config" v-model="config.autoAd" size="22" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- VIP专属功能 -->
-        <div v-if="user?.subscribe?.subscribeId == 3" class="config-card vip3-card">
-          <div class="card-header vip3-header" @click="toggleExpand('vip3Config')">
-            <van-icon name="crown-o" size="20" color="#faad14" />
-            <span class="card-title vip3-title">专享</span>
-            <van-icon
-              name="arrow-down"
-              size="16"
-              :class="{ 'rotate-180': expandStates.vip3Config }"
-              class="expand-icon"
-            />
-          </div>
-          <div class="card-content" v-show="expandStates.vip3Config">
-            <van-cell
-              class="vip3-feature-cell"
-              center
-              label="每日自动获取4000水滴、加速券、好评券，页面数据每30秒更新一次"
-            >
-              <template #title>
-                <span class="feature-title vip3-feature-title">自动领取资源</span>
-              </template>
-              <template #right-icon>
-                <van-switch
-                  :disabled="user?.subscribe?.subscribeId != 3"
-                  v-model="config.autoBuy"
-                  size="24"
-                />
+                <van-switch :disabled="!config" v-model="config.autoExchange" size="24" />
               </template>
             </van-cell>
 
-            <div v-show="config.autoBuy" class="resources-progress-section">
+            <div class="exchange-code-section">
               <div class="section-title">
-                <van-icon name="waterdrop-o" size="16" color="#1890ff" />
-                <span>今日资源获取进度</span>
+                <van-icon name="share-o" size="16" color="#8c8c8c" />
+                <span>分享兑换码</span>
               </div>
 
-              <div
-                v-for="shopItem in config.shopItems"
-                :key="`shop-${shopItem.itemId}`"
-                class="resource-item"
-              >
-                <div class="resource-info">
-                  <span class="resource-name">{{ shopItem.itemName }}</span>
-                  <span class="resource-count">{{ shopItem.num }} / 4000</span>
-                </div>
-                <van-progress
-                  :percentage="Math.round(Math.min((shopItem.num / 4000) * 100, 100))"
-                  height="8px"
-                  class="resource-progress"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 小号用户配置 -->
-      <div v-if="user?.subscribe?.subscribeId == 0" class="config-section non-vip-section">
-        <div class="config-card non-vip-steal-card">
-          <div class="card-header" @click="toggleExpand('nonVipSteal')">
-            <van-icon name="hand-o-right" size="20" color="#ff6767" />
-            <span class="card-title">基础摸花功能</span>
-            <van-icon
-              name="arrow-down"
-              size="16"
-              :class="{ 'rotate-180': expandStates.nonVipSteal }"
-              class="expand-icon"
-            />
-          </div>
-          <div class="card-content" v-show="expandStates.nonVipSteal">
-            <van-cell class="feature-cell" center label="小号只能摸被配置的好友，无其他高级功能">
-              <template #title>
-                <span class="feature-title">自动摸花</span>
-              </template>
-              <template #right-icon>
-                <van-switch :disabled="!config" v-model="config.autoSteal" size="24" />
-              </template>
-            </van-cell>
-
-            <!-- 基础摸花配置 -->
-            <div v-show="config.autoSteal" class="basic-steal-section">
-              <div class="section-title">
-                <van-icon name="flower-o" size="16" color="#8c8c8c" />
-                <span>摸花配置</span>
-              </div>
-
-              <div v-if="config.steals.length === 0" class="empty-state">
-                <van-empty
-                  image="empty-search"
-                  description="暂无摸花配置，点击添加按钮创建"
-                  class="empty-content"
-                />
-              </div>
-
-              <div
-                v-for="(steal, index) in config.steals"
-                :key="`steal-low-${index}`"
-                class="config-item-row basic-steal-row"
-              >
-                <div class="config-item-col friend-col">
-                  <div class="config-item-label">目标好友</div>
-                  <div class="config-item-value clickable" @click="showFriendSteal(steal)">
-                    <span class="value-text">{{ steal.townName || '未选择' }}</span>
-                    <van-icon name="arrow" size="14" class="arrow-icon" />
-                  </div>
-                </div>
-
-                <div class="config-item-col flower-col">
-                  <div class="config-item-label">摸花花种</div>
-                  <div class="config-item-value clickable" @click="showFriendFlower(steal)">
-                    <span class="value-text">{{ steal.seedName || '未选择' }}</span>
-                    <van-icon name="arrow" size="14" class="arrow-icon" />
-                  </div>
-                </div>
-
-                <div class="config-item-col action-col">
-                  <van-button
-                    class="delete-button"
-                    icon="delete-o"
-                    size="mini"
-                    type="danger"
-                    plain
-                    @click="deleteSteal(index)"
-                  />
-                </div>
-              </div>
-              <van-button class="add-button" block type="primary" icon="add-o" @click="addStealLow">
-                添加摸花配置
-              </van-button>
-            </div>
-          </div>
-        </div>
-        <!-- 自动购买 -->
-        <div class="config-card steal-config-card">
-          <div class="card-header" @click="toggleExpand('tradeInConfig')">
-            <van-icon name="cart-o" size="20" color="#ff6767" />
-            <span class="card-title">店铺管理</span>
-            <van-icon
-              name="arrow-down"
-              size="16"
-              :class="{ 'rotate-180': expandStates.tradeInConfig }"
-              class="expand-icon"
-            />
-          </div>
-          <div class="card-content" v-show="expandStates.tradeInConfig">
-            <van-cell class="feature-cell" center label="">
-              <template #title>
-                <span class="feature-title">自动购买</span>
-              </template>
-              <template #right-icon>
-                <van-switch :disabled="!config" v-model="config.autoTradeIn" size="24" />
-              </template>
-            </van-cell>
-
-            <div v-show="config.autoTradeIn" class="steal-list-section">
-              <div class="section-title">
-                <van-icon name="paid" size="16" color="#8c8c8c" />
-                <span>购买设置</span>
-              </div>
-
-              <div v-if="config.trade.ins.length === 0" class="empty-state">
-                <van-empty description="暂无购买配置，点击添加按钮创建" class="empty-content" />
-              </div>
-              <div
-                v-for="(inc, index) in config.trade.ins"
-                :key="`in-${index}`"
-                class="config-item-row steal-row"
-              >
-                <div class="config-item-col trade-col">
-                  <div class="config-item-label">目标好友</div>
-                  <div class="config-item-value clickable" @click="showFriendSteal(inc, false)">
-                    <span class="value-text">{{ inc.townName || '未选择' }}</span>
-                    <van-icon name="arrow" size="14" class="arrow-icon" />
-                  </div>
-                </div>
-
-                <div class="config-item-col trade-col">
-                  <div class="config-item-label">目标鲜花</div>
-                  <div class="config-item-value clickable" @click="showFriendFlower(inc)">
-                    <span class="value-text">{{ inc.seedName || '未选择' }}</span>
-                    <van-icon name="arrow" size="14" class="arrow-icon" />
-                  </div>
-                </div>
-
-                <div class="config-item-col count-col">
-                  <div class="config-item-label">购买价格</div>
-                  <custom-array-stepper
-                    :options="tradeInfo(inc)"
-                    :default-value="tradeInfo(inc)[1]"
-                    v-model="inc.price"
-                    class="steal-stepper"
-                  >
-                  </custom-array-stepper>
-                </div>
-                <div class="config-item-col count-col">
-                  <div class="config-item-label">每日购买数量</div>
-                  <van-stepper
-                    v-model="inc.count"
-                    min="-1"
-                    step="100"
-                    integer
-                    size="small"
-                    class="steal-stepper"
-                  />
-                </div>
-
-                <div class="config-item-col count-col">
-                  <div class="config-item-label">密码</div>
+              <van-cell class="advanced-cell" title="分享兑换码" label="分享成功将奖励一天VIP">
+                <div class="exchange-code-input-container">
                   <van-field
-                    v-model="inc.password"
-                    type="number"
-                    inputmode="numeric"
-                    maxlength="4"
-                    placeholder="设置四位密码"
-                    clearable
-                    style="padding: 0px"
+                    v-model="exchangeCodeInput"
+                    :placeholder="lastestCdKey"
+                    class="exchange-code-input"
                   />
-                </div>
-                <div class="config-item-col switch-col">
-                  <div class="config-item-label">启用状态</div>
-                  <van-switch :disabled="!config" v-model="inc.enable" size="20" />
-                </div>
-
-                <div class="config-item-col action-col">
                   <van-button
-                    class="delete-button"
-                    icon="delete-o"
-                    size="mini"
-                    type="danger"
-                    plain
-                    @click="deleteTradeIn(index)"
-                  />
+                    type="primary"
+                    size="small"
+                    @click="submitExchangeCode"
+                    :loading="isSubmitting"
+                  >
+                    提交
+                  </van-button>
                 </div>
-              </div>
-
-              <van-button class="add-button" block type="primary" icon="add-o" @click="addTradeIn">
-                添加购买配置
-              </van-button>
+              </van-cell>
             </div>
           </div>
         </div>
+        <ActivityConfig
+          :user="currentUser"
+          :config="config"
+          :expand-states="expandStates"
+          @update:config="handleConfigUpdate"
+          @update-expand-states="handleExpandStateUpdate"
+        />
+
+        <AutoAdConfig
+          v-if="currentUser.gameId == 2"
+          :user="currentUser"
+          :config="config"
+          :expand-states="expandStates"
+          @update:config="handleConfigUpdate"
+          @update-expand-states="handleExpandStateUpdate"
+        />
+
+        <other-config
+          :user="currentUser"
+          :config="config"
+          :expand-states="expandStates"
+          @update:config="handleConfigUpdate"
+          @update:expand-states="handleExpandStateUpdate"
+        />
       </div>
-    </div>
-    <div
-      v-if="!user?.subscribe || user?.subscribe?.subscribeId < 1"
-      class="config-section non-vip-section"
-    >
-      <!-- 升级提示 -->
-      <div class="upgrade-tip-card">
-        <div class="upgrade-icon">
-          <van-icon name="arrow-up" size="24" color="#faad14" />
+      <div
+        v-if="!currentUser?.subscribe || currentUser?.subscribe?.subscribeId < 1"
+        class="config-section non-vip-section"
+      >
+        <!-- 升级提示 -->
+        <div class="upgrade-tip-card">
+          <div class="upgrade-icon">
+            <van-icon name="arrow-up" size="24" color="#faad14" />
+          </div>
+          <div class="upgrade-content">
+            <div class="upgrade-title">升级VIP解锁更多功能</div>
+            <div class="upgrade-desc">自动种植、订单管理、社团功能、资源自动领取等更多高级功能</div>
+          </div>
+          <van-button type="warning" size="small" plain class="upgrade-btn" @click="toggleExpand">
+            立即升级
+          </van-button>
         </div>
-        <div class="upgrade-content">
-          <div class="upgrade-title">升级VIP解锁更多功能</div>
-          <div class="upgrade-desc">自动种植、订单管理、社团功能、资源自动领取等更多高级功能</div>
+      </div>
+
+      <!-- 弹出选择器 -->
+      <van-popup v-model:show="showTimePicker" round position="bottom" class="custom-popup">
+        <div class="popup-header">
+          <span class="popup-title">选择时间</span>
         </div>
-        <van-button type="warning" size="small" plain class="upgrade-btn"> 立即升级 </van-button>
-      </div>
+        <van-time-picker :formatter="formatter" @confirm="confirmTime" class="custom-time-picker" />
+      </van-popup>
+
+      <van-popup v-model:show="showFlowerPicker" round position="bottom" class="custom-popup">
+        <div class="popup-header">
+          <span class="popup-title">选择花种</span>
+        </div>
+        <van-field
+          placeholder="搜索花种名称..."
+          right-icon="search"
+          clearable
+          v-model="searchSeed"
+          @update:model-value="filterSeed"
+          class="search-field"
+        />
+        <van-picker
+          :columns="seedList"
+          @confirm="confirmFlower"
+          class="custom-picker"
+          show-toolbar
+          cancel-button-text="取消"
+          confirm-button-text="确认"
+        />
+      </van-popup>
+
+      <van-popup v-model:show="showFriendPicker" round position="bottom" class="custom-popup">
+        <div class="popup-header">
+          <span class="popup-title">选择好友</span>
+        </div>
+        <van-field
+          placeholder="搜索好友名称..."
+          right-icon="search"
+          clearable
+          v-model="searchFriend"
+          @update:model-value="filterFriend"
+          class="search-field"
+        />
+        <van-picker
+          :columns="friendList"
+          @confirm="confirmFriend"
+          class="custom-picker"
+          show-toolbar
+          cancel-button-text="取消"
+          confirm-button-text="确认"
+        />
+      </van-popup>
     </div>
-
-    <!-- 弹出选择器 -->
-    <van-popup v-model:show="showTimePicker" round position="bottom" class="custom-popup">
-      <div class="popup-header">
-        <span class="popup-title">选择时间</span>
-      </div>
-      <van-time-picker :formatter="formatter" @confirm="confirmTime" class="custom-time-picker" />
-    </van-popup>
-
-    <van-popup v-model:show="showFlowerPicker" round position="bottom" class="custom-popup">
-      <div class="popup-header">
-        <span class="popup-title">选择花种</span>
-      </div>
-      <van-field
-        placeholder="搜索花种名称..."
-        right-icon="search"
-        clearable
-        v-model="searchSeed"
-        @update:model-value="filterSeed"
-        class="search-field"
-      />
-      <van-picker
-        :columns="seedList"
-        @confirm="confirmFlower"
-        class="custom-picker"
-        show-toolbar
-        cancel-button-text="取消"
-        confirm-button-text="确认"
-      />
-    </van-popup>
-
-    <van-popup v-model:show="showFriendPicker" round position="bottom" class="custom-popup">
-      <div class="popup-header">
-        <span class="popup-title">选择好友</span>
-      </div>
-      <van-field
-        placeholder="搜索好友名称..."
-        right-icon="search"
-        clearable
-        v-model="searchFriend"
-        @update:model-value="filterFriend"
-        class="search-field"
-      />
-      <van-picker
-        :columns="friendList"
-        @confirm="confirmFriend"
-        class="custom-picker"
-        show-toolbar
-        cancel-button-text="取消"
-        confirm-button-text="确认"
-      />
-    </van-popup>
-
     <!-- 【新增】底部导航栏 -->
-    <div class="bottom-nav">
-      <div class="nav-container">
-        <div class="nav-item" @click="saveConfig">
-          <van-icon name="setting-o" size="24" />
-          <span>保存配置</span>
-        </div>
-        <div class="nav-item">
-          <van-icon name="records" size="24" />
-          <span>日志</span>
-        </div>
-        <div
-          class="nav-center-item"
-          :class="{ disabled: runningStatus === -1 }"
-          @click="triggerRobot"
-        >
-          <van-icon
-            :name="
-              runningStatus == 0
-                ? 'play-circle-o'
-                : runningStatus == -1
-                  ? 'replay'
-                  : 'stop-circle-o'
-            "
-            :color="runningStatus == 0 ? '#52c41a' : runningStatus == -1 ? '#d9d9d9' : '#ff6767'"
-            size="28"
-          />
-          <span>{{ runningStatus == 0 ? '启用' : runningStatus == -1 ? '未就绪' : '停止' }}</span>
-        </div>
-        <div class="nav-item" @click="showMoreMenu = !showMoreMenu" ref="moreMenuRef">
-          <van-icon name="more-o" size="24" />
-          <span>更多</span>
-        </div>
-        <div class="nav-item" @click="currentUser = null">
-          <van-icon name="user-o" size="24" />
-          <span>{{ currentUser ? '登出' : '登入' }}</span>
-        </div>
-      </div>
-
-      <!-- 【新增】二级菜单 -->
-      <div class="more-menu" v-show="showMoreMenu">
-        <div class="menu-item" @click="openExchangeModal">
-          <van-icon name="gift-card-o" size="20" />
-          <span>兑换码兑换</span>
-        </div>
-      </div>
-    </div>
+    <!-- 使用底部导航栏组件 -->
+    <bottom-nav
+      :running-status="runningStatus"
+      :exchange-modal-ref="exchangeModalRef"
+      :account-modal-ref="accountModalRef"
+      @save-config="saveConfig"
+      @to-log="toLog"
+      @trigger-robot="triggerRobot"
+      @open-exchange-modal="openExchangeModal"
+      @open-account-modal="openAccountModal"
+      @handle-user-action="handleUserAction"
+      @go-to-profile="goToProfile"
+      @go-to-security="goToSecurity"
+      @logout="logout"
+    />
+    <account-bind-modal
+      ref="accountModalRef"
+      :default-open-id="currentUserId"
+      @account-updated="handleAccountUpdated"
+    >
+    </account-bind-modal>
   </main>
 </template>
+
+<script setup>
+import { onMounted, ref, computed, watch } from 'vue'
+import request from '@/utils/request'
+import { showLoadingToast, showNotify } from 'vant'
+import flowerUtil from '@/utils/flowerUtil'
+import CustomArrayStepper from '@/components/CustomArrayStepper.vue'
+import ExchangeModal from '@/components/ExchangeModal.vue'
+import router from '@/router'
+import AccountBindModal from '@/components/AccountBindModal.vue'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/user'
+import VersionChecker from '@/components/VersionChecker.vue'
+import StealConfig from '@/components/StealConfigModal.vue'
+import QualityColorSelector from '@/components/QualityColorSelector.vue'
+import AutoAdConfig from '@/components/AutoAdConfig.vue'
+import BottomNav from '@/components/BottomNav.vue'
+import userStatusCard from '@/components/UserStatusCard.vue'
+import GuildConfig from '@/components/GuildConfig.vue'
+import OtherConfig from '@/components/OtherConfig.vue'
+import ActivityConfig from '@/components/ActivityConfig.vue'
+import { isEqual, cloneDeep } from 'lodash-es'
+import LoginConfig from '@/components/LoginConfig.vue'
+
+// 替换原来的比较方法（删除旧的，用这个）
+const areConfigsEqual = (obj1, obj2) => {
+  return isEqual(obj1, obj2)
+}
+
+const userStore = useUserStore()
+
+const updateModalRef = ref(null)
+
+// 搜索内容
+const searchSeed = ref('')
+const searchFriend = ref('')
+const seedList = ref([])
+const friendList = ref([])
+const friends = ref([])
+const saveToast = ref()
+const nextRunTime = ref(0)
+
+// 配置选项
+const customerOptions = [
+  { text: '关闭', value: 0 },
+  { text: '缺库存补种', value: 1 },
+  { text: '缺库存不管', value: 2 },
+  { text: '缺库存拒绝', value: 3 },
+]
+
+const saleOptions = [
+  { text: '关闭', value: 0 },
+  { text: '缺库存补种', value: 1 },
+  { text: '缺库存不管', value: 2 },
+]
+
+const harvestOptions = [
+  { text: '自动', value: 0 },
+  { text: '手动', value: 1 },
+  { text: '定时', value: 2 },
+]
+
+const challengeOptions = [
+  { text: '关闭', value: 0 },
+  { text: '免费挑战', value: 1 },
+  { text: '付费挑战', value: 2 },
+]
+
+// 任务配置选项
+const taskOptions = [
+  { id: 2005, title: '材料商店购买' },
+  { id: 20003, title: '培育鲜花' },
+  { id: 20007, title: '顾客订单' },
+  { id: 20009, title: '居民订单' },
+  { id: 20010, title: '珍珠雇佣' },
+  { id: 20011, title: '皇室特供订单' },
+  { id: 20015, title: '升级鲜花' },
+  { id: 20036, title: 'VIP商店购买（开发中）' },
+  { id: 20045, title: '制作花艺' },
+  { id: 20046, title: '收获鲜花' },
+]
+
+const hd17Options = [
+  { id: 20008, title: '种植鲜花' },
+  { id: 20007, title: '顾客订单' },
+  { id: 20009, title: '居民订单' },
+  { id: 20010, title: '珍珠雇佣' },
+  { id: 20019, title: '花艺售卖' },
+]
+
+const altOptions = [{ text: '基础功能（摸花/爬架子）', value: 0 }]
+const altOptions1 = [
+  { text: '基础功能（摸花/爬架子）', value: 0 },
+  { text: '完整功能', value: 1 },
+]
+
+const plantOptions = [
+  { text: '关闭', value: 0 },
+  {
+    text: '补仓',
+    value: 2,
+    children: [
+      { text: '鲜花>=1级', value: 2 },
+      { text: '鲜花>8级', value: 3 },
+      { text: '鲜花>12级', value: 4 },
+    ],
+  },
+  { text: '自选', value: 1 },
+]
+
+const newPlantOptions = [
+  { text: '关闭', value: 0 },
+  { text: '自选', value: 1 },
+  {
+    text: '品质(补仓)',
+    value: 5,
+  },
+]
+
+const checkForUpdates = async () => {
+  return await updateModalRef.value.checkVersionUpdate()
+}
+
+// 响应式数据
+const systemUserLocal = storeToRefs(userStore).userInfo
+
+const otherUsers = ref()
+const currentUserId = ref(localStorage.getItem('currentUserId'))
+const selectTime = ref()
+const selectFlower = ref()
+const showTimePicker = ref(false)
+const showFlowerPicker = ref(false)
+const showFriendPicker = ref(false)
+const showPlant = ref(false)
+const plantText = ref()
+const friendInfo = ref({ flowers: [], exchangeCount: 10 })
+const friendKey = ref()
+const friendValue = ref()
+const cascaderValue = ref([])
+const tradeMap = flowerUtil.getFlowerTradeMap()
+const exchangeModalRef = ref(null)
+const accountModalRef = ref(null)
+
+// 【新增】底部导航栏相关状态
+const showMoreMenu = ref(false) // 控制"更多"二级菜单显示
+const moreMenuRef = ref(null) // 更多菜单的DOM引用，用于点击外部关闭
+
+// 【新增】用户菜单相关状态
+const showUserMenu = ref(false) // 控制用户菜单显示
+
+// 【新增】品质选择相关状态
+const expandStates = ref({ colorSelection: false }) // 新增品质选择区域的展开状态
+
+// 【新增】品质种植相关状态 - 现在通过config.quality访问
+// config.value.quality = { categoryNum: 0, color: [] }
+
+// 修改跟踪相关状态
+const initialConfigState = ref(null) // 初始配置状态，用于比较
+const hasUnsavedChanges = ref(false) // 是否有未保存的更改
+const lastUserId = ref(null) // 记录上次获取配置的用户ID
+
+// 【新增】兑换码相关状态
+const exchangeCodeInput = ref('') // 兑换码输入框
+const isSubmitting = ref(false) // 提交状态
+
+const lastestCdKey = ref('暂无最新兑换码')
+
+const openExchangeModal = () => {
+  exchangeModalRef.value.openModal()
+}
+
+const openAccountModal = () => {
+  if (systemUserLocal.value == null) {
+    router.push({ name: 'login' })
+    return
+  }
+  if (accountModalRef.value) {
+    accountModalRef.value.openModal()
+  }
+}
+
+// 处理账号更新回调
+const handleAccountUpdated = () => {
+  getConfig(true)
+}
+
+// 用户配置信息
+const accountInfo = ref({
+  runStatus: 0,
+})
+
+const gameId = computed(() => currentUser.value.gameId)
+
+const systemUser = computed(
+  () =>
+    accountInfo.value.systemUser || {
+      otherUsers: [],
+      currentUser: null,
+      times: {},
+      userName: '',
+      nickName: '',
+    },
+)
+
+const currentUser = computed(
+  () =>
+    systemUser.value.currentUser || {
+      refreshNeed: false,
+      subscribe: { subscribeId: -1 },
+      gameUser: {},
+      userName: '',
+    },
+)
+
+const config = computed(
+  () =>
+    accountInfo.value.config || {
+      enable: false,
+      autoPlant: 0,
+      autoSale: false,
+      flowers: [],
+      periods: [],
+      steals: [],
+      userAlts: [],
+      shopItems: [],
+      autoComplete: 0,
+      autoChallenge: 0,
+      orderMaxNum: 0,
+      cloudOrderMaxNum: 0, // 新增云布订单数量上限
+      materialOrderMaxNum: 0, // 新增材料订单数量上限
+      autoHarvest: 0,
+      harvestWaitingTime: 30,
+      autoAccept: false,
+      autoSteal: false,
+      autoSell: false,
+      autoGuildPlant: false,
+      autoDonate: 0,
+      autoCultivate: false,
+      autoShop: false,
+      autoMonster: false,
+      autoRob: false,
+      betterGame: false,
+      autoGame: false,
+      autoBuy: false,
+      altsUser: [],
+      gameUser: { friends: [] },
+      autoAd: false,
+      autoGuildAd: false, // 新增社团广告开关
+      autoExchange: false, // 新增兑换码开关
+      autoHelp: false, // 新增公会协助开关
+      autoRace: false, // 新增公会竞赛开关
+      race: {
+        // 新增竞赛配置JSON
+        racePoint: 20,
+        HighIgnore: false,
+        pointFirst: false, // 新增积分优先开关
+        tasks: [
+          { id: 2005, status: 0 },
+          { id: 20046, status: 0 },
+          { id: 20011, status: 0 },
+          { id: 20003, status: 0 },
+          { id: 20009, status: 0 },
+          { id: 20007, status: 0 },
+          { id: 20015, status: 0 },
+          { id: 20045, status: 0 },
+        ],
+      },
+      // 【新增】品质种植配置
+      quality: {
+        categoryNum: 0,
+        level: 1,
+        tidy: 1,
+        color: [],
+      },
+      // 【新增】活动配置
+      activity: {
+        hd17: {
+          status: false,
+          taskStar: 1,
+          autoRefresh: false,
+          autoFinish: 0, // 默认为0，表示关闭
+          taskScore: 265, // 达成积分
+          autoOffShelf: false, // 花艺自动下架
+          tasks: [
+            { id: 20008, status: 0 },
+            { id: 20007, status: 0 },
+            { id: 20009, status: 0 },
+            { id: 20010, status: 0 },
+            { id: 20019, status: 0 },
+          ],
+        },
+      },
+    },
+)
+
+const allFlowers = flowerUtil.getAllFlowers()
+
+const runningStatus = computed(() => {
+  // 需要重新登录
+  if (currentUser.value.refreshNeed == 1) {
+    return -1
+  }
+  // 运行中
+  return currentUser.value.runStatus
+})
+
+const tradeInfo = (out) => {
+  if (!out || !out.seedId) {
+    return [0]
+  }
+  if (out.seedId == -1) {
+    return ['低价', '平价', '高价']
+  }
+  const trade = tradeMap.get(out.seedId)
+  if (trade == null) {
+    return [0]
+  }
+  return [trade.minPrice, trade.defaultPrice, trade.maxPrice]
+}
+
+// 格式化时间
+const formatTime = (milliseconds) => {
+  const hours = Math.floor(milliseconds / (60 * 60 * 1000))
+  const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / (60 * 1000))
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+// 日期转时间戳
+const toTime = (timeArr) => {
+  return (timeArr[0] * 60 * 60 + timeArr[1] * 60) * 1000
+}
+
+// 时间格式化器
+const formatter = (type, option) => {
+  if (type === 'hour') option.text += '时'
+  if (type === 'minute') option.text += '分'
+  return option
+}
+
+// 初始化折叠面板状态
+const initExpandStates = () => {
+  const userId = currentUserId.value || 'default'
+  const savedStates = JSON.parse(localStorage.getItem(`expandStates_${userId}`) || '{}')
+
+  expandStates.value = {
+    mainSwitch: savedStates.mainSwitch ?? true,
+    plantConfig: savedStates.plantConfig ?? true,
+    orderConfig: savedStates.orderConfig ?? true,
+    altConfig: savedStates.altConfig ?? true,
+    stealConfig: savedStates.stealConfig ?? true,
+    guildConfig: savedStates.guildConfig ?? true,
+    otherFeatures: savedStates.otherFeatures ?? true,
+    vip3Config: savedStates.vip3Config ?? true,
+    tradeConfig: savedStates.tradeConfig ?? true,
+    nonVipSteal: savedStates.nonVipSteal ?? true,
+    tradeInConfig: savedStates.tradeInConfig ?? true,
+    colorSelection: savedStates.colorSelection ?? false,
+    exchangeCodeConfig: savedStates.exchangeCodeConfig ?? true,
+    activityConfig: savedStates.activityConfig ?? true,
+    adConfig: savedStates.adConfig ?? true,
+  }
+}
+
+// 保存折叠状态到本地存储
+const saveExpandState = (key, state) => {
+  const userId = currentUserId.value || 'default'
+  const states = JSON.parse(localStorage.getItem(`expandStates_${userId}`) || '{}')
+  states[key] = state
+  localStorage.setItem(`expandStates_${userId}`, JSON.stringify(states))
+}
+
+// 【改进】处理用户动作
+const handleUserAction = () => {
+  if (systemUserLocal.value) {
+    // 如果已登录，打开用户菜单
+    showUserMenu.value = true
+  } else {
+    // 如果未登录，跳转到登录页
+    router.push({ name: 'login' })
+  }
+}
+
+// 【新增】跳转到个人资料页面
+const goToProfile = () => {
+  showUserMenu.value = false
+  // 这里可以跳转到用户资料页面
+  console.log('跳转到个人资料页面')
+}
+
+// 【新增】跳转到安全设置页面
+const goToSecurity = () => {
+  showUserMenu.value = false
+  // 这里可以跳转到安全设置页面
+  console.log('跳转到安全设置页面')
+}
+
+// 【改进】登出功能
+const logout = async () => {
+  // 关闭菜单
+  showUserMenu.value = false
+
+  // 清除本地用户信息
+  userStore.clearUserInfo()
+  showNotify({
+    type: 'success',
+    message: '已成功退出登录',
+    duration: 2000,
+  })
+}
+
+const toLog = () => {
+  router.push({
+    name: 'log',
+    query: { userId: currentUser.value.id },
+  })
+}
+
+// 切换折叠状态
+const toggleExpand = (key) => {
+  expandStates.value[key] = !expandStates.value[key]
+  saveExpandState(key, expandStates.value[key])
+}
+
+// 弹出层方法
+const showTime = (period, field) => {
+  selectTime.value = [period, field]
+  showTimePicker.value = true
+}
+
+const showFlower = (flower) => {
+  seedList.value = []
+  seedList.value.push(
+    ...allFlowers[gameId.value].filter((f) => accountInfo.value.flowers.includes(f.value)),
+  )
+  selectFlower.value = flower
+  showFlowerPicker.value = true
+}
+
+const showFriendAccept = (accept) => {
+  friendList.value = [...friends.value]
+  friendKey.value = 'userName'
+  friendValue.value = 'openId'
+  selectFlower.value = accept
+  showFriendPicker.value = true
+}
+
+const showFriendSteal = (steal, limit = true) => {
+  friendKey.value = 'townName'
+  friendValue.value = 'userId'
+  let altUserOpenIds = accountInfo.value.altsUser.map((friend) => friend.openId)
+  friendList.value = friends.value.filter(
+    (friend) => altUserOpenIds.includes(friend.value) || !limit,
+  )
+  if (currentUser.value.subscribe.subscribeId != 0) {
+    friendList.value = [{ value: '-1', text: '所有人' }, ...friendList.value]
+  }
+  selectFlower.value = steal
+  showFriendPicker.value = true
+}
+
+const showFriendFlower = async (steal) => {
+  let friendFlowerIds = [...friendInfo.value.flowers]
+  seedList.value = [{ value: '-1', text: '所有花' }]
+  seedList.value.push(
+    ...allFlowers[gameId.value].filter(
+      (flower) => friendFlowerIds.length == 0 || friendFlowerIds.includes(flower.value),
+    ),
+  )
+  selectFlower.value = steal
+  showFlowerPicker.value = true
+}
+
+// 确认选择
+const confirmTime = ({ selectedValues }) => {
+  const timestamp = toTime(selectedValues)
+  selectTime.value[0][selectTime.value[1]] = timestamp
+  showTimePicker.value = false
+}
+
+// 移除括号内容
+const removeTextAfterBracket = (inputString) => {
+  const bracketIndex = inputString.indexOf('（')
+  return bracketIndex !== -1 ? inputString.substring(0, bracketIndex) : inputString
+}
+
+// 确认选择
+const confirmFlower = ({ selectedOptions }) => {
+  selectFlower.value['seedId'] = selectedOptions[0].value
+  selectFlower.value['seedName'] = removeTextAfterBracket(selectedOptions[0].text)
+  showFlowerPicker.value = false
+}
+
+const confirmFriend = async ({ selectedOptions }) => {
+  let openId = selectedOptions[0].value
+  selectFlower.value[friendValue.value] = openId
+  selectFlower.value[friendKey.value] = selectedOptions[0].text
+  showFriendPicker.value = false
+
+  if (openId != null && openId != -1) {
+    friendInfo.value = await getFriendInfo(openId)
+  }
+  selectFlower.value['maxExchangeCount'] = friendInfo.value.exchangeCount
+}
+
+const onFinishPlant = ({ selectedOptions }) => {
+  showPlant.value = false
+  plantText.value = selectedOptions.map((option) => option.text).join('并且')
+  config.value.autoPlant = selectedOptions[selectedOptions.length - 1].value
+  cascaderValue.value = []
+}
+
+const getExchangeCode = async () => {
+  const { data } = await request({
+    method: 'get',
+    url: '/config/getCdKey',
+  })
+  lastestCdKey.value = data
+}
+
+// 【新增】提交兑换码
+const submitExchangeCode = async () => {
+  if (!exchangeCodeInput.value.trim()) {
+    showNotify({
+      type: 'warning',
+      message: '请输入兑换码',
+      duration: 2000,
+      className: 'custom-notify',
+    })
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    const response = await request({
+      method: 'get',
+      url: '/config/shareCdKey',
+      params: {
+        userId: currentUserId.value,
+        cdKey: exchangeCodeInput.value.trim(),
+      },
+    })
+
+    if (response.code === 200) {
+      showNotify({
+        type: 'success',
+        message: response.data || '提交成功',
+        duration: 3000,
+        className: 'custom-notify',
+      })
+      // 清空输入框
+      exchangeCodeInput.value = ''
+    } else {
+      showNotify({
+        type: 'danger',
+        message: response.remark || '兑换码不存在或已被分享',
+        duration: 3000,
+        className: 'custom-notify',
+      })
+    }
+  } catch (error) {
+    showNotify({
+      type: 'danger',
+      message: '网络错误，请重试',
+      duration: 3000,
+      className: 'custom-notify',
+    })
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// 添加/删除配置
+const addPlant = () => {
+  config.value.periods.push({
+    beginTime: 0,
+    endTime: 86400000,
+    seedId: '',
+    seedName: '未选择',
+  })
+}
+
+const addSteal = () => {
+  config.value.steals.push({
+    userId: '-1',
+    townName: '所有人',
+    seedId: '-1',
+    seedName: '所有花',
+    stealCount: 10,
+    maxExchangeCount: 20,
+    enable: true,
+  })
+}
+
+const addTradeOut = () => {
+  config.value.trade.outs.push({
+    seedId: '-2',
+    seedName: '无',
+    price: 0,
+    count: -1,
+    enable: true,
+  })
+}
+
+const addTradeIn = () => {
+  config.value.trade.ins.push({
+    seedId: '-1',
+    seedName: '所有花',
+    price: 0,
+    count: -1,
+    enable: true,
+  })
+}
+
+const addUserAlts = () => {
+  accountInfo.value.userAlts.push({
+    openId: '',
+    userName: '',
+    type: 0,
+  })
+}
+
+const deletePlant = (index) => {
+  config.value.periods.splice(index, 1)
+}
+
+const deleteSteal = (index) => {
+  config.value.steals.splice(index, 1)
+}
+
+const deleteTradeOut = (index) => {
+  config.value.trade.outs.splice(index, 1)
+}
+
+const deleteTradeIn = (index) => {
+  config.value.trade.ins.splice(index, 1)
+}
+
+const deleteUserAlts = (index) => {
+  accountInfo.value.userAlts.splice(index, 1)
+}
+
+// 更新修改跟踪状态
+const updateChangeTracking = () => {
+  if (!initialConfigState.value) {
+    // 首次加载时保存初始状态
+    initialConfigState.value = cloneDeep(config.value)
+    hasUnsavedChanges.value = false
+    return
+  }
+
+  // 比较当前配置和初始状态
+  hasUnsavedChanges.value = !areConfigsEqual(initialConfigState.value, config.value)
+}
+
+// 保存配置
+const saveConfig = async () => {
+  if (currentUser.value.gameId == 2 && (await checkForUpdates())) {
+    return
+  }
+
+  if (!accountInfo.value) return
+
+  let url = '/config/update'
+  if (currentUserId.value) {
+    url = url + '?userId=' + currentUserId.value
+  }
+
+  saveToast.value = showLoadingToast({
+    duration: 0,
+    forbidClick: true,
+    message: '保存中...',
+    loadingType: 'spinner',
+    className: 'custom-loading-toast',
+  })
+
+  try {
+    const { flowers, ...newData } = accountInfo.value || {}
+    const { code, remark } = await request({
+      method: 'post',
+      url,
+      data: newData,
+    })
+
+    if (code === 200) {
+      showNotify({
+        type: 'success',
+        message: '保存成功',
+        duration: 2000,
+        className: 'custom-notify',
+      })
+
+      // 更新初始状态，标记为已保存
+      initialConfigState.value = cloneDeep(config.value)
+      hasUnsavedChanges.value = false
+
+      // 保存成功后刷新最新配置（含 scheduleTimeInfo 等实时数据）
+      await getConfig()
+    } else {
+      showNotify({
+        type: 'danger',
+        message: remark || '保存失败',
+        duration: 3000,
+        className: 'custom-notify',
+      })
+    }
+  } catch (error) {
+    showNotify({
+      type: 'danger',
+      message: '网络错误，请重试',
+      duration: 3000,
+      className: 'custom-notify',
+    })
+  } finally {
+    saveToast.value?.close()
+  }
+}
+
+// 获取好友信息
+const getFriendInfo = async (openId) => {
+  try {
+    const { data } = await request({
+      method: 'get',
+      url: `/config/friendFlowers?userId=${currentUserId.value}&openId=${openId}`,
+    })
+    return data
+  } catch (error) {
+    showNotify({
+      type: 'danger',
+      message: '获取好友信息失败，请重新登录游戏',
+      duration: 3000,
+      className: 'custom-notify',
+    })
+    return { flowers: [], exchangeCount: 10 }
+  }
+}
+
+const restartRobot = async () => {
+  // 如果正在运行，重启
+  if (runningStatus.value == 1 || runningStatus.value == 2) {
+    await triggerRobot()
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    await triggerRobot()
+  }
+}
+
+// 触发机器人（运行/停止）支持 单账号/批量智能操作
+const triggerRobot = async (isBatch = false) => {
+  if (!accountInfo.value) return
+
+  // 1. 定义基础参数
+  let baseUrl = '/config/'
+  let actionMsg = ''
+  const currentStatus = runningStatus.value
+
+  // 2. 判断操作类型：启动 / 停止
+  if (currentStatus == 0) {
+    // 未运行 → 启动
+    if (hasUnsavedChanges.value) await saveConfig()
+    baseUrl += 'run'
+    actionMsg = isBatch ? '一键启动' : '启动'
+  } else if (currentStatus == 1 || currentStatus == 2) {
+    // 运行中 → 停止
+    baseUrl += 'stop'
+    actionMsg = isBatch ? '一键停止' : '停止'
+  } else {
+    return
+  }
+
+  // 3. 筛选需要操作的用户ID（核心：智能跳过已处于目标状态的账号）
+  let targetUserIds = []
+  if (isBatch) {
+    // 批量模式：根据操作类型过滤用户
+    const allUsers = systemUser.value.otherUsers || []
+    if (currentStatus == 0) {
+      // 启动：只选 未运行(runStatus=0) 的用户
+      targetUserIds = allUsers.filter((user) => user.runStatus === 0).map((user) => user.id)
+    } else {
+      // 停止：只选 运行中(runStatus=1/2) 的用户
+      targetUserIds = allUsers
+        .filter((user) => user.runStatus === 1 || user.runStatus === 2)
+        .map((user) => user.id)
+    }
+    // 无需要操作的账号，直接提示
+    if (targetUserIds.length === 0) {
+      showNotify({
+        type: 'primary',
+        message: `所有账号已${actionMsg.replace('一键', '')}，无需重复操作！`,
+        duration: 2000,
+      })
+      return
+    }
+  } else {
+    // 单账号模式：只操作当前用户
+    targetUserIds = [currentUserId.value]
+  }
+
+  // 4. 加载提示
+  saveToast.value = showLoadingToast({
+    duration: 0,
+    forbidClick: true,
+    message: `${actionMsg}中...`,
+    loadingType: 'spinner',
+    className: 'custom-loading-toast',
+  })
+
+  // 5. 循环调用单个接口执行操作
+  let successNum = 0
+  let failNum = 0
+  for (const userId of targetUserIds) {
+    if (!userId) continue
+    const requestUrl = `${baseUrl}?userId=${userId}`
+    try {
+      const { code } = await request({ method: 'get', url: requestUrl })
+      code === 200 ? successNum++ : failNum++
+    } catch (error) {
+      failNum++
+    }
+  }
+
+  // 6. 结果提示 + 刷新状态
+  try {
+    showNotify({
+      type: successNum > 0 ? 'success' : 'danger',
+      message: `${actionMsg}完成：成功${successNum}个，失败${failNum}个`,
+      duration: 2500,
+      className: 'custom-notify',
+    })
+    await getConfig(baseUrl.includes('stop'))
+  } finally {
+    saveToast.value?.close()
+  }
+}
+
+// 获取图标URL
+const getBaseIconUrl = () => {
+  if ([1, 2].includes(accountInfo.value.gameId)) {
+    return 'https://static.fthformal.com/flower/flower_newWX/ver/257/resource/assets/h5icon/i'
+  } else if (accountInfo.value.gameId === 3) {
+    return 'https://static22.supermoon.fun/beach_wxRL/ver/2.1.9/1/resource/assets/h5icon/i'
+  } else if (accountInfo.value.gameId === 4) {
+    return 'https://cdn-fth5-release.zhen-u.com/client/r1.0.86/resource/assets/h5icon/i'
+  }
+  return ''
+}
+
+// 过滤方法
+const filterSeed = () => {
+  seedList.value = seedList.value.filter((flower) =>
+    flower.text.toLowerCase().includes(searchSeed.value.toLowerCase()),
+  )
+}
+
+const filterFriend = () => {
+  friendList.value = friends.value.filter((friend) =>
+    friend.text.toLowerCase().includes(searchFriend.value.toLowerCase()),
+  )
+}
+
+// 处理用户切换
+const handleUserChange = async (newUserId, restart = false) => {
+  currentUserId.value = newUserId
+  // 保存当前用户ID到localStorage
+  localStorage.setItem('currentUserId', newUserId)
+
+  // 重置记录的用户ID，强制重新获取配置
+  lastUserId.value = null
+
+  // 重新获取配置
+  await getConfig(true)
+  // 如果是启动状态，重启
+  if (restart) {
+    restartRobot()
+  }
+}
+
+// 获取配置
+const autoPlantArr = [
+  '关闭',
+  '自选',
+  '补仓并且鲜花>=1级',
+  '补仓并且鲜花>8级',
+  '补仓并且鲜花>12级',
+  '品质',
+]
+
+const getConfig = async (force = false) => {
+  if (hasUnsavedChanges.value && !force) return
+  let url = '/config/get'
+  if (currentUserId.value) {
+    url = url + '?userId=' + currentUserId.value
+  }
+  try {
+    const { data, code } = await request({
+      method: 'get',
+      url,
+    })
+
+    if (code !== 200) {
+      showNotify({ type: 'warning', message: '请先登陆游戏！' })
+      return
+    }
+    if (lastUserId.value == null) {
+      accountInfo.value = { ...data }
+    } else {
+      // 仅更新非配置部分的数据，保留用户的配置修改
+      accountInfo.value = {
+        ...accountInfo.value,
+        ...data,
+        config: accountInfo.value.config || data.config, // 保留当前配置，如果存在
+      }
+    }
+    // 更新最后获取配置的用户ID
+    lastUserId.value = currentUserId.value
+    friends.value = (currentUser.value.gameUser.friends || []).map((item) => ({
+      value: item.userId,
+      text: item.townName,
+    }))
+
+    otherUsers.value = systemUser.value.otherUsers
+
+    nextRunTime.value = currentUser.value.nextRunTime
+
+    // 如果没有设置当前用户，且有其他用户，则设置为第一个用户
+    if (!currentUserId.value && otherUsers.value?.length) {
+      currentUserId.value = otherUsers.value[0].id
+      localStorage.setItem('currentUserId', currentUserId.value)
+    }
+
+    plantText.value = autoPlantArr[config.value.autoPlant]
+
+    // 初始化折叠状态
+    initExpandStates()
+    // 确保所有任务都在race.task中
+    for (const taskOpt of taskOptions) {
+      if (!config.value.race.tasks.some((t) => t.id === taskOpt.id)) {
+        config.value.race.tasks.push({ id: taskOpt.id, status: 0 })
+      }
+    }
+
+    // 确保所有hd17任务都在activity.hd17.tasks中
+    for (const taskOpt of hd17Options) {
+      if (!config.value.activity.hd17.tasks.some((t) => t.id === taskOpt.id)) {
+        config.value.activity.hd17.tasks.push({ id: taskOpt.id, status: 0 })
+      }
+    }
+
+    // 🔥 新增：拉取新配置后，同步基准状态 → 无修改时不会误判
+    initialConfigState.value = cloneDeep(config.value)
+    hasUnsavedChanges.value = false
+
+    initExpandStates()
+    updateChangeTracking()
+  } catch (error) {
+    showNotify({ type: 'danger', message: '网络错误，无法获取配置' })
+  }
+}
+
+// 监听配置变化，更新种植文本
+watch(
+  [() => config.value.autoPlant],
+  () => {
+    if (config.value) {
+      plantText.value = autoPlantArr[config.value.autoPlant]
+    }
+  },
+  { immediate: true },
+)
+
+// 监听配置变化，更新修改跟踪
+watch(
+  () => config.value,
+  () => {
+    updateChangeTracking()
+  },
+  { deep: true },
+)
+
+// 监听用户切换，重新初始化折叠状态
+watch(currentUserId, () => {
+  initExpandStates()
+})
+
+// 【新增】监听点击事件，关闭更多菜单和用户菜单
+const handleClickOutside = (event) => {
+  if (moreMenuRef.value && !moreMenuRef.value.contains(event.target)) {
+    showMoreMenu.value = false
+  }
+  // 不关闭用户菜单，因为用户菜单有自己的关闭方式
+}
+
+// 处理配置更新
+const handleConfigUpdate = (newConfig) => {
+  // 深拷贝新配置到现有配置对象
+  Object.assign(accountInfo.value.config, newConfig)
+}
+
+// 处理展开状态更新
+const handleExpandStateUpdate = (newExpandStates) => {
+  expandStates.value = { ...newExpandStates }
+}
+
+// 初始化
+onMounted(async () => {
+  getConfig()
+  getExchangeCode()
+
+  // 创建定时器ID变量，以便后续清理
+  let interval = null
+
+  // 设置定时器，每20秒获取一次配置
+  interval = setInterval(() => {
+    // 否则正常获取配置
+    getConfig()
+  }, 20000)
+
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleClickOutside)
+
+  // 清理定时器
+  const cleanup = () => {
+    if (interval) {
+      clearInterval(interval)
+    }
+    document.removeEventListener('click', handleClickOutside)
+  }
+  window.addEventListener('beforeunload', cleanup)
+  return () => {
+    cleanup()
+    window.removeEventListener('beforeunload', cleanup)
+  }
+})
+</script>
 
 <style scoped>
 /* 全局样式重置和基础设置 */
@@ -1940,11 +2011,6 @@ onMounted(() => {
   align-self: flex-end;
   margin-left: 5px; /* 增加左边距，使版本号离标题远一些 */
 }
-/* 状态卡片区域 */
-.status-section {
-  padding: 20px 16px 16px;
-  position: relative;
-}
 
 .status-grid {
   display: grid;
@@ -1954,7 +2020,7 @@ onMounted(() => {
 
 .status-card {
   max-height: 65px;
-  padding: 16px;
+  padding: 12px;
   border-radius: 16px;
   border: 1px solid transparent;
   background-color: #fff;
@@ -2062,8 +2128,8 @@ onMounted(() => {
 
 /* 主要开关卡片 */
 .main-switch-card {
-  background: linear-gradient(135deg, #e8f4f8 0%, #f0f8fb 100%);
   border: 1px solid #e6f7ff;
+  margin-bottom: 15px;
 }
 
 .main-switch-cell {
@@ -2126,7 +2192,7 @@ onMounted(() => {
   gap: 6px;
   font-size: 14px;
   color: #8c8c8c;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 /* 配置项行样式 */
@@ -2272,6 +2338,10 @@ onMounted(() => {
   margin-top: 16px;
 }
 
+.advanced-setting-group {
+  padding-left: 10px; /* 进一步缩进 */
+}
+
 .advanced-cell {
   padding: 12px 0;
   border-bottom: 1px solid #f5f5f5;
@@ -2291,7 +2361,7 @@ onMounted(() => {
 }
 
 .steal-stepper {
-  width: 100%;
+  width: 100px;
 }
 
 /* 其他功能网格 */
@@ -2523,7 +2593,7 @@ onMounted(() => {
   width: 100%;
   max-width: 780px;
   margin: 0 auto;
-  padding: 12px 0;
+  padding: 10px 0px 5px;
   background-color: #fff;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
@@ -2591,6 +2661,32 @@ onMounted(() => {
   pointer-events: none;
 }
 
+/* 【新增】用户导航项目样式 */
+.user-nav-item {
+  position: relative;
+}
+
+.user-status-text {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.username-badge {
+  position: absolute;
+  top: -6px;
+  right: 8px;
+  background-color: #1890ff;
+  color: white;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  transform: scale(0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 /* 【新增】二级菜单样式 */
 .more-menu {
   position: absolute;
@@ -2628,6 +2724,345 @@ onMounted(() => {
   color: #333;
 }
 
+/* 【新增】用户菜单弹窗样式 */
+.user-menu-popup {
+  border-radius: 20px 20px 0 0 !important;
+  overflow: hidden;
+}
+
+.user-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.user-menu-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.close-icon {
+  cursor: pointer;
+  color: #8c8c8c;
+}
+
+.user-info-section {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.user-avatar {
+  margin-right: 16px;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.user-email {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+.login-time {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.user-menu-actions {
+  margin: 0;
+  border-radius: 0;
+}
+
+.logout-cell {
+  --van-cell-text-color: #ff4d4f;
+  --van-cell-background-color: #fff8f8;
+  margin-top: 8px;
+  border-radius: 12px;
+}
+
+/* 【新增】品质选择按钮样式 */
+.color-buttons-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: right;
+}
+
+.color-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 49px;
+  height: 34px;
+  border-radius: 5%;
+  border: 2px solid transparent;
+  background-color: transparent;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  color: #666;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.color-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 10%;
+  z-index: -1;
+  transition: all 0.3s ease;
+}
+
+.color-button.selected {
+  transform: scale(1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.color-button.selected .color-text {
+  color: white;
+}
+
+.color-button.color-1::before {
+  background-color: #73b185;
+}
+.color-button.color-1 {
+  color: #5a9e70;
+}
+.color-button.color-1.selected {
+  color: white;
+}
+
+.color-button.color-2::before {
+  background-color: #7c98b3;
+}
+.color-button.color-2 {
+  color: #6b92b3;
+}
+.color-button.color-2.selected {
+  color: white;
+}
+
+.color-button.color-3::before {
+  background-color: #a896cc;
+}
+.color-button.color-3 {
+  color: #a28fd0;
+}
+.color-button.color-3.selected {
+  color: white;
+}
+
+.color-button.color-4::before {
+  background-color: #f5b96e;
+}
+.color-button.color-4 {
+  color: #ffb84d;
+}
+.color-button.color-4.selected {
+  color: white;
+}
+
+.color-button.color-5::before {
+  background-color: #e07187;
+}
+.color-button.color-5 {
+  color: #e64c65;
+}
+.color-button.color-5.selected {
+  color: white;
+}
+
+.color-text {
+  position: relative;
+  z-index: 1;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.color-selection-summary {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #8c8c8c;
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+/* 品质种植相关样式 */
+.quality-plant-section {
+  margin-top: 16px;
+}
+
+.indent {
+  position: relative !important;
+  padding-left: 14px !important;
+  margin-left: 4px !important;
+}
+:deep(.indent::before) {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  height: 100% !important;
+  width: 2px !important;
+
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #eaeaea 0px,
+    #eaeaea 6px,
+    transparent 6px,
+    transparent 12px
+  ) !important;
+
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%) !important;
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%) !important;
+}
+
+/* 【新增】兑换码功能相关样式 */
+.exchange-code-section {
+  margin-top: 16px;
+}
+
+.exchange-code-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exchange-code-input {
+  flex: 1;
+  --van-field-border-radius: 8px;
+  --van-field-background-color: #f5f7fa;
+}
+
+/* 【新增】公会竞赛配置样式 */
+.race-advanced-section {
+  margin-left: 20px; /* 缩进 */
+  margin-top: 16px;
+}
+
+.task-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  border: 1px solid #eaecef;
+}
+
+.task-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.task-item.disabled-drag {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.task-priority {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3070ef, #a6bde3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  margin-right: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.task-priority.priority-disabled {
+  background: linear-gradient(135deg, #b0b0b0, #d0d0d0);
+  cursor: not-allowed;
+}
+
+.task-cell {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-cell-title {
+  font-size: 14px;
+  color: #374151;
+  margin: 0;
+  flex: 1;
+}
+
+.ghost {
+  opacity: 0.5;
+  background: #c8ebfb;
+}
+
+.chosen {
+  border: 2px solid #409eff;
+}
+
+/* 花绣时光任务列表样式 */
+.hd17-task-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hd17-task-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  border: 1px solid #eaecef;
+}
+
+.hd17-task-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
 /* 响应式适配 */
 @media (max-width: 375px) {
   .status-grid {
@@ -2639,7 +3074,6 @@ onMounted(() => {
   }
 
   .config-item-row {
-    flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
@@ -2659,6 +3093,33 @@ onMounted(() => {
 
   .nav-item {
     max-width: 70px;
+  }
+
+  .username-badge {
+    font-size: 9px;
+    padding: 1px 3px;
+  }
+
+  .color-button {
+    width: 42px;
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .exchange-code-input-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .task-priority {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .nav-center-item {
+    width: 76px;
+    height: 76px;
+    top: -36px;
   }
 }
 
@@ -2694,8 +3155,57 @@ onMounted(() => {
   animation-delay: 0.25s;
 }
 
-:deep(.van-cell__value) {
-  display: flex;
-  justify-content: right;
+:deep(.stepper-control) {
+  width: auto;
+}
+
+/* 🔥 最终版：无空白磨砂玻璃粘性置顶 */
+.fixed-top-card {
+  position: sticky;
+  /* 核心：紧贴顶部，0间距，彻底去掉空白 */
+  top: 0;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  /* 核心：取消内缩留白，铺满容器 */
+  padding: 10px 16px;
+  z-index: 10;
+  transition: all 0.3s ease;
+
+  /* 磨砂玻璃核心样式 */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  /* 只留底部圆角，顶部无缝贴合，不留白 */
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* 配置容器：恢复默认，无顶部间距 */
+.config-wrapper {
+  padding: 0 16px 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.page-container {
+  min-height: 100vh;
+  max-width: 780px;
+  /* 微调：超淡温柔粉色渐变，微微带粉，柔和不刺眼 */
+  background: linear-gradient(to bottom, #fefafc 0%, #f9f0f7 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+  padding-bottom: 120px;
+  margin: auto;
+  /* 核心：去掉顶部默认留白 */
+  padding-top: 0 !important;
+}
+
+/* 用户卡片：完全融入磨砂栏，无多余间距 */
+.user-status-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 0;
 }
 </style>

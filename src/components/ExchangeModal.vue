@@ -21,16 +21,6 @@
         </div>
       </div>
 
-      <!-- 闲鱼购买引导 - 极简风格 -->
-      <div class="buy-guide">
-        <van-icon name="shopping-o" class="guide-icon" />
-        <span class="guide-text">
-          礼品码可前往
-          <a href="https://m.tb.cn/h.7Jir4FK?tk=sQruU7cGKlc" target="_blank" class="buy-link">闲鱼小铺</a>
-          购买
-        </span>
-      </div>
-
       <!-- 表单区域 - 卡片式设计 -->
       <div class="form-card">
         <!-- openId输入框 -->
@@ -78,10 +68,10 @@
       </div>
 
       <!-- 兑换按钮 - 渐变风格 -->
-      <van-button 
-        type="primary" 
-        class="exchange-btn" 
-        :loading="isLoading" 
+      <van-button
+        type="primary"
+        class="exchange-btn"
+        :loading="isLoading"
         :disabled="!canExchange"
         @click="handleExchange"
         block
@@ -101,9 +91,11 @@ import request from '@/utils/request'
 const props = defineProps({
   defaultOpenId: {
     type: String,
-    default: '' // 默认值为空
-  }
+    default: '', // 默认值为空
+  },
 })
+
+const emit = defineEmits(['exchange-success'])
 
 // 弹窗显示状态
 const showExchangeModal = ref(false)
@@ -126,7 +118,7 @@ watch(
       getUserNameByOpenId()
     }
   },
-  { immediate: true } // 初始化时立即执行
+  { immediate: true }, // 初始化时立即执行
 )
 
 // 新增：计算是否可兑换（用户名存在 + 兑换码格式正确）
@@ -176,7 +168,7 @@ const getUserNameByOpenId = async () => {
     const res = await request({
       url: 'api/getNameByOpenId', // 替换为实际接口地址
       method: 'GET', // 根据实际接口调整请求方式
-      params: { openId: openId.value } // GET用params，POST用data
+      params: { openId: openId.value }, // GET用params，POST用data
     })
 
     // 根据接口返回格式调整，示例：res.code=200时返回name
@@ -236,9 +228,9 @@ const handleExchange = async () => {
     const res = await request({
       url: '/api/useCdKey',
       method: 'GET',
-      params: { 
+      params: {
         cdKey: cdKey.value,
-        openId: openId.value // 新增：传递openId到后端
+        openId: openId.value, // 新增：传递openId到后端
       },
     })
 
@@ -246,6 +238,7 @@ const handleExchange = async () => {
     if (res.code === 200) {
       showToast('兑换成功！请刷新页面进行查看。')
       showExchangeModal.value = false // 兑换成功关闭弹窗
+      emit('exchange-success')
     } else {
       showToast(res.remark)
     }
@@ -455,11 +448,11 @@ defineExpose({
   .exchange-modal {
     padding: 28px 16px 24px;
   }
-  
+
   .modal-title {
     font-size: 20px;
   }
-  
+
   .exchange-btn {
     height: 48px;
   }
