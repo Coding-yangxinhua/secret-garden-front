@@ -6,20 +6,18 @@
     </div>
 
     <div class="accept-type-section">
-      <div class="accept-type-wrapper">
-        <div class="accept-type-container">
-          <div
-            v-for="colorOption in colorOptions"
-            :key="colorOption.value"
-            class="accept-type-option"
-            :class="[
-              isSelectedColor(colorOption.value) ? 'selected' : '',
-              `color-${colorOption.value}`
-            ]"
-            @click="toggleColor(colorOption.value)"
-          >
-            {{ colorOption.text }}
-          </div>
+      <div class="accept-type-container">
+        <div
+          v-for="colorOption in colorOptions"
+          :key="colorOption.value"
+          class="accept-type-option"
+          :class="[
+            isSelectedColor(colorOption.value) ? 'selected' : '',
+            `color-${colorOption.value}`,
+          ]"
+          @click="toggleColor(colorOption.value)"
+        >
+          <span>{{ colorOption.text }}</span>
         </div>
       </div>
     </div>
@@ -40,8 +38,8 @@ const props = defineProps({
       { text: '紫', value: 3, bgColor: '#a28fd0' },
       { text: '橙', value: 4, bgColor: '#ffb84d' },
       { text: '红', value: 5, bgColor: '#e64c65' },
-    ]
-  }
+    ],
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -59,101 +57,145 @@ const toggleColor = (colorId) => {
 </script>
 
 <style scoped>
+/* ============================================================
+   🍎 QualityColorSelector – iOS 17 Settings 风格（紧凑版）
+   ============================================================
+   设计理念：
+   - 每个品质 = [小色点 + 单字标签]，行内水平排列
+   - 选中时色点外圈高亮 + 右侧浮现绿色 ✓
+   - 极致紧凑，不占空间
+   ============================================================ */
+
 .quality-color-selector {
   width: 100%;
+  margin-top: 4px;
 }
 
+/* ---------- 分段标题 ---------- */
 .section-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  color: #8c8c8c;
-  margin: 10px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.3px;
+  color: var(--apple-text-secondary, #86868b);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
 }
 
+/* ---------- 容器 ---------- */
 .accept-type-section {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
-.accept-type-wrapper {
-  border: 1px solid #ffe0ef;
-  border-radius: 14px;
-  padding: 12px;
-  background: #fffafc;
-  box-shadow: 0 2px 8px rgba(255, 182, 219, 0.08);
-}
+
 .accept-type-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
+/* ---------- 品质选项（行内 = 色点 + 文字） ---------- */
 .accept-type-option {
   position: relative;
-  padding: 6px 12px;
-  border: 1px solid #f8d0e1;
-  border-radius: 12px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  background: #ffffff;
-  user-select: none;
-}
-
-/* ============= 永久显示的小框（永远不消失） ============= */
-.accept-type-option::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 12px;
-  height: 12px;
-  background: #fff;
-  border: 1px solid #f8d0e1;
-  border-radius: 4px;
-  z-index: 1;
-}
-
-/* ============= 未选中：居中红色 × ============= */
-.accept-type-option::after {
-  content: "×";
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 12px;
-  height: 12px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  color: #f57185;
-  font-weight: normal;
-  z-index: 2;
+  gap: 6px;
+  padding: 5px 12px 5px 9px;
+  background: rgba(242, 242, 247, 0.5);
+  border-radius: 16px;
+  border: 0.5px solid rgba(60, 60, 67, 0.06);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* ============= 选中：居中绿色 √（覆盖×） ============= */
-.accept-type-option.selected::after {
-  content: "✓";
-  color: #07c160;
+.accept-type-option:active {
+  opacity: 0.6;
 }
 
-.accept-type-option:hover {
-  border-color: #ffa9d3;
-  background: #fff0f7;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(255, 133, 192, 0.1);
+/* ---------- 小色点（8px 圆点） ---------- */
+.accept-type-option::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--quality-color, #c7c7cc);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.accept-type-option.selected {
+/* 选中时色点变大 + 外圈辉光 */
+.accept-type-option.selected::before {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--quality-color, #c7c7cc) 25%, transparent);
+}
+
+/* ---------- 选中 ✓ 标记（文字右侧绿色小勾） ---------- */
+.accept-type-option::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #34c759;
+  font-size: 10px;
+  font-weight: 700;
   color: #fff;
-  font-weight: 500;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  line-height: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.3);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-left: 1px;
 }
 
-/* 原有颜色样式不变 */
-.accept-type-option.color-1.selected { background: #7cbd8e; border-color: #7cbd8e; }
-.accept-type-option.color-2.selected { background: #7a9fc5; border-color: #7a9fc5; }
-.accept-type-option.color-3.selected { background: #b09fda; border-color: #b09fda; }
-.accept-type-option.color-4.selected { background: #ffc266; border-color: #ffc266; }
-.accept-type-option.color-5.selected { background: #f05c74; border-color: #f05c74; }
+.accept-type-option.selected::after {
+  content: '✓';
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---------- 文字标签 ---------- */
+.accept-type-option span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--apple-text-secondary, #86868b);
+  transition: color 0.2s ease;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  letter-spacing: 0.1px;
+  line-height: 1;
+}
+
+.accept-type-option.selected span {
+  color: var(--apple-text-primary, #1d1d1f);
+  font-weight: 600;
+}
+
+/* ---------- 各品质颜色 ---------- */
+.color-1 {
+  --quality-color: #7cbd8e;
+}
+.color-2 {
+  --quality-color: #7a9fc5;
+}
+.color-3 {
+  --quality-color: #b09fda;
+}
+.color-4 {
+  --quality-color: #ffc266;
+}
+.color-5 {
+  --quality-color: #f05c74;
+}
 </style>

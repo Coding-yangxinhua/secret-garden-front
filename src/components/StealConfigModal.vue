@@ -1,79 +1,71 @@
 <template>
-  <div class="steal-config-card" v-if="user.gameId == 2">
-    <div class="card-header" @click="toggleExpand('stealConfig')">
-      <van-icon name="gift-o" size="20" color="#ff6767" />
-      <span class="card-title">摸花配置</span>
-      <van-icon
-        name="arrow-down"
-        size="16"
-        :class="{ 'rotate-180': expandStates.stealConfig }"
-        class="expand-icon"
-      />
+  <div class="steal-config-card apple-card" v-if="user.gameId == 2">
+    <div class="apple-card-header">
+      <cute-icon name="flower" size="20" color="#ff6767" />
+      <span class="apple-card-title">摸花配置</span>
     </div>
-    <div class="card-content" v-show="expandStates.stealConfig">
-      <van-cell class="feature-cell" center label="可配置摸花对象、花种和次数上限">
-        <template #title>
-          <span class="feature-title">自动摸花</span>
-        </template>
-        <template #right-icon>
+    <div class="apple-card-content">
+      <!-- 自动摸花开关 -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">自动摸花</div>
+          <div class="apple-cell-label">可配置摸花对象、花种和次数上限</div>
+        </div>
+        <div class="apple-cell-right">
           <van-switch
             :disabled="!localConfig"
             v-model="localConfig.autoSteal"
-            size="24"
+            size="22"
             @change="onAutoStealChange"
           />
-        </template>
-      </van-cell>
+        </div>
+      </div>
 
       <!-- 摸花配置列表 -->
       <div v-show="localConfig.autoSteal" class="steal-list-section">
-        <div class="section-title">
-          <van-icon name="flower-o" size="16" color="#ff6b6b" />
+        <div class="apple-sub-header">
+          <van-icon name="flower-o" size="14" color="#86868B" />
           <span>摸花配置</span>
         </div>
 
-        <div v-if="localConfig.steals.length === 0" class="empty-state">
-          <van-empty description="暂无摸花配置，点击添加按钮创建" class="empty-content" />
+        <div v-if="localConfig.steals.length === 0" class="apple-empty">
+          <div class="apple-empty-icon">
+            <van-icon name="flower-o" size="40" color="#C7C7CC" />
+          </div>
+          <div class="apple-empty-text">暂无摸花配置</div>
+          <div class="apple-empty-desc">点击下方按钮添加摸花配置</div>
         </div>
 
-        <div
-          v-for="(steal, index) in localConfig.steals"
-          :key="`steal-${index}`"
-          class="config-item-row steal-row"
-        >
-          <div class="config-item-col name-col">
-            <div class="config-item-label">配置名称</div>
-            <div class="config-item-value clickable" @click="editStealConfig(index)">
-              <span class="value-text">{{ steal.name || '未命名配置' }}</span>
-              <van-icon name="arrow" size="14" class="arrow-icon" />
+        <div v-for="(steal, index) in localConfig.steals" :key="`steal-${index}`" class="apple-row">
+          <div class="apple-row-item steal-name-item" @click="editStealConfig(index)">
+            <div class="apple-row-label">配置名称</div>
+            <div class="apple-row-value">
+              <span class="apple-row-text">{{ steal.name || '未命名配置' }}</span>
+              <van-icon name="arrow" size="12" color="#C7C7CC" />
             </div>
           </div>
 
-          <div class="config-item-col switch-col">
-            <div class="config-item-label">启用状态</div>
-            <van-switch
-              :disabled="!localConfig"
-              v-model="steal.status"
-              size="20"
-              @change="updateConfig"
-            />
+          <div class="apple-row-item steal-status-item">
+            <div class="apple-row-label">启用状态</div>
+            <div class="apple-row-value">
+              <van-switch
+                :disabled="!localConfig"
+                v-model="steal.status"
+                size="20"
+                @change="updateConfig"
+              />
+            </div>
           </div>
 
-          <div class="config-item-col action-col">
-            <van-button
-              class="delete-button"
-              icon="delete-o"
-              size="mini"
-              type="danger"
-              plain
-              @click="deleteSteal(index)"
-            />
-          </div>
+          <button class="apple-delete-btn" @click="deleteSteal(index)">
+            <van-icon name="delete-o" size="16" color="#FF3B30" />
+          </button>
         </div>
 
-        <van-button class="add-button" block type="primary" icon="add-o" @click="addSteal">
-          添加摸花配置
-        </van-button>
+        <button class="apple-add-btn" @click="addSteal">
+          <van-icon name="add-o" size="16" />
+          <span>添加摸花配置</span>
+        </button>
       </div>
     </div>
   </div>
@@ -89,16 +81,26 @@
           <van-icon name="cross" class="close-icon" @click="closePopup" />
         </div>
         <div class="popup-content">
-          <van-field
-            v-model="editingSteal.name"
-            label="配置名称"
-            placeholder="请输入配置名称"
-            class="config-field"
-          />
+          <!-- 配置名称 -->
+          <div class="apple-cell popup-field-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">配置名称</div>
+            </div>
+            <div class="apple-cell-right">
+              <van-field
+                v-model="editingSteal.name"
+                placeholder="请输入配置名称"
+                class="config-field"
+              />
+            </div>
+          </div>
 
-          <van-cell title="摸花对象" :border="false" class="section-title-cell-optimized" />
+          <!-- 摸花对象 -->
+          <div class="apple-sub-header popup-section-label">
+            <van-icon name="contact-o" size="14" color="#86868B" />
+            <span>摸花对象</span>
+          </div>
 
-          <!-- 优化后的摸花对象选择区域 - 小尺寸横排 -->
           <div class="steal-type-horizontal">
             <div
               v-for="typeOption in typeOptions"
@@ -114,10 +116,13 @@
             </div>
           </div>
 
+          <!-- 指定好友 -->
           <div v-if="editingSteal.type.includes(4)" class="friend-selection">
-            <van-cell title="指定好友" :border="false" class="section-title-cell" />
+            <div class="apple-sub-header popup-section-label">
+              <van-icon name="friends-o" size="14" color="#86868B" />
+              <span>指定好友</span>
+            </div>
 
-            <!-- 好友气泡展示区域 -->
             <div class="selected-friends-container">
               <div
                 v-for="selectedFriend in selectedFriendsList"
@@ -132,7 +137,6 @@
                 />
               </div>
 
-              <!-- 下拉选择器 -->
               <div class="friend-dropdown-wrapper" v-click-outside="handleClickOutside">
                 <van-field
                   readonly
@@ -143,7 +147,6 @@
                   class="friend-selector-field"
                 />
 
-                <!-- 下拉菜单 -->
                 <div v-show="showFriendDropdown" class="friend-dropdown">
                   <div class="dropdown-search">
                     <van-field
@@ -178,7 +181,6 @@
                     </div>
                   </div>
 
-                  <!-- 确认按钮 -->
                   <div class="dropdown-footer" v-if="showFriendDropdown">
                     <van-button
                       type="primary"
@@ -195,62 +197,71 @@
             </div>
           </div>
 
-          <van-cell title="摸花品质" :border="false" class="section-title-cell-optimized" />
+          <!-- 摸花品质 -->
+          <div class="apple-sub-header popup-section-label">
+            <van-icon name="star-o" size="14" color="#86868B" />
+            <span>摸花品质</span>
+          </div>
           <quality-color-selector v-model="editingSteal.color" class="color-selector" />
-          <van-cell
-            title="具体配置"
-            :border="false"
-            class="section-title-cell-optimized"
-            label="理论上不会摸主花副花，注意观察哦"
-          />
-          <van-cell-group inset class="switch-group">
-            <van-cell
-              title="摸星灵（请在好友同意下使用哦）"
-              :border="false"
-              label="开启后会优先摸星灵，星灵没满时，会保留一定次数留给星灵"
-              :class="{ 'disabled-cell': isSpecialDisabled }"
-            >
-              <template #right-icon>
+
+          <!-- 具体配置 -->
+          <div class="apple-sub-header popup-section-label">
+            <van-icon name="setting-o" size="14" color="#86868B" />
+            <span>具体配置</span>
+          </div>
+
+          <div class="apple-sub-section steal-sub-section">
+            <div class="apple-cell">
+              <div class="apple-cell-left">
+                <div class="apple-cell-title">摸星灵</div>
+                <div class="apple-cell-label">开启后会优先摸星灵，星灵没满时保留一定次数</div>
+              </div>
+              <div class="apple-cell-right">
                 <van-switch
                   v-model="editingSteal.special"
                   size="20"
-                  active-color="#ff6b6b"
                   :disabled="isSpecialDisabled"
                   @change="onSpecialToggle"
                 />
-              </template>
-            </van-cell>
-            <van-cell title="摸花次数" :border="false" label="-1为次数摸满">
-              <custom-array-stepper
-                :min="-1"
-                :max="maxStealCount"
-                :step="1"
-                v-model="editingSteal.stealCount"
-                :inputDisabled="false"
-                class="steal-stepper"
-                @change="updateEditingConfig"
-              >
-              </custom-array-stepper>
-            </van-cell>
-            <van-cell v-show="editingSteal.stealCount != 0" title="只摸没有的花" :border="false">
-              <template #right-icon>
+              </div>
+            </div>
+
+            <div class="apple-cell">
+              <div class="apple-cell-left">
+                <div class="apple-cell-title">摸花次数</div>
+                <div class="apple-cell-label">-1为次数摸满</div>
+              </div>
+              <div class="apple-cell-right">
+                <custom-array-stepper
+                  :min="-1"
+                  :max="maxStealCount"
+                  :step="1"
+                  v-model="editingSteal.stealCount"
+                  :inputDisabled="false"
+                  class="steal-stepper"
+                  @change="updateEditingConfig"
+                />
+              </div>
+            </div>
+
+            <div class="apple-cell" v-show="editingSteal.stealCount != 0">
+              <div class="apple-cell-left">
+                <div class="apple-cell-title">只摸没有的花</div>
+                <div class="apple-cell-label">仅摸取尚未拥有的花种</div>
+              </div>
+              <div class="apple-cell-right">
                 <van-switch
                   v-model="editingSteal.unowned"
                   size="20"
-                  active-color="#ff6b6b"
                   @change="updateEditingConfig"
                 />
-              </template>
-            </van-cell>
-          </van-cell-group>
+              </div>
+            </div>
+          </div>
 
           <div class="popup-actions">
-            <van-button type="default" @click="cancelEdit" class="popup-cancel-btn"
-              >取消</van-button
-            >
-            <van-button type="primary" @click="saveStealConfig" class="popup-save-btn"
-              >保存</van-button
-            >
+            <button type="button" class="popup-cancel-btn" @click="cancelEdit">取消</button>
+            <button type="button" class="popup-save-btn" @click="saveStealConfig">保存</button>
           </div>
         </div>
       </div>
@@ -537,15 +548,6 @@ const onSpecialToggle = (value) => {
   updateEditingConfig()
 }
 
-// 切换展开状态
-const toggleExpand = (key) => {
-  if (props.expandStates && typeof props.expandStates === 'object') {
-    props.expandStates[key] = !props.expandStates[key]
-    // 触发更新事件
-    emit('update-expand-states', props.expandStates)
-  }
-}
-
 // 更新配置到父组件
 const updateConfig = () => {
   emit('update:config', JSON.parse(JSON.stringify(localConfig.value)))
@@ -763,298 +765,40 @@ const closePopup = () => {
 </script>
 
 <style scoped>
+/* ============================================================
+   🌸 StealConfigModal — iOS 17 Settings 风格
+   通用样式见 apple-card.css（全局），此处仅处理组件特有覆写
+   ============================================================ */
+
+/* ---------- 卡片容器微调 ---------- */
 .steal-config-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.05),
-    0 4px 10px rgba(0, 0, 0, 0.03);
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin-bottom: 16px;
 }
 
-.card-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
+/* ⚠️ 覆盖全局 apple-card 部分 padding，使其更紧凑 */
+.steal-config-card .apple-card-header {
+  padding: 16px 16px 0;
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-  flex: 1;
+.steal-config-card .apple-card-content {
+  padding: 4px 16px 12px;
 }
 
-.card-content {
-  padding: 16px 20px;
-}
-
-.expand-icon {
-  transition: transform 0.3s ease;
-  color: #7f8c8d;
-}
-
-.rotate-180 {
-  transform: rotate(180deg);
-}
-
-.feature-cell {
-  background-color: transparent;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.feature-cell:last-child {
-  border-bottom: none;
-}
-
-.feature-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #2c3e50;
-}
-
+/* 摸花配置列表缩进 */
 .steal-list-section {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 6px;
+/* ---------- 配置名 + 状态行（apple-row 内） ---------- */
+.steal-name-item {
+  flex: 1.5;
 }
 
-.config-item-row {
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.config-item-row:last-child {
-  border-bottom: none;
-}
-
-.config-item-col {
-  display: flex;
-  flex-direction: column;
-  margin-right: 8px;
-}
-
-.name-col {
-  flex: 3;
-}
-
-.switch-col {
-  flex: 1.2;
-}
-
-.action-col {
+.steal-status-item {
   flex: 0.8;
-  display: flex;
-  justify-content: center;
 }
 
-.config-item-label {
-  font-size: 12px;
-  color: #8c8c8d;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.config-item-value {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
-}
-
-.clickable {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.clickable:active {
-  color: #ff6b6b;
-}
-
-.value-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.arrow-icon {
-  color: #bdc3c7;
-  transition: transform 0.2s ease;
-}
-
-.delete-button {
-  --van-button-danger-color: #ff6b6b;
-  --van-button-border-radius: 8px;
-  padding: 0;
-  width: 36px;
-  height: 36px;
-  border: 1px solid #ffe0e0;
-}
-
-.add-button {
-  --van-button-border-radius: 14px;
-  color: white;
-  margin-top: 16px;
-  height: 48px;
-  font-weight: 500;
-  font-size: 16px;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.add-button:active {
-  transform: translateY(-2px);
-}
-
-.empty-state {
-  padding: 24px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.empty-content :deep(.van-empty__image) {
-  width: 80px;
-  height: 80px;
-}
-
-.empty-content :deep(.van-empty__description) {
-  font-size: 14px;
-  color: #8c8c8d;
-  margin-top: 8px;
-}
-
-/* 自定义弹窗样式 - 修复z-index层级问题 */
-.custom-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
-  z-index: 10001; /* 提高层级确保高于底部导航 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.3s ease;
-  /* 防止父容器滚动 */
-  touch-action: none;
-  overscroll-behavior: contain;
-}
-
-.custom-popup {
-  background: linear-gradient(135deg, #ffffff, #f8f9fa);
-  border-radius: 20px 20px 0 0;
-  width: 90%;
-  max-width: 420px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
-  animation: slideUp 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  overflow: hidden;
-  /* 防止内容区域滚动影响父元素 */
-  overscroll-behavior: contain;
-}
-
-.popup-header {
-  padding: 20px 24px 16px;
-  background: linear-gradient(to right, #fff5f5, #ffffff);
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.popup-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.close-icon {
-  cursor: pointer;
-  font-size: 22px;
-  color: #95a5a6;
-  padding: 4px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.close-icon:hover {
-  color: #ff6b6b;
-  background: #f8f9fa;
-}
-
-.popup-content {
-  padding: 24px;
-  flex: 1;
-  overflow-y: auto;
-  /* 防止内容区域滚动影响父元素 */
-  overscroll-behavior: contain;
-}
-
-.config-field {
-  margin-bottom: 20px;
-  --van-field-input-text-color: #2c3e50;
-  --van-field-label-color: #7f8c8d;
-  --van-field-border-color: #e0e0e0;
-  border-radius: 12px;
-  padding: 12px 16px;
-}
-
-.section-title-cell {
-  --van-cell-background: transparent;
-  --van-cell-text-color: #ff6b6b;
-  --van-cell-font-size: 15px;
-  --van-cell-line-height: 1.5;
-  margin: 20px 0 12px;
-  padding: 0;
-  font-weight: 500;
-}
-
-/* 优化后的标题单元格样式 */
-.section-title-cell-optimized {
-  --van-cell-background: transparent;
-  --van-cell-text-color: #ff6b6b;
-  --van-cell-font-size: 15px;
-  --van-cell-line-height: 1.5;
-  margin: 20px 0 12px;
-  padding: 0;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-title-cell-optimized::before {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 16px;
-  background: linear-gradient(to bottom, #ff6b6b, #ff8e8e);
-  border-radius: 2px;
-  margin-right: 8px;
-}
-
-/* 横向排列的小尺寸摸花对象选择 */
+/* ---------- 横向选择按钮（摸花对象） ---------- */
 .steal-type-horizontal {
   display: flex;
   gap: 8px;
@@ -1063,91 +807,58 @@ const closePopup = () => {
 
 .type-option-small {
   flex: 1;
-  padding: 8px 4px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 10px 4px;
+  border: 1.5px solid var(--apple-separator, rgba(60, 60, 67, 0.12));
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: #f8f9fa;
+  background: var(--apple-bg-tertiary, rgba(242, 242, 247, 0.5));
   text-align: center;
-  font-size: 12px;
-  color: #2c3e50;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--apple-text-primary, #1d1d1f);
   min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  letter-spacing: -0.1px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .type-option-small.selected {
-  border-color: #ff6b6b;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  border-color: #ff6767;
+  background: #ff6767;
   color: white;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.25);
+  box-shadow: 0 4px 12px rgba(255, 103, 103, 0.25);
 }
 
 .type-option-small.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
-  background: #e0e0e0;
-  color: #999;
-  border-color: #ccc;
 }
 
+.type-option-small:not(.disabled):active {
+  transform: scale(0.96);
+}
+
+/* ---------- 品质选择器间距 ---------- */
 .color-selector {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
+/* ---------- 好友选择区域 ---------- */
 .friend-selection {
-  margin-bottom: 20px;
-  padding: 0px 16px;
-  background: #f8f9fa;
+  margin-bottom: 18px;
+  padding: 0 12px 12px;
+  background: var(--apple-bg-tertiary, rgba(242, 242, 247, 0.5));
   border-radius: 12px;
-  border: 1px solid #eee;
+  border: 1px solid var(--apple-separator-light, rgba(60, 60, 67, 0.04));
 }
 
-.switch-group {
-  margin: 20px 0;
-  background: transparent;
-  --van-cell-padding: 14px 16px;
-  --van-cell-background: #f8f9fa;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.popup-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.popup-cancel-btn {
-  flex: 1;
-  border-radius: 12px;
-  height: 48px;
-  font-weight: 500;
-  border: 1px solid #e0e0e0;
-  color: #7f8c8d;
-  background: #f8f9fa;
-}
-
-.popup-save-btn {
-  flex: 1;
-  border-radius: 12px;
-  height: 48px;
-  font-weight: 500;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-  border: none;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.25);
-}
-
-.popup-cancel-btn:active,
-.popup-save-btn:active {
-  transform: scale(0.98);
-}
-
-/* 好友选择区域 */
 .selected-friends-container {
   display: flex;
   flex-wrap: wrap;
@@ -1159,7 +870,7 @@ const closePopup = () => {
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  background: #ff6767;
   color: white;
   border-radius: 16px;
   font-size: 12px;
@@ -1175,18 +886,16 @@ const closePopup = () => {
   transition: background-color 0.2s ease;
 }
 
-.remove-friend-icon:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+.remove-friend-icon:active {
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .friend-selector-field {
   width: 100%;
-  margin-top: 8px;
-  --van-field-input-text-color: #95a5a6;
-  --van-field-placeholder-text-color: #bdc3c7;
+  --van-field-input-text-color: #86868b;
+  --van-field-placeholder-text-color: #aeaeb2;
   border-radius: 8px;
   background: white;
-  border: 1px solid #e0e0e0;
 }
 
 .friend-dropdown-wrapper {
@@ -1199,12 +908,14 @@ const closePopup = () => {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 10002; /* 下拉框也需要更高的层级 */
+  background: rgba(250, 250, 252, 0.95);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  z-index: 10002;
   margin-top: 8px;
-  border: 1px solid #e0e0e0;
+  border: 0.5px solid rgba(60, 60, 67, 0.12);
   max-height: 300px;
   overflow: hidden;
   display: flex;
@@ -1213,59 +924,60 @@ const closePopup = () => {
 
 .dropdown-search {
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fff;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.08);
+  background: transparent;
 }
 
 .dropdown-options {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
-  background: #fff;
+  padding: 4px 0;
+  background: transparent;
 }
 
 .friend-option {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 16px;
   gap: 12px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-radius: 8px;
+  transition: background-color 0.15s ease;
+  border-radius: 6px;
   margin: 0 8px 2px;
 }
 
-.friend-option:hover {
-  background-color: #f8f9fa;
+.friend-option:active {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 .friend-name {
   flex: 1;
-  font-size: 14px;
-  color: #2c3e50;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--apple-text-primary, #1d1d1f);
 }
 
 .no-results {
   padding: 16px;
   text-align: center;
-  color: #95a5a6;
+  color: var(--apple-text-tertiary, #aeaeb2);
   font-size: 14px;
 }
 
 .dropdown-footer {
-  padding: 12px;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  padding: 10px 12px;
+  background: transparent;
+  border-top: 0.5px solid rgba(60, 60, 67, 0.08);
 }
 
 .confirm-button {
-  --van-button-primary-color: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  --van-button-primary-color: #ff6767;
   --van-button-border-radius: 12px;
   height: 40px;
   font-weight: 500;
 }
 
-/* 自定义复选框样式 */
+/* ---------- 自定义复选框 ---------- */
 .checkbox-label {
   position: relative;
   display: inline-block;
@@ -1287,18 +999,18 @@ const closePopup = () => {
   width: 18px;
   height: 18px;
   background-color: #fff;
-  border: 2px solid #ddd;
-  border-radius: 4px;
+  border: 2px solid #c7c7cc;
+  border-radius: 5px;
   transition: all 0.2s ease;
 }
 
 .checkbox-label:hover .custom-checkbox {
-  border-color: #ff6b6b;
+  border-color: #ff6767;
 }
 
 .native-checkbox:checked + .custom-checkbox {
-  background-color: #ff6b6b;
-  border-color: #ff6b6b;
+  background-color: #ff6767;
+  border-color: #ff6767;
 }
 
 .custom-checkbox:after {
@@ -1318,12 +1030,183 @@ const closePopup = () => {
   display: block;
 }
 
-/* 摸星灵选项禁用样式 */
-.disabled-cell {
-  opacity: 0.6;
+/* ---------- 弹窗遮罩 + 内容 ---------- */
+.custom-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10001;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
-/* 动画效果 */
+.custom-popup {
+  width: 92%;
+  max-width: 420px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  /* 实心底色 + 磨砂玻璃效果 */
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+}
+
+.popup-header {
+  padding: 18px 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.08);
+  position: relative;
+}
+
+.popup-title {
+  font-size: 20px;
+  font-weight: 630;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  color: var(--apple-text-primary, #1d1d1f);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+.close-icon {
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--apple-text-quaternary, #c7c7cc);
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  background: rgba(242, 242, 247, 0.6);
+}
+
+.close-icon:active {
+  background: rgba(229, 229, 234, 0.8);
+  color: #86868b;
+}
+
+.popup-content {
+  padding: 20px 20px 24px;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---------- 弹窗内样式 ---------- */
+.popup-section-label {
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+/* 配置名称 — 内嵌 apple-cell 形式 */
+.popup-field-cell {
+  padding: 4px 0 8px !important;
+}
+
+.popup-field-cell .apple-cell-left {
+  margin-right: 4px;
+}
+
+.popup-field-cell .apple-cell-title {
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.popup-field-cell .config-field {
+  width: 100%;
+  margin: 0;
+  --van-field-input-text-color: var(--apple-text-primary, #1d1d1f);
+  --van-field-placeholder-text-color: var(--apple-text-quaternary, #c7c7cc);
+  --van-field-background: transparent;
+  --van-cell-background: transparent;
+  --van-field-border: none;
+  --van-cell-border: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 400;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* 具体配置子分区开关组加一点内边距 */
+.steal-sub-section {
+  margin-top: 4px;
+}
+
+/* ---------- 弹窗操作按钮 ---------- */
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 0.5px solid rgba(60, 60, 67, 0.08);
+}
+
+.popup-cancel-btn,
+.popup-save-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.2px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.popup-cancel-btn {
+  border: 0.5px solid rgba(60, 60, 67, 0.12);
+  color: var(--apple-text-primary, #1d1d1f);
+  background: var(--apple-bg-secondary, #f2f2f7);
+}
+
+.popup-save-btn {
+  border: none;
+  color: white;
+  background: #ff6767;
+  box-shadow: 0 4px 12px rgba(255, 103, 103, 0.3);
+}
+
+.popup-cancel-btn:active,
+.popup-save-btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+/* ---------- Stepper 宽度 ---------- */
+.steal-stepper {
+  width: 108px;
+}
+
+/* ---------- 动画 ---------- */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1335,81 +1218,19 @@ const closePopup = () => {
 
 @keyframes slideUp {
   from {
-    transform: translateY(100%);
+    transform: translateY(20px) scale(0.96);
+    opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+    opacity: 1;
   }
 }
 
-/* 响应式适配 - 修复移动端按钮问题 */
+/* ---------- 小屏幕适配 ---------- */
 @media (max-width: 375px) {
-  .config-item-row {
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .config-item-col {
-    width: 100%;
-    margin-right: 0;
-  }
-
-  .action-col {
-    align-self: flex-end;
-  }
-
   .type-option-small {
-    flex: calc(50% - 4px); /* 在小屏幕上每行两个 */
+    flex: calc(50% - 4px);
   }
-
-  .popup-actions {
-    flex-direction: row;
-    gap: 12px;
-  }
-
-  .popup-cancel-btn,
-  .popup-save-btn {
-    flex: 1;
-    height: 48px;
-    font-size: 16px;
-    font-weight: 500;
-  }
-
-  .friend-dropdown {
-    max-height: 250px;
-  }
-
-  /* 确保弹窗内容区域不会导致页面滚动 */
-  .custom-popup {
-    max-height: 80vh;
-  }
-
-  /* 调整按钮在小屏幕上的间距 */
-  .popup-actions {
-    margin-top: 16px;
-  }
-}
-
-/* 修复遮罩层拖拽问题 */
-.custom-popup-overlay {
-  -webkit-overflow-scrolling: touch;
-  /* 防止在iOS设备上出现页面滚动 */
-  position: fixed;
-  overscroll-behavior: none;
-}
-
-/* 修复弹窗圆角样式 */
-.custom-popup {
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-/* 优化按钮样式 */
-.popup-cancel-btn,
-.popup-save-btn {
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

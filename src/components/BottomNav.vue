@@ -64,38 +64,75 @@
       </div>
     </div>
 
-    <!-- 更多菜单 -->
-    <div class="more-menu" v-show="showMoreMenu" ref="moreMenuRef">
-      <div class="menu-item" @click="openExchangeModal">
-        <cute-icon name="gift-voucher" size="18" style="margin-right: 6px" />
-        <span>兑换码兑换</span>
+    <!-- 🍎 更多菜单 – iOS 17 Sheet -->
+    <ModernSheet v-model="showMoreMenu" title="更多功能">
+      <div class="more-sheet-content">
+        <div class="more-menu-items">
+          <div class="more-menu-item" @click="openExchangeModal">
+            <div class="more-menu-item-icon">
+              <cute-icon name="gift-voucher" size="20" />
+            </div>
+            <span class="more-menu-item-text">兑换码兑换</span>
+          </div>
+          <div class="more-menu-item" @click="openAccountModal">
+            <div class="more-menu-item-icon">
+              <cute-icon name="user-link" size="20" />
+            </div>
+            <span class="more-menu-item-text">账号绑定</span>
+          </div>
+          <div class="more-menu-item" @click="openNotificationPanel">
+            <div class="more-menu-item-icon">
+              <cute-icon name="envelope" size="20" />
+            </div>
+            <span class="more-menu-item-text">站内信</span>
+            <span v-if="unreadCount > 0" class="menu-badge-sheet">{{
+              unreadCount > 99 ? '99+' : unreadCount
+            }}</span>
+          </div>
+          <div class="more-menu-item" @click="openActivityPanel">
+            <div class="more-menu-item-icon">
+              <cute-icon name="gift" size="20" />
+            </div>
+            <span class="more-menu-item-text">活动</span>
+          </div>
+          <div class="more-menu-item" @click="openGroupBindPanel">
+            <div class="more-menu-item-icon">
+              <cute-icon name="vip" size="20" />
+            </div>
+            <span class="more-menu-item-text">开卡购买</span>
+            <span v-if="groupBindUnreadBadge" class="menu-badge-sheet">{{
+              groupBindUnreadBadge
+            }}</span>
+          </div>
+        </div>
+
+        <!-- 分割线 -->
+        <div class="more-sheet-divider"></div>
+
+        <!-- 批量操作 -->
+        <div
+          class="more-menu-item more-menu-checkbox-item"
+          @click="isBatchOperate = !isBatchOperate"
+        >
+          <div class="more-menu-item-icon more-checkbox-icon" :class="{ checked: isBatchOperate }">
+            <van-icon :name="isBatchOperate ? 'success' : 'circle'" size="20" />
+          </div>
+          <span class="more-menu-item-text">批量操作</span>
+        </div>
       </div>
-      <div class="menu-item" @click="openAccountModal">
-        <cute-icon name="user-link" size="18" style="margin-right: 6px" />
-        <span>账号绑定</span>
-      </div>
-      <!-- 站内信入口（带未读角标） -->
-      <div class="menu-item" @click="openNotificationPanel">
-        <cute-icon name="envelope" size="18" style="margin-right: 6px" />
-        <span style="margin-left: 6px">站内信</span>
-        <span v-if="unreadCount > 0" class="menu-badge">{{
-          unreadCount > 99 ? '99+' : unreadCount
-        }}</span>
-      </div>
-      <div class="menu-item" @click="openActivityPanel">
-        <cute-icon name="gift" size="18" style="margin-right: 6px" />
-        <span style="margin-left: 6px">活动</span>
-      </div>
-      <!-- 开卡购买（带未读角标） -->
-      <div class="menu-item" @click="openGroupBindPanel">
-        <cute-icon name="vip" size="18" style="margin-right: 6px" />
-        <span style="margin-left: 6px">开卡购买</span>
-        <span v-if="groupBindUnreadBadge" class="menu-badge">{{ groupBindUnreadBadge }}</span>
-      </div>
-      <div class="menu-item menu-checkbox-item" @click.stop>
-        <van-checkbox v-model="isBatchOperate" shape="square">批量操作</van-checkbox>
-      </div>
-    </div>
+
+      <div class="modern-sheet-safe-bottom"></div>
+    </ModernSheet>
+
+    <!-- 🍎 兑换码兑换 Sheet -->
+    <ExchangeSheet
+      ref="exchangeSheetRef"
+      :default-open-id="exchangeDefaultOpenId"
+      @exchange-success="handleExchangeSuccess"
+    />
+
+    <!-- 🍎 账号绑定 Sheet -->
+    <AccountBindSheet ref="accountBindSheetRef" @account-updated="handleAccountUpdated" />
 
     <van-popup
       v-model:show="showActivityPanel"
@@ -117,26 +154,13 @@
       </div>
     </van-popup>
 
-    <!-- 开卡购买面板 -->
-    <van-popup
-      v-model:show="showGroupBindPanel"
-      :position="isMobile ? 'bottom' : 'right'"
-      :style="
-        isMobile
-          ? { height: '70%', borderRadius: '20px 20px 0 0' }
-          : { width: '420px', height: '100%' }
-      "
-      round
-      closeable
-      @close="showGroupBindPanel = false"
-    >
-      <div class="group-bind-panel-wrapper">
-        <div class="panel-header">
-          <h4>开卡购买</h4>
-        </div>
+    <!-- 🍎 开卡购买 – ModernSheet（iOS 17 风格） -->
+    <ModernSheet v-model="showGroupBindPanel" title="开卡购买">
+      <div class="group-bind-sheet-content">
         <GroupBindCard @go-exchange="onGroupBindGoExchange" />
       </div>
-    </van-popup>
+      <div class="modern-sheet-safe-bottom"></div>
+    </ModernSheet>
 
     <!-- 站内信面板（重构版） -->
     <van-popup
@@ -235,12 +259,15 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { showNotify, Checkbox as VanCheckbox, Button as VanButton } from 'vant'
+import { ref, watch, onMounted, computed } from 'vue'
+import { showNotify, Button as VanButton } from 'vant'
 import router from '@/router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import CuteIcon from './CuteIcon.vue'
+import ModernSheet from './ModernSheet.vue'
+import AccountBindSheet from './AccountBindSheet.vue'
+import ExchangeSheet from './ExchangeSheet.vue'
 import request from '@/utils/request'
 import ExtraRewardPanel from './ExtraRewardPanel.vue'
 import GroupBindCard from './GroupBindCard.vue'
@@ -248,18 +275,27 @@ import GroupBindCard from './GroupBindCard.vue'
 const userStore = useUserStore()
 const systemUser = storeToRefs(userStore).userInfo
 
+// 子组件 ref
+const exchangeSheetRef = ref(null)
+const accountBindSheetRef = ref(null)
+
+const handleAccountUpdated = () => {
+  // 账号列表更新后触发父级刷新（无需额外操作）
+}
+
+const handleExchangeSuccess = () => {
+  emit('saveConfig')
+}
+
 // 原有 props 和 emits
 const props = defineProps({
   runningStatus: { type: Number, default: 0 },
-  exchangeModalRef: { type: Object, required: true },
-  accountModalRef: { type: Object, required: true },
+  exchangeDefaultOpenId: { type: String, default: '' },
 })
 const emit = defineEmits([
   'saveConfig',
   'toLog',
   'triggerRobot',
-  'openExchangeModal',
-  'openAccountModal',
   'handleUserAction',
   'goToProfile',
   'goToSecurity',
@@ -299,7 +335,7 @@ const openGroupBindPanel = () => {
 // 从开卡购买面板跳转到兑换
 const onGroupBindGoExchange = () => {
   showGroupBindPanel.value = false
-  emit('openExchangeModal')
+  exchangeSheetRef.value?.openSheet()
 }
 
 // 批量操作
@@ -309,7 +345,6 @@ const handleTriggerRobot = () => emit('triggerRobot', isBatchOperate.value)
 
 // 弹窗状态
 const showMoreMenu = ref(false)
-const moreMenuRef = ref(null)
 const showUserMenu = ref(false)
 
 const formatLoginTime = (loginTime) => {
@@ -337,21 +372,14 @@ const logout = async () => {
   userStore.clearUserInfo()
   showNotify({ type: 'success', message: '已成功退出登录', duration: 2000 })
 }
-const openExchangeModal = () => emit('openExchangeModal')
+const openExchangeModal = () => {
+  showMoreMenu.value = false
+  exchangeSheetRef.value?.openSheet()
+}
 const openAccountModal = () => {
-  if (!systemUser.value) return router.push({ name: 'login' })
-  props.accountModalRef?.openModal()
+  showMoreMenu.value = false
+  openAccountBindSheet()
 }
-
-// 点击外部关闭更多菜单
-const handleClickOutside = (event) => {
-  if (!showMoreMenu.value || !moreMenuRef.value) return
-  if (!moreMenuRef.value.contains(event.target)) {
-    showMoreMenu.value = false
-  }
-}
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 // ==================== 站内信功能（优化版） ====================
 const showNotificationPanel = ref(false)
@@ -483,7 +511,21 @@ onMounted(() => {
   if (systemUser.value) fetchUnreadCount()
 })
 
-defineExpose({ showMoreMenu, moreMenuRef, showUserMenu, handleClickOutside })
+const openAccountBindSheet = () => {
+  if (!systemUser.value) {
+    router.push({ name: 'login' })
+    return
+  }
+  accountBindSheetRef.value?.openSheet()
+}
+
+defineExpose({
+  showMoreMenu,
+  showUserMenu,
+  openActivityPanel,
+  openAccountBindSheet,
+  openExchangeModal,
+})
 </script>
 
 <style scoped>
@@ -506,11 +548,11 @@ defineExpose({ showMoreMenu, moreMenuRef, showUserMenu, handleClickOutside })
   max-width: 780px;
   margin: 0 auto;
   padding: 8px 0 4px;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(30px) saturate(1.4);
+  -webkit-backdrop-filter: blur(30px) saturate(1.4);
   border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
   position: relative;
 }
 .nav-item {
@@ -534,13 +576,13 @@ defineExpose({ showMoreMenu, moreMenuRef, showUserMenu, handleClickOutside })
   justify-content: center;
   width: 68px;
   height: 64px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(30px) saturate(1.4);
+  -webkit-backdrop-filter: blur(30px) saturate(1.4);
   border-radius: 50%;
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.12),
-    0 0 0 4px rgba(255, 255, 255, 0.5);
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 4px rgba(255, 255, 255, 0.45);
   cursor: pointer;
   position: absolute;
   top: -28px;
@@ -602,88 +644,100 @@ defineExpose({ showMoreMenu, moreMenuRef, showUserMenu, handleClickOutside })
   box-sizing: border-box;
 }
 
-/* 菜单内角标 - 紧跟在文字后居中 */
-.menu-badge {
+/* 菜单内角标 - 适配 Sheet 风格 */
+.menu-badge-sheet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 10px;
-  width: 16px;
-  height: 16px;
-  padding: 0 5px;
-  background: #ee0a24;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  background: #ff3b30;
   color: #fff;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: 9px;
   line-height: 1;
   box-sizing: border-box;
 }
 
-/* 更多菜单 */
-.more-menu {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
-  width: 180px;
-  z-index: 1002;
-  overflow: hidden;
-  padding: 6px 0;
+/* ============================================================
+   🍎 更多 Sheet – iOS 17 风格菜单
+   ============================================================ */
+
+.more-sheet-content {
+  padding: 0 16px 8px;
 }
-.more-menu::before {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  width: 12px;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.06);
-  z-index: -1;
+
+.more-menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.menu-item {
+
+.more-menu-item {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
-  margin: 1px 8px;
-  border-radius: 10px;
+  padding: 12px 12px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #2c3e50;
+  transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+  color: #1d1d1f;
+  gap: 12px;
+  -webkit-tap-highlight-color: transparent;
 }
-.menu-item:hover {
-  background-color: #f7f8fa;
+
+.more-menu-item:active {
+  background: rgba(142, 142, 147, 0.12);
+  transform: scale(0.98);
 }
-.menu-item span {
-  font-size: 14px;
-  font-weight: 400;
-}
-.menu-checkbox-item {
-  cursor: default;
-}
-.menu-checkbox-item:hover {
-  background: transparent !important;
-}
-:deep(.van-checkbox) {
+
+.more-menu-item-icon {
   display: flex;
   align-items: center;
-  width: 100%;
-  font-size: 14px;
-  color: #2c3e50;
-  --van-checkbox-size: 16px;
-  --van-checkbox-checked-color: #1890ff;
-  --van-checkbox-border-color: #dcdfe6;
-  --van-checkbox-border-radius: 2px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: #007aff;
 }
-:deep(.van-checkbox__label) {
-  margin-left: 8px;
+
+.more-menu-item-text {
+  font-size: 15px;
+  font-weight: 400;
+  color: #1d1d1f;
+  letter-spacing: 0.1px;
+  flex: 1;
+}
+
+.more-sheet-divider {
+  height: 0.5px;
+  background: rgba(60, 60, 67, 0.08);
+  margin: 6px 12px;
+}
+
+.more-menu-checkbox-item {
+  cursor: pointer;
+}
+
+.more-menu-checkbox-item:active {
+  background: rgba(142, 142, 147, 0.12) !important;
+  transform: scale(0.98) !important;
+}
+
+/* 勾选图标 - 未选中 */
+.more-checkbox-icon {
+  color: #c7c7cc !important;
+  transition: color 0.2s ease;
+}
+
+.more-checkbox-icon.checked {
+  color: #007aff !important;
+}
+
+/* 安全区 */
+.modern-sheet-safe-bottom {
+  height: env(safe-area-inset-bottom, 12px);
 }
 
 /* 用户弹窗 */
@@ -868,25 +922,9 @@ defineExpose({ showMoreMenu, moreMenuRef, showUserMenu, handleClickOutside })
   font-weight: 600;
 }
 
-/* 开卡购买面板 */
-.group-bind-panel-wrapper {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #f8f9fb;
-  overflow-y: auto;
-}
-.group-bind-panel-wrapper .panel-header {
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
-  flex-shrink: 0;
-}
-.group-bind-panel-wrapper .panel-header h4 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #1d2129;
+/* 开卡购买 Sheet 内容 */
+.group-bind-sheet-content {
+  padding: 0 16px 8px;
 }
 
 /* 过渡动画 */
@@ -981,17 +1019,6 @@ defineExpose({ showMoreMenu, moreMenuRef, showUserMenu, handleClickOutside })
     height: 14px;
     font-size: 9px;
     line-height: 14px;
-  }
-  .more-menu {
-    bottom: calc(100% + 8px);
-    width: 160px;
-    padding: 4px 0;
-  }
-  .menu-item {
-    padding: 8px 14px;
-  }
-  .menu-item span {
-    font-size: 13px;
   }
 }
 </style>

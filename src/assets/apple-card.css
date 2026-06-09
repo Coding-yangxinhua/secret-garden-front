@@ -1,0 +1,850 @@
+/* =====================================================
+   🍎 Apple 高级磨砂玻璃（Frosted Glass）卡片样式
+   💡 全局统一卡片混入样式
+   ===================================================== */
+
+/* 
+  使用方法：需要磨砂效果的卡片元素添加以下类之一：
+    - `.apple-card`          → 完整磨砂玻璃卡片（白色/浅色背景）
+    - `.apple-card-dark`     → 深色磨砂玻璃卡片（适合夜间模式/深色背景）
+    - `.apple-card-glass`    → 超透磨砂玻璃（适合叠加在其他元素上）
+  
+  或者使用 mixin：`@mixin apple-card`
+*/
+
+/* ============================================================
+   📐 iOS 17 Typography 设计体系
+   Apple Human Interface Guidelines — SF Pro 字体层级
+   ============================================================ */
+
+/* ---------- 字体变量 ---------- */
+:root {
+  /* 字重映射 (SF Pro Weight) */
+  --apple-font-weight-regular: 400;
+  --apple-font-weight-medium: 500;
+  --apple-font-weight-semibold: 590; /* SF Pro Semibold = 590 */
+  --apple-font-weight-bold: 700;
+
+  /* 颜色语义 */
+  --apple-text-primary: #1d1d1f;
+  --apple-text-secondary: #86868b;
+  --apple-text-tertiary: #aeaeb2;
+  --apple-text-quaternary: #c7c7cc;
+  --apple-text-link: #007aff;
+  --apple-text-destructive: #ff3b30;
+  --apple-text-success: #34c759;
+
+  /* 背景色语义 */
+  --apple-bg-primary: rgba(255, 255, 255, 0.72);
+  --apple-bg-secondary: #f2f2f7;
+  --apple-bg-tertiary: rgba(242, 242, 247, 0.5);
+
+  /* 分隔线颜色 */
+  --apple-separator: rgba(60, 60, 67, 0.08);
+  --apple-separator-light: rgba(60, 60, 67, 0.04);
+
+  /* 间距 */
+  --apple-spacing-xs: 4px;
+  --apple-spacing-sm: 8px;
+  --apple-spacing-md: 12px;
+  --apple-spacing-lg: 16px;
+  --apple-spacing-xl: 20px;
+}
+
+/* 🍎 全局字体渲染优化 — 让所有苹果风格文字更圆润清晰 */
+.apple-card *,
+.apple-card-dark *,
+.apple-card-glass * {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- iOS 17 Text Styles ---------- */
+
+/* Large Title (34pt) — 大标题，仅用于首页大标题 */
+.apple-text-large-title {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Title 1 (28pt) */
+.apple-text-title-1 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Title 2 (22pt) */
+.apple-text-title-2 {
+  font-size: 22px;
+  font-weight: 630;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Title 3 (20pt) — 卡片大标题 */
+.apple-text-title-3 {
+  font-size: 20px;
+  font-weight: 630;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Headline (17pt Semibold) — 分段标题/重要标题 */
+.apple-text-headline {
+  font-size: 17px;
+  font-weight: 590;
+  line-height: 1.3;
+  letter-spacing: -0.2px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Body (17pt) — 正文 */
+.apple-text-body {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Callout (16pt) — 呼出文字 */
+.apple-text-callout {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Subheadline (15pt) — 单元格标题 */
+.apple-text-subheadline {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.1px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Footnote (13pt) — 脚注/值文字 */
+.apple-text-footnote {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0px;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Caption 1 (12pt) — 说明标签/辅助文字 */
+.apple-text-caption-1 {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  color: var(--apple-text-secondary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* Caption 2 (11pt) — 小标签/分段头部 */
+.apple-text-caption-2 {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.3px;
+  color: var(--apple-text-secondary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   🍎 统一 Vant Switch 开关样式
+   所有 van-switch 开启时统一为品牌粉色 #ff6767
+   ============================================================ */
+
+/* 开启态 — 品牌粉色（通过 CSS 变量覆盖 Vant 默认蓝色） */
+:root {
+  --van-switch-on-background: #ff6767;
+  --van-switch-background: #e5e5ea;
+}
+
+/* ========== 磨砂玻璃核心 Mixin (SCSS) ========== */
+/*
+@mixin apple-card($bg-opacity: 0.65, $blur-amount: 24px, $border-opacity: 0.25) {
+  background: rgba(255, 255, 255, $bg-opacity);
+  backdrop-filter: blur($blur-amount) saturate(1.4);
+  -webkit-backdrop-filter: blur($blur-amount) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, $border-opacity);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.03),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.6);
+  border-radius: 18px;
+}
+*/
+
+/* ========== 全局苹果卡片类（可在任何组件中使用） ========== */
+
+/* --- 标准磨砂玻璃卡片（白色浅透） --- */
+.apple-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.03),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+}
+
+/* --- 深色磨砂玻璃卡片（适合深色背景） --- */
+.apple-card-dark {
+  background: rgba(30, 30, 35, 0.72);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  color: #fff;
+}
+
+/* --- 超透磨砂玻璃卡片 --- */
+.apple-card-glass {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
+}
+
+/* ========== 苹果风格标题栏（新版 iOS 17） ========== */
+.apple-card-header {
+  padding: 18px 20px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: none;
+  position: relative;
+}
+
+.apple-card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--apple-separator) 30%,
+    var(--apple-separator) 70%,
+    transparent 100%
+  );
+}
+
+.apple-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  flex: 1;
+  letter-spacing: -0.3px;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* ========== 卡片内容区域 ========== */
+.apple-card-content {
+  padding: 14px 20px 20px;
+}
+
+/* ============================================================
+   🍎 统一组件样式 — iOS 17 Settings.app 风格
+   适用于所有配置卡片中的表单元素
+   ============================================================ */
+
+/* ---------- Apple Cell 行（统一） ---------- */
+.apple-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0 12px;
+  position: relative;
+  min-height: 44px;
+}
+
+.apple-cell::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--apple-separator) 20%,
+    var(--apple-separator) 80%,
+    transparent 100%
+  );
+}
+
+.apple-cell:last-child::after {
+  display: none;
+}
+
+.apple-cell-left {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+
+/* 🍎 iOS 17 Settings 风格 — Title (15pt Regular) */
+.apple-cell-title {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.15px;
+  color: #1d1d1f;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* 🍎 iOS 17 Settings 风格 — Label (12pt Regular) */
+.apple-cell-label {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.2px;
+  color: #6b6b70;
+  margin-top: 3px;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+/* 无 label 时 title 微调垂直居中 */
+.apple-cell-title:only-child {
+  padding: 2px 0;
+}
+
+.apple-cell-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- 子分区头部 ---------- */
+.apple-sub-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.3px;
+  color: var(--apple-text-secondary);
+  margin-bottom: 2px;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  text-transform: uppercase;
+}
+
+/* ---------- 子分区（缩进） ---------- */
+.apple-sub-section {
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+/* 子分区内的 cell 更紧凑，字体缩小一级 */
+.apple-sub-section .apple-cell {
+  padding: 7px 0;
+  min-height: 36px;
+}
+
+.apple-sub-section .apple-cell-title {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+  color: #262629;
+}
+
+.apple-sub-section .apple-cell-label {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  color: #6b6b70;
+  margin-top: 4px;
+}
+
+/* 子分区内无 label 时的 title 微调 */
+.apple-sub-section .apple-cell-title:only-child {
+  padding: 0;
+}
+
+/* 子分区内的 Stepper 也缩小 */
+.apple-sub-section .apple-stepper-wrap {
+  transform: scale(0.92);
+  transform-origin: right center;
+}
+
+.apple-indent {
+  position: relative;
+  padding-left: 12px;
+  margin-left: 4px;
+}
+
+.apple-indent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: rgba(60, 60, 67, 0.06);
+  border-radius: 1px;
+}
+
+/* ---------- 披露按钮（带箭头跳转） ---------- */
+.apple-disclosure-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+}
+
+.apple-disclosure-text {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--apple-text-primary);
+  transition: color 0.2s ease;
+  letter-spacing: -0.1px;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+.apple-disclosure-text--placeholder {
+  color: var(--apple-text-quaternary);
+  font-weight: 400;
+}
+
+.apple-disclosure-btn:active {
+  opacity: 0.5;
+}
+
+/* ---------- 分段控制器 ---------- */
+.apple-segment {
+  display: inline-flex;
+  background: var(--apple-bg-secondary);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.apple-segment-btn {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  letter-spacing: 0px;
+}
+
+.apple-segment-btn.active {
+  background: #ffffff;
+  color: var(--apple-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.apple-segment-btn:active {
+  opacity: 0.6;
+}
+
+/* ---------- 添加按钮（虚线风格） ---------- */
+.apple-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 0;
+  margin-top: 8px;
+  border: 1px dashed rgba(60, 60, 67, 0.15);
+  background: transparent;
+  border-radius: 12px;
+  color: var(--apple-text-link);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  letter-spacing: -0.1px;
+}
+
+.apple-add-btn:active {
+  background: rgba(0, 122, 255, 0.05);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+/* ---------- 空状态 ---------- */
+.apple-empty {
+  padding: 24px 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.apple-empty-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(242, 242, 247, 0.6);
+  border-radius: 28px;
+  margin-bottom: 4px;
+}
+
+.apple-empty-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--apple-text-primary);
+}
+
+.apple-empty-desc {
+  font-size: 12px;
+  color: var(--apple-text-secondary);
+}
+
+/* ---------- 行项目（用于时段/列表） ---------- */
+.apple-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px 0;
+  position: relative;
+}
+
+.apple-row::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--apple-separator-light) 20%,
+    var(--apple-separator-light) 80%,
+    transparent 100%
+  );
+}
+
+.apple-row:last-child::after {
+  display: none;
+}
+
+/* ---------- 行内项目（卡片式） ---------- */
+.apple-row-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--apple-bg-tertiary);
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  min-width: 0;
+}
+
+.apple-row-item:active {
+  background: rgba(229, 229, 234, 0.7);
+}
+
+.apple-row-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.3px;
+  color: var(--apple-text-secondary);
+  margin-bottom: 2px;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  text-transform: uppercase;
+}
+
+.apple-row-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--apple-text-primary);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+}
+
+.apple-row-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 删除按钮 ---------- */
+.apple-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+  border: none;
+  background: rgba(255, 59, 48, 0.07);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  padding: 0;
+}
+
+.apple-delete-btn:active {
+  background: rgba(255, 59, 48, 0.15);
+}
+
+/* ============================================================
+   原有样式（保留向后兼容）
+   ============================================================ */
+
+/* ========== Apple 风格分隔线 ========== */
+.apple-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(200, 180, 190, 0.2) 20%,
+    rgba(200, 180, 190, 0.2) 80%,
+    transparent 100%
+  );
+  margin: 6px 0;
+}
+
+/* ========== Apple 风格内联按钮 ========== */
+.apple-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  padding: 8px 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+}
+
+.apple-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+}
+
+.apple-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* ========== Apple 风格输入框 ========== */
+.apple-input {
+  background: rgba(245, 245, 250, 0.6);
+  border: 1px solid rgba(200, 200, 210, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #1f2937;
+  transition: all 0.3s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.apple-input:focus {
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.apple-input::placeholder {
+  color: #b0b0b8;
+}
+
+/* ========== Apple 选择器 ========== */
+.apple-select {
+  background: rgba(245, 245, 250, 0.6);
+  border: 1px solid rgba(200, 200, 210, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.apple-select:focus {
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ========== Apple 风格标签 ========== */
+.apple-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(200, 180, 200, 0.15);
+  border: 1px solid rgba(200, 180, 200, 0.2);
+  border-radius: 20px;
+  font-size: 12px;
+  color: #4a3a42;
+  gap: 6px;
+}
+
+/* ========== Apple 风格分段控制器（用于标签组） ========== */
+.apple-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.apple-chip {
+  padding: 6px 14px;
+  border: 1px solid rgba(200, 180, 200, 0.25);
+  border-radius: 20px;
+  font-size: 13px;
+  color: #4a3a42;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: rgba(255, 255, 255, 0.5);
+  user-select: none;
+}
+
+.apple-chip:hover {
+  background: rgba(200, 180, 220, 0.15);
+  border-color: rgba(180, 150, 190, 0.4);
+}
+
+.apple-chip.active {
+  background: linear-gradient(135deg, #c08ca8 0%, #d4a0b8 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(192, 140, 168, 0.3);
+}
+
+/* ========== Apple 风格弹窗 ========== */
+.apple-popup {
+  background: rgba(250, 248, 250, 0.85);
+  backdrop-filter: blur(40px) saturate(1.5);
+  -webkit-backdrop-filter: blur(40px) saturate(1.5);
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* ========== 动画：卡片淡入上浮 ========== */
+@keyframes appleCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.apple-card-animate {
+  animation: appleCardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ========== Apple 底部安全区适配 ========== */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .apple-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

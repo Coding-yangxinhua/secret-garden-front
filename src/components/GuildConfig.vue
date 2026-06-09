@@ -1,261 +1,318 @@
 <template>
-  <div class="config-card other-features-card">
-    <div class="card-header" @click="toggleExpand('guildConfig')">
-      <van-icon name="cluster-o" size="20" color="#52c41a" />
-      <span class="card-title">{{ currentUser.gameId == 1 ? '社团功能' : '公会功能' }}</span>
-      <van-icon
-        name="arrow-down"
-        size="16"
-        :class="{ 'rotate-180': expandStates.guildConfig }"
-        class="expand-icon"
-      />
+  <div class="guild-config-card apple-card">
+    <div class="apple-card-header">
+      <cute-icon name="bank" size="20" color="#52c41a" />
+      <span class="apple-card-title">{{ currentUser.gameId == 1 ? '社团功能' : '公会功能' }}</span>
     </div>
-    <div class="card-content" v-show="expandStates.guildConfig">
-      <van-cell class="feature-cell" center label="自动捐献指定资源">
-        <template #title>
-          <span class="feature-title">{{ currentUser.gameId == 1 ? '社团捐献' : '公会建设' }}</span>
-        </template>
-        <van-dropdown-menu class="feature-dropdown">
-          <van-dropdown-item
-            v-model="localConfig.autoDonate"
-            :options="currentUser.gameId == 1 ? donateOptions : dsDonateOptions"
-            class="dropdown-item"
-          />
-        </van-dropdown-menu>
-      </van-cell>
-      <van-cell
-        class="feature-cell"
-        center
-        :label="currentUser.gameId == 1 ? '自动收获社团花盆' : '自动收获公会土地'"
-      >
-        <template #title>
-          <span class="feature-title">{{ currentUser.gameId == 1 ? '社团收获' : '公会种植' }}</span>
-        </template>
-        <template #right-icon>
+    <div class="apple-card-content">
+      <!-- 捐献/建设 -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">
+            {{ currentUser.gameId == 1 ? '社团捐献' : '公会建设' }}
+          </div>
+          <div class="apple-cell-label">自动捐献指定资源</div>
+        </div>
+        <div class="apple-cell-right">
+          <div class="apple-segment">
+            <button
+              v-for="opt in currentUser.gameId == 1 ? donateOptions : dsDonateOptions"
+              :key="opt.value"
+              class="apple-segment-btn"
+              :class="{ active: localConfig.autoDonate === opt.value }"
+              @click="localConfig.autoDonate = opt.value"
+            >
+              {{ opt.text }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公会种植开关 -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">
+            {{ currentUser.gameId == 1 ? '社团收获' : '公会种植' }}
+          </div>
+          <div class="apple-cell-label">
+            {{ currentUser.gameId == 1 ? '自动收获社团花盆' : '自动收获公会土地' }}
+          </div>
+        </div>
+        <div class="apple-cell-right">
           <van-switch
             :disabled="!localConfig"
             v-model="localConfig.club.clubPlant.status"
-            size="24"
-          />
-        </template>
-      </van-cell>
-
-      <!-- 种植详细配置 -->
-      <div
-        v-show="localConfig.club.clubPlant.status == 1 && currentUser.gameId == 2"
-        class="indent race-advanced-section"
-      >
-        <van-cell class="feature-cell" center title="自动种植">
-          <van-switch
-            :disabled="!localConfig"
-            v-model="localConfig.club.clubPlant.autoPlant"
             size="22"
           />
-        </van-cell>
-        <div v-show="localConfig.club.clubPlant.autoPlant">
-          <div class="section-title">
-            <van-icon name="setting-o" size="16" color="#8c8c8c" />
-            <span>种植配置</span>
+        </div>
+      </div>
+
+      <!-- 种植详细配置（子分区） -->
+      <div
+        v-show="localConfig.club.clubPlant.status == 1 && currentUser.gameId == 2"
+        class="apple-sub-section apple-indent"
+      >
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
+          <span>种植配置</span>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动种植</div>
           </div>
-          <div class="order-advanced-section">
-            <van-cell class="advanced-cell" title="等级限制" label="升级到此等级就不再种植">
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!localConfig"
+              v-model="localConfig.club.clubPlant.autoPlant"
+              size="22"
+            />
+          </div>
+        </div>
+
+        <div v-show="localConfig.club.clubPlant.autoPlant" class="apple-sub-section">
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">等级限制</div>
+              <div class="apple-cell-label">升级到此等级就不再种植</div>
+            </div>
+            <div class="apple-cell-right">
               <custom-array-stepper
                 :min="1"
                 :max="20"
                 :step="1"
                 v-model="localConfig.club.clubPlant.level"
                 :inputDisabled="false"
-                class="steal-stepper"
-              >
-              </custom-array-stepper>
-            </van-cell>
-            <!-- 品质选择按钮组 -->
-            <QualityColorSelector v-model="localConfig.club.clubPlant.color" title="种植品质选择" />
+                class="apple-stepper-wrap"
+              />
+            </div>
           </div>
+
+          <QualityColorSelector v-model="localConfig.club.clubPlant.color" title="种植品质选择" />
         </div>
       </div>
 
-      <van-cell
-        class="feature-cell"
-        center
-        :label="currentUser.gameId == 1 ? '自动观看社团广告获取奖励' : '自动进行视频建设'"
-      >
-        <template #title>
-          <span class="feature-title">{{ currentUser.gameId == 1 ? '视频捐献' : '视频建设' }}</span>
-        </template>
-        <template #right-icon>
-          <van-switch :disabled="!localConfig" v-model="localConfig.autoGuildAd" size="24" />
-        </template>
-      </van-cell>
+      <!-- 视频捐献/建设 -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">
+            {{ currentUser.gameId == 1 ? '视频捐献' : '视频建设' }}
+          </div>
+          <div class="apple-cell-label">
+            {{ currentUser.gameId == 1 ? '自动观看社团广告获取奖励' : '自动进行视频建设' }}
+          </div>
+        </div>
+        <div class="apple-cell-right">
+          <van-switch :disabled="!localConfig" v-model="localConfig.autoGuildAd" size="22" />
+        </div>
+      </div>
 
       <!-- 公会协助 -->
-      <van-cell class="feature-cell" center v-if="currentUser.gameId == 2" label="自动协助公会成员">
-        <template #title>
-          <span class="feature-title">公会协助</span>
-        </template>
-        <template #right-icon>
-          <van-switch :disabled="!localConfig" v-model="localConfig.autoHelp" size="24" />
-        </template>
-      </van-cell>
-      <!-- 公会协助 -->
-      <van-cell class="feature-cell" center v-if="currentUser.gameId == 2" label="自动抢公会红包">
-        <template #title>
-          <span class="feature-title">公会红包</span>
-        </template>
-        <template #right-icon>
+      <div class="apple-cell" v-if="currentUser.gameId == 2">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">公会协助</div>
+          <div class="apple-cell-label">自动协助公会成员</div>
+        </div>
+        <div class="apple-cell-right">
+          <van-switch :disabled="!localConfig" v-model="localConfig.autoHelp" size="22" />
+        </div>
+      </div>
+
+      <!-- 公会红包 -->
+      <div class="apple-cell" v-if="currentUser.gameId == 2">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">公会红包</div>
+          <div class="apple-cell-label">自动抢公会红包</div>
+        </div>
+        <div class="apple-cell-right">
           <van-switch
             :disabled="!localConfig"
             v-model="localConfig.activity.hd54.status"
-            size="24"
+            size="22"
           />
-        </template>
-      </van-cell>
-      <!-- 公会竞赛 -->
-      <van-cell class="feature-cell" center v-if="currentUser.gameId == 2" label="自动参加公会竞赛">
-        <template #title>
-          <span class="feature-title">公会竞赛</span>
-        </template>
-        <template #right-icon>
-          <van-switch :disabled="!localConfig" v-model="localConfig.autoRace" size="24" />
-        </template>
-      </van-cell>
+        </div>
+      </div>
 
-      <!-- 竞赛详细配置 -->
-      <div v-show="localConfig.autoRace" class="indent race-advanced-section">
-        <div class="section-title">
-          <van-icon name="setting-o" size="16" color="#8c8c8c" />
+      <!-- 公会竞赛 -->
+      <div class="apple-cell" v-if="currentUser.gameId == 2">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">公会竞赛</div>
+          <div class="apple-cell-label">自动参加公会竞赛</div>
+        </div>
+        <div class="apple-cell-right">
+          <van-switch :disabled="!localConfig" v-model="localConfig.autoRace" size="22" />
+        </div>
+      </div>
+
+      <!-- 竞赛详细配置（子分区） -->
+      <div v-show="localConfig.autoRace" class="apple-sub-section apple-indent">
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
           <span>竞赛配置</span>
         </div>
 
-        <!-- 接取类型 -->
-        <div class="accept-type-section">
-          <div class="accept-type-title">特殊任务类型</div>
-          <div class="accept-type-description">特殊情况下的任务接取规则配置</div>
-          <div class="accept-type-wrapper">
-            <div class="accept-type-container">
-              <div
-                v-for="option in acceptTypeOptions"
-                :key="option.value"
-                class="accept-type-option"
-                :class="{ selected: localConfig.race.accepts.includes(option.value) }"
-                @click="toggleAcceptType(option.value)"
-              >
-                {{ option.text }}
-              </div>
-            </div>
+        <!-- ① 特殊任务类型 -->
+        <div class="apple-cell" style="padding-bottom: 2px">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">特殊任务类型</div>
+            <div class="apple-cell-label">特殊情况下的任务接取规则配置</div>
+          </div>
+        </div>
+        <RaceTaskSelector
+          :accept-type-options="acceptTypeOptions"
+          :accepts="localConfig.race.accepts"
+          :tasks="[]"
+          :task-statuses="{}"
+          @update:accepts="(v) => (localConfig.race.accepts = v)"
+          @update:task-statuses="() => {}"
+        />
+
+        <!-- ② 积分配置 -->
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">竞赛积分</div>
+            <div class="apple-cell-label">低于该积分的任务不会接取, -1为不接取竞赛任务</div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="-1"
+              :max="60"
+              v-model="localConfig.race.racePoint"
+              class="apple-stepper-wrap"
+            />
           </div>
         </div>
 
-        <!-- 积分配置 -->
-        <van-cell
-          class="advanced-cell"
-          title="竞赛积分"
-          label="低于该积分的任务不会接取, -1为不接取竞赛任务，"
-        >
-          <custom-array-stepper
-            :min="-1"
-            :max="60"
-            v-model="localConfig.race.racePoint"
-            class="steal-stepper"
-          />
-        </van-cell>
-        <van-cell
-          class="advanced-cell"
-          title="原金积分"
-          label="低于该积分的系统升级任务不会接（30分的任务显示为60分）, -1为不接取原金"
-        >
-          <custom-array-stepper
-            :min="-1"
-            :max="60"
-            v-model="localConfig.race.highPoint"
-            class="steal-stepper"
-          />
-        </van-cell>
-        <van-cell class="advanced-cell" title="升级任务积分" label="达到此积分自动升级，-1为不升级">
-          <custom-array-stepper
-            :min="-1"
-            :max="30"
-            v-model="localConfig.race.upPoint"
-            class="steal-stepper"
-          />
-        </van-cell>
-        <van-cell class="advanced-cell" title="购买任务次数" label="自动购买指定次数">
-          <custom-array-stepper
-            :min="0"
-            :max="6"
-            v-model="localConfig.race.buyCount"
-            class="steal-stepper"
-          />
-        </van-cell>
-        <van-cell class="advanced-cell" title="删除任务" label="自动删除不高于此积分">
-          <custom-array-stepper
-            :min="0"
-            :max="25"
-            v-model="localConfig.race.deletePoint"
-            class="steal-stepper"
-          />
-        </van-cell>
-        <van-cell class="advanced-cell" title="自动放弃" label="无法完成且没有进度的任务自动放弃">
-          <template #right-icon
-            ><van-switch v-model="localConfig.race.abandon" size="24"
-          /></template>
-        </van-cell>
-        <van-cell class="advanced-cell" title="自动加速" label="鲜花任务自动使用加速卡">
-          <template #right-icon
-            ><van-switch v-model="localConfig.race.autoSpeedCard" size="24"
-          /></template>
-        </van-cell>
-        <van-cell class="advanced-cell" title="自动开宝箱" label="自动开启竞赛宝箱">
-          <template #right-icon
-            ><van-switch v-model="localConfig.race.autoOpenBox" size="24"
-          /></template>
-        </van-cell>
-
-        <!-- 任务配置 -->
-        <div class="section-title">
-          <van-icon name="list-o" size="16" color="#8c8c8c" />
-          <span>任务配置 - 优先接取积分更高的任务</span>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">原金积分</div>
+            <div class="apple-cell-label">
+              低于该积分的系统升级任务不会接（30分的任务显示为60分）, -1为不接取原金
+            </div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="-1"
+              :max="60"
+              v-model="localConfig.race.highPoint"
+              class="apple-stepper-wrap"
+            />
+          </div>
         </div>
 
-        <!-- 收获鲜花：原生开关（单独一行，风格统一） -->
-        <van-cell class="advanced-cell" title="收获鲜花">
-          <template #right-icon>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">升级任务积分</div>
+            <div class="apple-cell-label">达到此积分自动升级，-1为不升级</div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="-1"
+              :max="30"
+              v-model="localConfig.race.upPoint"
+              class="apple-stepper-wrap"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">购买任务次数</div>
+            <div class="apple-cell-label">自动购买指定次数</div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="0"
+              :max="6"
+              v-model="localConfig.race.buyCount"
+              class="apple-stepper-wrap"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">删除任务</div>
+            <div class="apple-cell-label">自动删除不高于此积分</div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="0"
+              :max="25"
+              v-model="localConfig.race.deletePoint"
+              class="apple-stepper-wrap"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动放弃</div>
+            <div class="apple-cell-label">无法完成且没有进度的任务自动放弃</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.race.abandon" size="22" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动加速</div>
+            <div class="apple-cell-label">鲜花任务自动使用加速卡</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.race.autoSpeedCard" size="22" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动开宝箱</div>
+            <div class="apple-cell-label">自动开启竞赛宝箱</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.race.autoOpenBox" size="22" />
+          </div>
+        </div>
+
+        <!-- ③ 收获鲜花 -->
+        <div class="apple-sub-header" style="margin-top: 16px">
+          <van-icon name="flower-o" size="14" color="#86868B" />
+          <span>收获鲜花</span>
+        </div>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">收获鲜花</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               :model-value="getTaskStatus(20046)"
               @change="toggleTaskStatus(20046)"
-              size="24"
+              size="22"
             />
-          </template>
-        </van-cell>
-        <!-- 鲜花选择器：依赖任务状态显隐 -->
-        <div v-if="getTaskStatus(20046)" class="flower-select-row indent">
+          </div>
+        </div>
+        <div v-if="getTaskStatus(20046)" class="apple-flower-select-wrap">
           <FlowerSelect
             v-model="localConfig.race.flowerIds"
             :game-id="2"
             placeholder="可选择指定接取的鲜花"
           />
-          <van-cell v-if="false" class="advanced-cell" title="清地" label="接取前清地">
-            <template #right-icon>
-              <van-switch v-model="localConfig.race.clearLand" size="22" />
-            </template>
-          </van-cell>
         </div>
-        <!-- 其他任务：标签勾选 -->
-        <div class="accept-type-section">
-          <div class="accept-type-wrapper">
-            <div class="accept-type-container">
-              <div
-                v-for="item in normalTaskList"
-                :key="item.id"
-                class="accept-type-option"
-                :class="{ selected: getTaskStatus(item.id) }"
-                @click="toggleTaskStatus(item.id)"
-              >
-                {{ item.title }}
-              </div>
-            </div>
-          </div>
+
+        <!-- ④ 任务配置 -->
+        <div class="apple-sub-header" style="margin-top: 16px">
+          <van-icon name="list-o" size="14" color="#86868B" />
+          <span>任务配置 — 优先接取积分更高的任务</span>
         </div>
+        <RaceTaskSelector
+          :accept-type-options="[]"
+          :accepts="[]"
+          :tasks="normalTaskList"
+          :task-statuses="computedTaskStatuses"
+          @update:accepts="() => {}"
+          @update:task-statuses="onTaskStatusesChange"
+        />
       </div>
     </div>
   </div>
@@ -266,6 +323,7 @@ import { defineProps, defineEmits, ref, computed, watch, nextTick } from 'vue'
 import CustomArrayStepper from './CustomArrayStepper.vue'
 import FlowerSelect from './FlowerSelect.vue'
 import QualityColorSelector from './QualityColorSelector.vue'
+import RaceTaskSelector from './RaceTaskSelector.vue'
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -349,161 +407,113 @@ const toggleTaskStatus = (taskId) => {
   }
 }
 
-// 切换接取类型
-const toggleAcceptType = (value) => {
-  const index = localConfig.value.race.accepts.indexOf(value)
-  index > -1
-    ? localConfig.value.race.accepts.splice(index, 1)
-    : localConfig.value.race.accepts.push(value)
-}
+// 计算任务状态映射（给子组件用）
+const computedTaskStatuses = computed(() => {
+  const map = {}
+  if (localConfig.value?.race?.tasks) {
+    for (const t of localConfig.value.race.tasks) {
+      map[t.id] = t.status === 1
+    }
+  }
+  return map
+})
 
-// 展开收起
-const toggleExpand = (key) => {
-  emit('update-expand-states', { ...props.expandStates, [key]: !props.expandStates[key] })
+// 子组件任务状态变化回调
+const onTaskStatusesChange = (newMap) => {
+  if (!localConfig.value?.race?.tasks) return
+  // 更新已有的
+  for (const t of localConfig.value.race.tasks) {
+    if (newMap[t.id] !== undefined) {
+      t.status = newMap[t.id] ? 1 : 0
+    }
+  }
+  // 追加 newMap 中有但 tasks 中没有的（例如用户参数没返回该任务，但 UI 需要能勾选）
+  for (const [id, checked] of Object.entries(newMap)) {
+    const idNum = Number(id)
+    if (!localConfig.value.race.tasks.some((t) => t.id === idNum)) {
+      localConfig.value.race.tasks.push({ id: idNum, status: checked ? 1 : 0 })
+    }
+  }
 }
 </script>
 
 <style scoped>
-.config-card {
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-.card-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid #f5f5f5;
-  cursor: pointer;
-}
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-  flex: 1;
-}
-.card-content {
-  padding: 16px 20px;
-}
-.expand-icon {
-  transition: transform 0.3s;
-}
-.rotate-180 {
-  transform: rotate(180deg);
-}
-.feature-cell {
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-.feature-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: #1f2937;
-}
-.feature-dropdown {
-  width: 160px;
-  --van-dropdown-menu-background: transparent;
-  --van-dropdown-menu-shadow: none;
+/* ============================================================
+   🏛 GuildConfig — iOS 17 Settings 风格
+   通用样式见 apple-card.css（全局），此处仅处理组件特有覆写
+   ============================================================ */
+
+/* ---------- 卡片容器微调 ---------- */
+.guild-config-card {
+  margin-bottom: 16px;
 }
 
-.indent {
-  position: relative;
-  padding-left: 14px;
-  margin-left: 4px;
-}
-:deep(.indent::before) {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 2px;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    #eaeaea 0px,
-    #eaeaea 6px,
-    transparent 6px,
-    transparent 12px
-  );
-}
-.race-advanced-section {
-  margin-left: 20px;
-  margin-top: 16px;
-}
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #8c8c8c;
-  margin: 10px 0 6px;
-}
-.advanced-cell {
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-.stealer-stepper {
-  width: 100px;
+/* 覆盖全局 apple-card 部分 padding，使其更紧凑 */
+.guild-config-card .apple-card-header {
+  padding: 16px 16px 0;
 }
 
-/* 统一标签样式 */
-.accept-type-section {
-  margin-bottom: 12px;
+.guild-config-card .apple-card-content {
+  padding: 4px 16px 12px;
 }
-/* ✅ 补充缺失的标题样式 */
-.accept-type-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
-  margin-bottom: 4px;
+
+/* ---------- Apple 分段控制器（收获模式风格） ---------- */
+.apple-segment {
+  display: inline-flex;
+  background: #f2f2f7;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 1px;
 }
-/* ✅ 补充缺失的描述文字样式 */
-.accept-type-description {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-.accept-type-wrapper {
-  border: 1px solid #ffd6e7;
-  border-radius: 12px;
-  padding: 10px;
-  background: #fff9fc;
-}
-.accept-type-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.accept-type-option {
+
+.apple-segment-btn {
   padding: 4px 10px;
-  border: 1px solid #f5c2d3;
-  border-radius: 16px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #fff;
-}
-.accept-type-option:hover {
-  border-color: #ff85c0;
-  background: #fff0f6;
-}
-.accept-type-option.selected {
-  border-color: #ff6b9d;
-  background: #ffadd2;
-  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 500;
+  color: #6b5e6b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  background: transparent;
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Text', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
+  letter-spacing: -0.05px;
+  white-space: nowrap;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 鲜花选择器样式 */
-.flower-select-row {
-  margin-top: 8px;
-  margin-bottom: 12px;
+.apple-segment-btn.active {
+  background: #ffffff;
+  color: #5a3d5a;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.apple-segment-btn:active {
+  opacity: 0.7;
+}
+
+/* ---------- Stepper 宽度统一 ---------- */
+.apple-stepper-wrap {
+  width: 108px;
+}
+
+/* ---------- 鲜花选择器包裹 ---------- */
+.apple-flower-select-wrap {
+  margin: 4px 0 10px;
   width: 100%;
 }
-.flower-select-row :deep(.flower-select) {
+
+.apple-flower-select-wrap :deep(.flower-select) {
   max-width: 100%;
+}
+
+/* ---------- 子分区内子分区缩进 ---------- */
+.apple-sub-section .apple-sub-section {
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 </style>

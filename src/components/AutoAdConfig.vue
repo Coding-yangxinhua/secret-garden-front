@@ -1,243 +1,361 @@
 <!-- AutoAdConfig.vue - 自动领取配置组件 -->
 <template>
-  <div class="config-card ad-config-card">
-    <div class="card-header" @click="toggleExpand('adConfig')">
-      <van-icon name="play-circle-o" size="20" color="#5cadff" />
-      <span class="card-title">自动领取</span>
-      <van-icon
-        name="arrow-down"
-        size="16"
-        :class="{ 'rotate-180': expandStates.adConfig }"
-        class="expand-icon"
-      />
+  <div class="ad-config-card apple-card">
+    <div class="apple-card-header">
+      <cute-icon name="ad-slash" size="20" color="#5cadff" />
+      <span class="apple-card-title">自动领取</span>
     </div>
-    <div class="card-content" v-show="expandStates.adConfig">
-      <van-cell class="feature-cell" center :label="adFeatureLabel">
-        <template #title>
-          <span class="feature-title">自动领取功能</span>
-        </template>
-      </van-cell>
+    <div class="apple-card-content">
+      <!-- 功能描述行 -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">自动领取功能</div>
+          <div class="apple-cell-label">{{ adFeatureLabel }}</div>
+        </div>
+        <div class="apple-cell-right"></div>
+      </div>
 
-      <!-- 自动领取详细配置 -->
-      <div class="indent ad-advanced-section">
-        <!-- 水滴相关配置 -->
-        <div class="subsection-title">水滴</div>
-        <van-cell class="advanced-cell" title="定时水滴">
-          <template #right-icon>
+      <!-- 水滴相关配置 -->
+      <div class="apple-sub-section" style="margin-top: 12px">
+        <div class="apple-sub-header">
+          <van-icon name="underway-o" size="14" color="#86868B" />
+          <span>水滴</span>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">定时水滴</div>
+            <div class="apple-cell-label">定时领取水滴广告</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.water.autoWaterAd"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
-        <van-cell class="advanced-cell" title="水桶领取">
-          <template #right-icon>
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">水桶领取</div>
+            <div class="apple-cell-label">自动领取水桶中的水滴</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.water.autoWater"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
-        <div class="indent" v-if="localConfig.ad.water.autoWater">
-          <van-cell class="advanced-cell" label="高于水桶领取数将不再领取">
-            <template #title>
-              <span>水桶领取数量</span>
-            </template>
-            <custom-array-stepper
-              :min="0"
-              :max="60"
-              :step="10"
-              v-model="localConfig.ad.water.maxWaterNum"
-              :inputDisabled="false"
-              class="steal-stepper"
-              @change="onConfigChange"
-            >
-            </custom-array-stepper>
-          </van-cell>
-          <van-cell class="advanced-cell" title="按需领取" label="只有浇水时水滴不够才领取">
-            <template #right-icon>
-              <van-switch
-                v-model="localConfig.ad.water.lackGet"
-                size="24"
+          </div>
+        </div>
+
+        <div v-if="localConfig.ad.water.autoWater" class="apple-sub-section apple-indent">
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">水桶领取数量</div>
+              <div class="apple-cell-label">高于此数量将不再领取</div>
+            </div>
+            <div class="apple-cell-right">
+              <custom-array-stepper
+                :min="0"
+                :max="60"
+                :step="10"
+                v-model="localConfig.ad.water.maxWaterNum"
+                :inputDisabled="false"
+                class="apple-stepper-wrap"
                 @change="onConfigChange"
               />
-            </template>
-          </van-cell>
+            </div>
+          </div>
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">按需领取</div>
+              <div class="apple-cell-label">只有浇水时水滴不够才领取</div>
+            </div>
+            <div class="apple-cell-right">
+              <van-switch
+                v-model="localConfig.ad.water.lackGet"
+                size="22"
+                @change="onConfigChange"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 珍珠相关配置 -->
+      <div class="apple-sub-section">
+        <div class="apple-sub-header">
+          <van-icon name="gem-o" size="14" color="#86868B" />
+          <span>珍珠</span>
         </div>
 
-        <!-- 珍珠相关配置 -->
-        <div class="subsection-title">珍珠</div>
-        <van-cell class="advanced-cell" title="珍珠广告">
-          <template #right-icon>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">珍珠广告</div>
+            <div class="apple-cell-label">自动领取珍珠广告奖励</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.pearl.autoPearlAd"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="珍珠收获">
-          <template #right-icon>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">珍珠收获</div>
+            <div class="apple-cell-label">自动收获珍珠</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.pearl.autoPearlHarvest"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="珍珠抽奖">
-          <template #right-icon>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">珍珠抽奖</div>
+            <div class="apple-cell-label">自动参与珍珠抽奖</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.pearl.autoPearlDraw"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
+          </div>
+        </div>
+      </div>
 
-        <!-- 土地相关配置 -->
-        <div class="subsection-title">土地</div>
-        <van-cell class="advanced-cell" title="视频加速">
-          <template #right-icon>
+      <!-- 土地相关配置 -->
+      <div class="apple-sub-section">
+        <div class="apple-sub-header">
+          <van-icon name="location-o" size="14" color="#86868B" />
+          <span>土地</span>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">视频加速</div>
+            <div class="apple-cell-label">观看视频加速土地收获</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.land.autoSpeedAd"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="自动加速卡">
-          <template #right-icon>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动加速卡</div>
+            <div class="apple-cell-label">使用加速卡加速土地</div>
+          </div>
+          <div class="apple-cell-right">
             <van-switch
               v-model="localConfig.ad.land.autoSpeedCard"
-              size="24"
+              size="22"
               @change="onConfigChange"
             />
-          </template>
-        </van-cell>
-        <div class="indent" v-if="localConfig.ad.land.autoSpeedCard">
-          <van-cell class="advanced-cell" label="只加速收获时间大于N分钟的土地">
-            <template #title>
-              <span>加速限制</span>
-            </template>
-            <custom-array-stepper
-              :min="0"
-              :max="600"
-              :step="30"
-              v-model="localConfig.ad.land.minHarvestGap"
-              @change="onConfigChange"
-              :inputDisabled="false"
-              class="steal-stepper"
-            >
-            </custom-array-stepper>
-          </van-cell>
-          <van-cell class="advanced-cell" title="保留加速卡" label="加速卡太少就不使用了">
-            <custom-array-stepper
-              :min="0"
-              :max="10000"
-              :step="30"
-              v-model="localConfig.ad.land.minSpeedCard"
-              @change="onConfigChange"
-              :inputDisabled="false"
-              class="steal-stepper"
-            >
-            </custom-array-stepper>
-          </van-cell>
+          </div>
         </div>
-        <!-- 主要功能配置 -->
-        <div class="subsection-title">其他功能</div>
-        <van-cell class="advanced-cell" title="主线剧情">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoStory" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
 
-        <van-cell class="advanced-cell" title="免费钻石礼包">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoShopAd" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div v-if="localConfig.ad.land.autoSpeedCard" class="apple-sub-section apple-indent">
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">加速限制</div>
+              <div class="apple-cell-label">只加速收获时间大于 N 分钟的土地</div>
+            </div>
+            <div class="apple-cell-right">
+              <custom-array-stepper
+                :min="0"
+                :max="600"
+                :step="30"
+                v-model="localConfig.ad.land.minHarvestGap"
+                @change="onConfigChange"
+                :inputDisabled="false"
+                class="apple-stepper-wrap"
+              />
+            </div>
+          </div>
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">保留加速卡</div>
+              <div class="apple-cell-label">加速卡太少就不使用了</div>
+            </div>
+            <div class="apple-cell-right">
+              <custom-array-stepper
+                :min="0"
+                :max="100000"
+                :step="30"
+                v-model="localConfig.ad.land.minSpeedCard"
+                @change="onConfigChange"
+                :inputDisabled="false"
+                class="apple-stepper-wrap"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <van-cell class="advanced-cell" title="视频双倍">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoAdExpired" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+      <!-- 其他功能配置 -->
+      <div class="apple-sub-section">
+        <div class="apple-sub-header">
+          <van-icon name="more-o" size="14" color="#86868B" />
+          <span>其他功能</span>
+        </div>
 
-        <van-cell class="advanced-cell" title="排行榜点赞">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoLike" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">主线剧情</div>
+            <div class="apple-cell-label">自动推进主线剧情</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoStory" size="22" @change="onConfigChange" />
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="深海寻宝">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoWelfare" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">免费钻石礼包</div>
+            <div class="apple-cell-label">自动领取免费钻石礼包</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoShopAd" size="22" @change="onConfigChange" />
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="随机小动物互动">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoRandEvent" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">视频双倍</div>
+            <div class="apple-cell-label">观看视频获得双倍奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoAdExpired" size="22" @change="onConfigChange" />
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="每日签到">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoSign" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">排行榜点赞</div>
+            <div class="apple-cell-label">自动为排行榜好友点赞</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoLike" size="22" @change="onConfigChange" />
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="自动分享">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoShare" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">深海寻宝</div>
+            <div class="apple-cell-label">自动参与深海寻宝活动</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoWelfare" size="22" @change="onConfigChange" />
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="培育广告加速">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoFosterAd" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">随机小动物互动</div>
+            <div class="apple-cell-label">自动与小动物互动</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoRandEvent" size="22" @change="onConfigChange" />
+          </div>
+        </div>
 
-        <van-cell class="advanced-cell" title="反诈骗奖励">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.antoAntiFraud" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
-        <van-cell class="advanced-cell" title="邮件奖励">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoMail" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
-        <van-cell class="advanced-cell" title="宝箱奖励" label="订单、日常达到对应目标的奖励">
-          <template #right-icon>
-            <van-switch v-model="localConfig.ad.autoBox" size="24" @change="onConfigChange" />
-          </template>
-        </van-cell>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">每日签到</div>
+            <div class="apple-cell-label">自动完成每日签到</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoSign" size="22" @change="onConfigChange" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动分享</div>
+            <div class="apple-cell-label">自动分享到社交平台</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoShare" size="22" @change="onConfigChange" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">培育广告加速</div>
+            <div class="apple-cell-label">观看广告加速培育</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoFosterAd" size="22" @change="onConfigChange" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">反诈骗奖励</div>
+            <div class="apple-cell-label">自动领取反诈骗奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.antoAntiFraud" size="22" @change="onConfigChange" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">邮件奖励</div>
+            <div class="apple-cell-label">自动领取邮件奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoMail" size="22" @change="onConfigChange" />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">宝箱奖励</div>
+            <div class="apple-cell-label">订单、日常达到对应目标的奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch v-model="localConfig.ad.autoBox" size="22" @change="onConfigChange" />
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 时间选择器弹窗 -->
-  <van-popup v-model:show="showTimeSelect" round position="bottom" class="custom-popup">
-    <div class="popup-header">
-      <span class="popup-title">{{
-        timeSelectType === 'start' ? '选择开始时间' : '选择结束时间'
-      }}</span>
+  <!-- 🍎 Apple 风格弹窗（teleport 到 body） -->
+  <teleport to="body" v-if="showTimeSelect">
+    <div class="apple-popup-overlay" @click="cancelTime">
+      <div class="apple-popup-sheet" @click.stop>
+        <div class="apple-popup-header">
+          <span class="apple-popup-title">{{
+            timeSelectType === 'start' ? '选择开始时间' : '选择结束时间'
+          }}</span>
+          <van-icon name="cross" class="apple-popup-close" @click="cancelTime" />
+        </div>
+        <van-time-picker
+          :formatter="formatter"
+          @confirm="confirmTime"
+          @cancel="cancelTime"
+          class="apple-time-picker"
+        />
+      </div>
     </div>
-    <van-time-picker
-      :formatter="formatter"
-      @confirm="confirmTime"
-      @cancel="cancelTime"
-      class="custom-time-picker"
-    />
-  </van-popup>
+  </teleport>
 </template>
 
 <script setup>
@@ -287,16 +405,6 @@ const formatter = (type, option) => {
   return option
 }
 
-// 切换展开状态 - 修复函数
-const toggleExpand = (key) => {
-  // 创建一个新的展开状态对象，翻转对应键的状态
-  const newExpandStates = { ...props.expandStates }
-  newExpandStates[key] = !newExpandStates[key]
-
-  // 触发更新事件，让父组件更新状态
-  emit('update-expand-states', newExpandStates)
-}
-
 // 确认选择时间
 const confirmTime = ({ selectedValues }) => {
   const timestamp = (selectedValues[0] * 60 * 60 + selectedValues[1] * 60) * 1000
@@ -334,159 +442,138 @@ const adFeatureLabel = computed(() => {
 </script>
 
 <style scoped>
+/* ============================================================
+   📦 AutoAdConfig — iOS 17 Settings 风格
+   通用样式见 apple-card.css（全局），此处仅处理组件特有覆写
+   ============================================================ */
+
+/* 卡片容器微调 */
 .ad-config-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.05),
-    0 4px 10px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
+}
+
+/* 覆盖全局 apple-card 部分 padding，使其更紧凑 */
+.ad-config-card .apple-card-header {
+  padding: 16px 16px 0;
+}
+
+.ad-config-card .apple-card-content {
+  padding: 4px 16px 12px;
+}
+
+/* CustomArrayStepper 宽度限制 */
+.apple-stepper-wrap {
+  width: 108px;
+}
+
+/* ============================================================
+   🍎 Apple 风格弹窗 — 时间选择器
+   对齐 StealConfigModal 的 teleport 弹窗体系
+   ============================================================ */
+
+/* 遮罩层 */
+.apple-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10001;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: appleFadeIn 0.3s ease;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+/* 弹窗内容 — 磨砂玻璃卡片 */
+.apple-popup-sheet {
+  width: 92%;
+  max-width: 400px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  animation: appleSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overscroll-behavior: contain;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
 }
 
-.ad-advanced-section {
-  margin-top: 16px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  margin: 20px 0 12px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-title::before {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 16px;
-  border-radius: 2px;
-  margin-right: 8px;
-}
-
-.subsection-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #5cadff;
-  margin: 16px 0 8px;
-  padding-left: 8px;
-  border-left: 3px solid #5cadff;
-}
-
-.time-picker-container {
-  display: flex;
-  align-items: center;
-}
-
-.time-display {
-  padding: 4px 8px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background-color: #fafafa;
-  cursor: pointer;
-}
-
-.feature-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.feature-cell {
-  background-color: transparent;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.advanced-cell {
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.card-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-}
-
-.card-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-  flex: 1;
-}
-
-.card-content {
-  padding: 16px 20px;
-  background: var(--van-cell-background);
-}
-
-.expand-icon {
-  transition: transform 0.3s ease;
-  color: #7f8c8d;
-}
-
-.rotate-180 {
-  transform: rotate(180deg);
-}
-
-.indent {
-  position: relative !important;
-  padding-left: 14px !important;
-  margin-left: 4px !important;
-}
-
-:deep(.indent::before) {
-  content: '' !important;
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  height: 100% !important;
-  width: 2px !important;
-
-  background-image: repeating-linear-gradient(
-    to bottom,
-    #eaeaea 0px,
-    #eaeaea 6px,
-    transparent 6px,
-    transparent 12px
-  ) !important;
-
-  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%) !important;
-  mask-image: linear-gradient(to bottom, black 60%, transparent 100%) !important;
-}
-
-.custom-popup {
-  border-radius: 20px 20px 0 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.popup-header {
-  padding: 20px 24px 16px;
-  background: linear-gradient(to right, #fff5f5, #ffffff);
-  border-bottom: 1px solid #f0f0f0;
+/* 弹窗头部 */
+.apple-popup-header {
+  padding: 18px 20px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.08);
+  position: relative;
 }
 
-.popup-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
+.apple-popup-title {
+  font-size: 20px;
+  font-weight: 630;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  color: var(--apple-text-primary, #1d1d1f);
+  font-family:
+    -apple-system, 'PingFang SC', 'SF Pro Display', 'Helvetica Neue', 'Noto Sans CJK SC', system-ui,
+    sans-serif;
 }
 
-.custom-time-picker {
-  padding: 0 20px 20px;
+.apple-popup-close {
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--apple-text-quaternary, #c7c7cc);
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  background: rgba(242, 242, 247, 0.6);
+}
+
+.apple-popup-close:active {
+  background: rgba(229, 229, 234, 0.8);
+  color: #86868b;
+}
+
+/* 时间选择器 */
+.apple-time-picker {
+  padding: 12px 20px 20px;
+  --van-time-picker-title-font-size: 17px;
+  --van-time-picker-confirm-action-color: var(--apple-text-link, #007aff);
+  --van-time-picker-cancel-action-color: var(--apple-text-secondary, #86868b);
+  --van-time-picker-option-font-size: 20px;
+  --van-time-picker-option-text-color: var(--apple-text-primary, #1d1d1f);
+  --van-time-picker-option-selected-text-color: var(--apple-text-primary, #1d1d1f);
+}
+
+/* ============================================================
+   动画
+   ============================================================ */
+@keyframes appleFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes appleSlideUp {
+  from {
+    transform: translateY(20px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 </style>

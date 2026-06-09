@@ -16,7 +16,11 @@
           color: runningStatusDesc.color,
         }"
       >
-        <van-icon :name="runningStatusDesc.icon" size="28" :color="runningStatusDesc.color" />
+        <cute-icon
+          :name="runningStatusDesc.icon"
+          :size="statusIconSize"
+          :color="runningStatusDesc.color"
+        />
         <div class="status-text">{{ runningStatusDesc.text }}</div>
       </div>
 
@@ -93,110 +97,103 @@
       </div>
     </div>
     <Teleport to="body">
-      <!-- 时间分配弹窗 -->
+      <!-- ⬆️ 分配时间 - iOS 17 底部 Sheet -->
       <div v-if="showTimeAllocationPopup" class="modal-overlay" @click="closePopup">
         <div class="modal-content" @click.stop>
-          <div class="popup-header">
-            <h3>时间分配</h3>
-            <button class="close-btn" @click="showTimeAllocationPopup = false">×</button>
+          <!-- 灰色把手 -->
+          <div class="modal-handle"></div>
+
+          <!-- ⚡ 标题区 -->
+          <div class="modal-title-block">
+            <p class="modal-subtitle">分配到</p>
+            <h2 class="modal-title">{{ currentSelectedUser?.nickName || '未知用户' }}</h2>
           </div>
 
-          <div class="popup-body">
-            <div class="allocation-section">
-              <h4>当前可分配时间</h4>
-              <div class="time-summary">
-                <div class="time-item-row">
-                  <div class="time-item-half">
-                    <span class="label">不可暂停时间</span>
-                    <span class="value" :class="realNonPauseableDaysClass">
-                      {{ availableTimes.nonPauseableDays }} 天
-                    </span>
-                  </div>
-                  <div class="time-item-half">
-                    <span class="label">可暂停时间</span>
-                    <span class="value" :class="realPauseableDaysClass">
-                      {{
-                        showRecycleAdd
-                          ? availableTimes.pauseableDays + Math.abs(allocationPauseDays)
-                          : availableTimes.pauseableDays
-                      }}
-                      天
-                    </span>
-                  </div>
-                </div>
+          <div class="modal-body">
+            <!-- 权限警告 -->
+            <div v-if="showPermissionWarning" class="modal-alert">
+              <span>⚠️ 仅到期可操作</span>
+            </div>
+
+            <!-- 📦 库存展示 - 胶囊标签 -->
+            <div class="stock-row">
+              <div class="stock-pill">
+                <span class="stock-label">不可暂停</span>
+                <span class="stock-value" :class="realNonPauseableDaysClass">{{
+                  availableTimes.nonPauseableDays
+                }}</span>
+                <span class="stock-unit">天</span>
+              </div>
+              <div class="stock-pill">
+                <span class="stock-label">可暂停</span>
+                <span class="stock-value" :class="realPauseableDaysClass">
+                  {{
+                    showRecycleAdd
+                      ? availableTimes.pauseableDays + Math.abs(allocationPauseDays)
+                      : availableTimes.pauseableDays
+                  }}
+                </span>
+                <span class="stock-unit">天</span>
               </div>
             </div>
 
-            <div class="allocation-controls">
-              <!-- 权限提醒 -->
-              <div v-if="showPermissionWarning" class="permission-warning">
-                <span class="warning-text">⚠️ 分配人和当前用户不一致，需要到期后才能操作</span>
+            <!-- 🔢 天数调整 -->
+            <div class="adjust-block">
+              <div class="adjust-header">
+                <span>调整天数</span>
+                <span class="adjust-to" :class="timePartClass">{{ previewVipTimeRemaining }}</span>
               </div>
-
-              <div class="user-info-display">
-                <div class="user-name-label">
-                  {{ currentSelectedUser?.nickName || '未知用户' }}
-                </div>
-                <div
-                  class="user-pause-status"
-                  :class="{ 'can-pause': currentSubscribeType === '可暂停' }"
+              <div class="adjust-controls">
+                <button
+                  class="adjust-btn"
+                  :disabled="!canDecreaseDays || showPermissionWarning"
+                  @click="decreaseDays"
                 >
-                  {{ currentSubscribeType }}
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                  >
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+                <div class="adjust-display">
+                  <span class="adjust-number">{{ allocationPauseDays }}</span>
+                  <span class="adjust-unit">天</span>
                 </div>
-              </div>
-
-              <!-- 已过期VIP提示 -->
-              <div class="time-countdown-section">
-                <div class="time-display">
-                  <div class="preview-time">
-                    <span class="label">预览到期时间：</span>
-                    <span class="value" :class="timePartClass">{{ previewVipTimeRemaining }}</span>
-                  </div>
-                </div>
-
-                <!-- 优化：加减按钮 + 手动输入框 -->
-                <div class="stepper-wrapper">
-                  <div class="stepper-container">
-                    <button
-                      class="stepper-btn stepper-decrease"
-                      :class="{ red: allocationPauseDays < 0 }"
-                      :disabled="!canDecreaseDays || showPermissionWarning"
-                      @click="decreaseDays"
-                    >
-                      -
-                    </button>
-                    <!-- 手动输入天数 -->
-                    <input
-                      type="number"
-                      v-model.number="allocationPauseDays"
-                      @input="handleDaysInput"
-                      class="stepper-input"
-                      :disabled="showPermissionWarning"
-                    />
-                    <span>天</span>
-                    <button
-                      class="stepper-btn stepper-increase"
-                      :class="{ green: allocationPauseDays > 0 }"
-                      :disabled="!canIncreaseDays || showPermissionWarning"
-                      @click="increaseDays"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
+                <button
+                  class="adjust-btn"
+                  :disabled="!canIncreaseDays || showPermissionWarning"
+                  @click="increaseDays"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                  >
+                    <path d="M5 12h14M12 5v14" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            <!-- 确认按钮固定在底部，永不遮挡 -->
-            <div class="action-buttons">
-              <button
-                class="confirm-btn"
-                :disabled="!canConfirmAllocation || showPermissionWarning"
-                @click="confirmAllocation"
-              >
-                确认分配
-              </button>
-            </div>
+            <!-- 🚀 主要操作 -->
+            <button
+              class="modal-primary"
+              :disabled="!canConfirmAllocation || showPermissionWarning"
+              @click="confirmAllocation"
+            >
+              确认分配
+            </button>
+            <button class="modal-dismiss" @click="closePopup">取消</button>
           </div>
         </div>
       </div>
@@ -205,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineExpose } from 'vue'
 import CuteIcon from '@/components/CuteIcon.vue'
 import request from '@/utils/request'
 import { showLoadingToast, showNotify } from 'vant'
@@ -478,12 +475,22 @@ const previewVipTimeRemaining = computed(() => {
   return `${days}天${hours}小时${mins}分钟${secs}秒后到期`
 })
 
+// 运行状态图标映射（适配 cute-icon）
+const runningStatusIconMap = {
+  loading: 'grid',
+  refreshNeed: 'login',
+  stopped: 'pause',
+  running: 'play',
+  waiting: 'flower',
+  unknown: 'more',
+}
+
 // 运行状态
 const runningStatusDesc = computed(() => {
   const u = currentSelectedUser.value
   if (!u)
     return {
-      icon: 'close',
+      icon: runningStatusIconMap.loading,
       text: '加载中',
       color: '#8c8c8c',
       bgColor: 'rgba(140,140,140,0.1)',
@@ -491,7 +498,7 @@ const runningStatusDesc = computed(() => {
     }
   if (u.refreshNeed === 1)
     return {
-      icon: 'close',
+      icon: runningStatusIconMap.refreshNeed,
       text: '需重新登录',
       color: '#ff4d4f',
       bgColor: 'rgba(255,77,79,0.1)',
@@ -499,7 +506,7 @@ const runningStatusDesc = computed(() => {
     }
   if (u.runStatus === 0)
     return {
-      icon: 'play-circle-o',
+      icon: runningStatusIconMap.stopped,
       text: '未启用',
       color: '#8c8c8c',
       bgColor: 'rgba(140,140,140,0.1)',
@@ -507,7 +514,7 @@ const runningStatusDesc = computed(() => {
     }
   if (u.runStatus === 1)
     return {
-      icon: 'passed',
+      icon: runningStatusIconMap.running,
       text: '运行中',
       color: '#52c41a',
       bgColor: 'rgba(82,196,26,0.1)',
@@ -515,14 +522,14 @@ const runningStatusDesc = computed(() => {
     }
   if (u.runStatus === 2)
     return {
-      icon: 'passed',
+      icon: runningStatusIconMap.waiting,
       text: '等待中',
       color: '#52c41a',
       bgColor: 'rgba(82,196,26,0.1)',
       borderColor: 'rgba(82,196,26,0.2)',
     }
   return {
-    icon: 'close',
+    icon: runningStatusIconMap.unknown,
     text: '未知状态',
     color: '#8c8c8c',
     bgColor: 'rgba(140,140,140,0.1)',
@@ -546,6 +553,15 @@ const getUserStatusClass = (u) => {
   if (u.runStatus === 2) return 'status-waiting'
   return 'status-unknown'
 }
+
+// 状态图标大小（移动端适配）
+const statusIconSize = computed(() => {
+  // 窗口宽度 <= 575px 时缩小图标
+  if (typeof window !== 'undefined' && window.innerWidth <= 575) {
+    return '20'
+  }
+  return '28'
+})
 
 // VIP样式
 const vipStatusStyle = computed(() => {
@@ -779,9 +795,31 @@ onUnmounted(() => {
   document.removeEventListener('click', closeDropdownIfClickedOutside)
   clearInterval(countdownTimer)
 })
+
+// 供父组件调用的公开方法：打开时长分配弹窗
+const openAllocationPopup = () => {
+  allocationPauseDays.value = 1
+  showTimeAllocationPopup.value = true
+}
+
+defineExpose({
+  openAllocationPopup,
+})
 </script>
 
 <style scoped>
+/* 🔥 白色磨砂容器，与背景区分 */
+.status-section {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
 /* 🔥 超窄版顶部标题（移动端极致省空间） */
 .top-title-bar {
   display: flex;
@@ -824,9 +862,11 @@ onUnmounted(() => {
   max-height: 56px;
   padding: 10px;
   border-radius: 14px;
-  border: 1px solid transparent;
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -841,8 +881,10 @@ onUnmounted(() => {
   line-height: 1.3;
 }
 .user-card {
-  background: #fff;
-  border-color: rgba(24, 144, 255, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-color: rgba(24, 144, 255, 0.15);
 }
 .username-text {
   color: #ff6767;
@@ -983,270 +1025,304 @@ onUnmounted(() => {
   transform: translateY(-10px);
 }
 
-/* 弹窗优化：美观+适配移动端+高度足够 */
+/* ============================================================
+   ⬆️ iOS 17 底部 Sheet — 纯色大标题 + 胶囊标签 + 轻拟态
+   ============================================================ */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
-  /* 核心：flex居中 + 最高层级 */
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   justify-content: center;
-  align-items: center;
-  z-index: 99999 !important; /* 高于所有页面元素 */
-  margin: 0;
+  align-items: flex-end;
+  z-index: 99999;
   padding: 0;
+  margin: 0;
+  animation: overlayIn 0.25s ease;
 }
 
-/* 🔥 修复：弹窗内容容器 */
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .modal-content {
-  background: #fff;
-  border-radius: 20px;
-  width: 92%;
-  max-width: 420px;
-  max-height: 85vh;
-  overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  /* 无需定位，靠父容器flex居中 */
-  position: relative;
-  margin: 0;
-}
-.popup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
-}
-.popup-header h3 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: #333;
-}
-.close-btn {
-  background: #f5f5f5;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: #666;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s;
-}
-.close-btn:hover {
-  background: #e0e0e0;
-  color: #000;
-}
-.popup-body {
-  padding: 10px 16px;
+  background: #f2f2f6;
+  border-radius: 28px 28px 0 0;
+  width: 100%;
+  max-height: 78vh;
   overflow-y: auto;
-  max-height: 75vh;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  position: relative;
+  animation: sheetUp 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.allocation-section,
-.allocation-controls {
-  padding: 12px;
-  border-radius: 12px;
-  background: #fafbfc;
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
-.allocation-section h4,
-.allocation-controls h4 {
-  margin: 0 0 8px 0;
-  color: #333;
-  font-size: 15px;
-  font-weight: 600;
+
+/* 把手 */
+.modal-handle {
+  width: 36px;
+  height: 5px;
+  background: #c7c7cc;
+  border-radius: 2.5px;
+  margin: 10px auto 6px;
 }
-.permission-warning {
-  margin-bottom: 10px;
-  padding: 8px;
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
-  border-radius: 6px;
-  text-align: center;
+
+/* 大标题区 */
+.modal-title-block {
+  padding: 4px 20px 0;
 }
-.warning-text {
-  color: #fa8c16;
-  font-size: 12px;
-  font-weight: 500;
-}
-.time-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.time-item-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-.time-item-half {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 5px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
-}
-.label {
-  font-weight: 500;
-  color: #666;
-  font-size: 12px;
-}
-.value {
-  font-weight: 600;
-  color: #1890ff;
-  font-size: 14px;
-}
-.value.red {
-  color: #ff4d4f !important;
-}
-.value.green {
-  color: #52c41a !important;
-}
-.user-info-display {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #f0f9ff;
-  border-radius: 8px;
-  border: 1px solid #b3d8ff;
-}
-.user-name-label {
-  font-weight: 600;
-  color: #1890ff;
-  font-size: 14px;
-}
-.user-pause-status {
-  padding: 3px 8px;
-  border-radius: 10px;
+.modal-subtitle {
   font-size: 11px;
   font-weight: 500;
+  color: #8e8e93;
+  margin: 0 0 1px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
-.user-pause-status.can-pause {
-  background: #e6f7ff;
-  color: #1890ff;
-  border: 1px solid #91d5ff;
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0;
+  letter-spacing: -0.3px;
 }
-.time-countdown-section {
+
+.modal-body {
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 警告 */
+.modal-alert {
+  font-size: 13px;
+  color: #d97706;
+  background: #fffbeb;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #fde68a;
+  text-align: center;
+}
+
+/* 胶囊库存条 */
+.stock-row {
+  display: flex;
+  gap: 8px;
+}
+.stock-pill {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 2px;
 }
-.time-display {
-  width: 100%;
-  text-align: center;
+.stock-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8e8e93;
 }
-.preview-time {
-  padding: 8px;
-  background: #e6f7ff;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #1890ff;
+.stock-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
 }
-
-/* 手动输入框样式 */
-.stepper-input {
-  width: 60px;
-  height: 32px;
-  text-align: center;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  outline: none;
+.stock-value.red {
+  color: #ff3b30;
 }
-.stepper-input:focus {
-  border-color: #1890ff;
+.stock-value.green {
+  color: #34c759;
 }
-.stepper-input:disabled {
-  background: #f5f5f5;
-  color: #999;
+.stock-unit {
+  font-size: 10px;
+  color: #8e8e93;
+  font-weight: 500;
 }
 
-.stepper-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-.stepper-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+/* 调整区 */
+.adjust-block {
   background: #fff;
   border-radius: 12px;
-  border: 1px solid #e0e0e0;
-  min-width: 200px;
+  padding: 8px 12px;
 }
-.stepper-btn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e0e0e0;
-  background: #fafafa;
-  border-radius: 6px;
-  font-size: 18px;
+.adjust-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #8e8e93;
+  margin-bottom: 6px;
+}
+.adjust-to {
+  font-size: 11px;
+  font-weight: 600;
+  color: #007aff;
+  text-align: right;
+  max-width: 55%;
+  line-height: 1.2;
+}
+.adjust-to.red {
+  color: #ff3b30;
+}
+.adjust-to.green {
+  color: #34c759;
+}
+
+.adjust-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.adjust-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #f0f0f5;
+  color: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
-  font-weight: bold;
+  transition:
+    background 0.15s,
+    transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
 }
-.stepper-btn:hover:not(:disabled) {
-  background: #f0f0f0;
+.adjust-btn svg {
+  width: 16px;
+  height: 16px;
 }
-.stepper-btn.red {
-  color: #ff4d4f;
-  border-color: #ffccc7;
-  background: #fff2f0;
+.adjust-btn:active:not(:disabled) {
+  background: #e0e0e8;
+  transform: scale(0.92);
 }
-.stepper-btn.green {
-  color: #52c41a;
-  border-color: #b7eb8f;
-  background: #f6ffed;
-}
-.stepper-btn:disabled {
-  opacity: 0.5;
+.adjust-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
-
-/* 确认按钮固定在底部，永久可见 */
-.action-buttons {
-  margin-top: auto;
-  padding-top: 12px;
+.adjust-display {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 48px;
+  justify-content: center;
 }
-.confirm-btn {
-  background: #1890ff;
-  color: #fff;
+.adjust-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.adjust-unit {
+  font-size: 12px;
+  color: #8e8e93;
+  font-weight: 500;
+}
+
+/* 主按钮 */
+.modal-primary {
+  width: 100%;
+  height: 40px;
   border: none;
   border-radius: 12px;
-  padding: 10px;
+  background: #007aff;
+  color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
-  width: 100%;
+  transition:
+    transform 0.12s,
+    opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
-.confirm-btn:hover:not(:disabled) {
-  background: #40a9ff;
+.modal-primary:active:not(:disabled) {
+  transform: scale(0.97);
 }
-.confirm-btn:disabled {
-  background: #dcdcdc;
+.modal-primary:disabled {
+  background: #e0e0e0;
+  color: #fff;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* 取消 */
+.modal-dismiss {
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #007aff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.modal-dismiss:active {
+  opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-content {
+    background: #1c1c1e;
+  }
+  .modal-title {
+    color: #f2f2f7;
+  }
+  .stock-pill {
+    background: #2c2c2e;
+  }
+  .stock-value {
+    color: #f2f2f7;
+  }
+  .adjust-block {
+    background: #2c2c2e;
+  }
+  .adjust-number {
+    color: #f2f2f7;
+  }
+  .adjust-btn {
+    background: #3a3a3c;
+    color: #0a84ff;
+  }
+  .adjust-btn:active:not(:disabled) {
+    background: #48484a;
+  }
+  .modal-primary {
+    background: #0a84ff;
+  }
+  .modal-primary:disabled {
+    background: #48484a;
+    color: #8e8e93;
+  }
+  .modal-dismiss {
+    color: #0a84ff;
+  }
+  .modal-alert {
+    background: #2c2c1e;
+    border-color: #5c4c1e;
+    color: #fbbf24;
+  }
 }
 
 /* 响应式 */
@@ -1258,7 +1334,7 @@ onUnmounted(() => {
     grid-column: 1/-1;
   }
   .modal-content {
-    width: 95%;
+    border-radius: 28px 28px 0 0;
   }
 }
 @media (min-width: 768px) {
@@ -1273,17 +1349,6 @@ onUnmounted(() => {
   }
 }
 
-/* 关键代码 */
-.stepper-input {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-.stepper-input::-webkit-outer-spin-button,
-.stepper-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
 @media (max-width: 575px) {
   .vip-status-text {
     font-size: 12px; /* 移动端缩小字体 */
@@ -1295,11 +1360,9 @@ onUnmounted(() => {
   /* 极小屏进一步紧凑化状态卡片和时间分配弹窗 */
   .status-card :deep(.cute-icon),
   .status-card :deep(svg),
-  .status-card :deep(img),
-  .status-card .van-icon {
+  .status-card :deep(img) {
     width: 20px;
     height: 20px;
-    font-size: 20px;
   }
   .status-card {
     max-height: 48px;

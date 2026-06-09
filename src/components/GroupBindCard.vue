@@ -1,83 +1,88 @@
 <template>
-  <div class="group-bind-card">
-    <!-- 状态一：未绑定 -->
+  <div class="gb-card">
+    <!-- ====== 未绑定 ====== -->
     <template v-if="!isBound">
-      <div class="page-header">
-        <div class="header-icon">🎁</div>
-        <h2 class="main-title">进群有礼</h2>
-        <p class="sub-title">绑定群号赠送1天会员时长</p>
+      <div class="gb-hero">
+        <div class="gb-hero-emoji">🎁</div>
+        <h1 class="gb-hero-title">进群有礼</h1>
+        <p class="gb-hero-subtitle">绑定群号赠送 1 天会员时长</p>
       </div>
 
-      <div class="input-card">
-        <div class="input-wrapper">
-          <van-field
-            v-model="groupName"
-            placeholder="输入你的群号"
-            class="group-input"
-            clearable
-            :border="false"
-            :disabled="isBinding"
-          >
-            <template #left-icon>
-              <van-icon name="chat-o" class="field-icon" />
-            </template>
-          </van-field>
-        </div>
-
-        <van-button
-          type="primary"
-          class="bind-btn"
-          :loading="isBinding"
-          :disabled="!groupName.trim()"
-          @click="handleBind"
-          block
-          round
-        >
-          绑定并领取时长
-        </van-button>
-
-        <div class="exchange-link" @click="handleGoExchange">已有卡密？去兑换</div>
-      </div>
-
-      <!-- 绑定成功后的购买链接展示 -->
-      <transition name="slide-fade">
-        <div v-if="purchaseLink" class="purchase-section">
-          <div class="success-tip">✅ 绑定成功，1天时长已到账</div>
-          <div class="purchase-card">
-            <div class="purchase-label">你的专属购买链接为：</div>
-            <div class="purchase-link-text">{{ purchaseLink }}</div>
-            <van-button type="primary" class="jump-btn" round block @click="handleJumpToBuy">
-              点击跳转
-            </van-button>
+      <div class="gb-group">
+        <div class="gb-row">
+          <div class="gb-row-left">
+            <span class="gb-label">群号</span>
           </div>
+          <div class="gb-row-right">
+            <van-field
+              v-model="groupName"
+              placeholder="输入群号"
+              class="gb-field"
+              clearable
+              :border="false"
+              :disabled="isBinding"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button class="gb-action" :disabled="!groupName.trim() || isBinding" @click="handleBind">
+        <span v-if="isBinding" class="gb-spinner"></span>
+        <span v-else>绑定并领取时长</span>
+      </button>
+      <p class="gb-exchange" @click="handleGoExchange">已有卡密？去兑换</p>
+
+      <transition name="gb-pop">
+        <div v-if="purchaseLink" class="gb-result">
+          <div class="gb-callout">
+            <span>✅ 绑定成功，1 天时长已到账</span>
+          </div>
+          <div class="gb-group">
+            <div class="gb-row">
+              <div class="gb-row-left">
+                <span class="gb-label">购买链接</span>
+              </div>
+              <div class="gb-row-right">
+                <span class="gb-url">{{ purchaseLink }}</span>
+                <van-icon name="arrow" size="14" class="gb-arrow" />
+              </div>
+            </div>
+          </div>
+          <button class="gb-action gb-action-blue" @click="handleJumpToBuy">
+            跳转购买
+            <van-icon name="arrow" size="16" />
+          </button>
         </div>
       </transition>
     </template>
 
-    <!-- 状态二：已绑定 -->
+    <!-- ====== 已绑定 ====== -->
     <template v-else>
-      <div class="page-header">
-        <div class="header-icon bound-icon">✅</div>
-        <h2 class="main-title bound-title">你已绑定过群，直接购买即可</h2>
+      <div class="gb-hero gb-hero-bound">
+        <div class="gb-hero-emoji">✅</div>
+        <div>
+          <p class="gb-hero-title gb-hero-title-bound">已绑定</p>
+          <p class="gb-hero-subtitle">你已绑定过群，直接购买即可</p>
+        </div>
       </div>
 
-      <div class="purchase-card">
-        <div class="purchase-label">你的专属购买链接为：</div>
-        <div class="purchase-link-text">{{ purchaseLink || '正在获取...' }}</div>
-        <van-button
-          type="primary"
-          class="jump-btn"
-          round
-          block
-          :loading="isFetchingLink"
-          :disabled="!purchaseLink"
-          @click="handleJumpToBuy"
-        >
-          点击跳转
-        </van-button>
+      <div class="gb-group">
+        <div class="gb-row">
+          <div class="gb-row-left">
+            <span class="gb-label">购买链接</span>
+          </div>
+          <div class="gb-row-right">
+            <span class="gb-url">{{ purchaseLink || '获取中…' }}</span>
+            <van-icon name="arrow" size="14" class="gb-arrow" />
+          </div>
+        </div>
       </div>
 
-      <div class="exchange-link" @click="handleGoExchange">已有卡密？去兑换</div>
+      <button class="gb-action gb-action-blue" :disabled="!purchaseLink" @click="handleJumpToBuy">
+        <span v-if="isFetchingLink" class="gb-spinner"></span>
+        <span v-else>跳转购买 <van-icon name="arrow" size="16" /></span>
+      </button>
+      <p class="gb-exchange" @click="handleGoExchange">已有卡密？去兑换</p>
     </template>
   </div>
 </template>
@@ -116,7 +121,7 @@ const fetchPurchaseLinkForBound = async () => {
   try {
     const res = await request({
       url: '/user/groupLink',
-      method: 'GET'
+      method: 'GET',
     })
     if (res.code === 200) {
       purchaseLink.value = res.data.purchaseLink
@@ -199,198 +204,241 @@ defineExpose({
 </script>
 
 <style scoped>
-.group-bind-card {
-  padding: 12px 14px;
+/* ============================================================
+   GroupBindCard — iOS 17 Settings 原生列表风格
+   分组 = 白底圆角列表行，无额外包裹 / 磨砂 / 渐变
+   ============================================================ */
+
+.gb-card {
+  padding: 8px 0 4px;
 }
 
-/* 页面头部 */
-.page-header {
+/* ---------- Hero 头部 ---------- */
+.gb-hero {
   text-align: center;
-  margin-bottom: 20px;
-  padding-top: 4px;
+  padding: 20px 0 28px;
 }
-
-.header-icon {
-  font-size: 36px;
-  margin-bottom: 8px;
+.gb-hero-emoji {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 14px;
 }
-
-.main-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #1d2129;
-  margin: 0 0 4px 0;
+.gb-hero-title {
+  font-size: 24px;
+  font-weight: 630;
+  letter-spacing: -0.3px;
+  color: #1d1d1f;
+  margin: 0 0 6px;
 }
-
-.sub-title {
-  font-size: 12px;
-  color: #909399;
+.gb-hero-subtitle {
+  font-size: 13px;
+  color: #8e8e93;
   margin: 0;
 }
 
-.bound-icon {
+/* 绑定过的 Hero 缩略版 */
+.gb-hero-bound {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0 20px;
+  text-align: left;
+}
+.gb-hero-bound .gb-hero-emoji {
   font-size: 32px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+.gb-hero-bound .gb-hero-title {
+  font-size: 17px;
+  margin-bottom: 2px;
+}
+.gb-hero-title-bound {
+  color: #34c759;
+}
+.gb-hero-bound .gb-hero-subtitle {
+  font-size: 12px;
 }
 
-.bound-title {
-  font-size: 15px;
-  color: #52c41a;
-  font-weight: 500;
-}
-
-/* 输入卡片 */
-.input-card {
+/* ---------- 分组列表 ---------- */
+.gb-group {
   background: #fff;
-  border-radius: 12px;
-  padding: 16px 14px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 12px;
-}
-
-.input-wrapper {
-  background: #f7f8fa;
-  border-radius: 10px;
-  margin-bottom: 14px;
+  border-radius: 14px;
   overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.group-input {
-  --van-field-padding: 10px 14px;
-  --van-field-input-font-size: 13px;
-  --van-field-placeholder-color: #c0c4cc;
-  --van-field-input-color: #303133;
+/* ---------- 列表行 ---------- */
+.gb-row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 16px;
+  gap: 12px;
+}
+.gb-row + .gb-row {
+  border-top: 0.5px solid #e9e9ed;
+}
+.gb-row-left {
+  flex-shrink: 0;
+}
+.gb-row-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 4px;
+}
+.gb-label {
+  font-size: 16px;
+  color: #1d1d1f;
+}
+
+/* ---------- 输入框（Settings 风格右对齐） ---------- */
+.gb-field {
+  --van-field-padding: 4px 0 4px 8px;
+  --van-field-input-font-size: 16px;
+  --van-field-placeholder-color: #c7c7cc;
+  --van-field-input-color: #1d1d1f;
+  --van-field-input-text-align: right;
+  --van-field-clear-icon-color: #c7c7cc;
+  --van-field-clear-icon-size: 14px;
   background: transparent;
 }
 
-.field-icon {
-  color: #909399;
-  font-size: 15px;
-  margin-right: 2px;
-}
-
-/* 绑定按钮 */
-.bind-btn {
-  height: 42px;
+/* ---------- 链接文本（蓝色右对齐） ---------- */
+.gb-url {
   font-size: 14px;
-  font-weight: 500;
-  background: linear-gradient(135deg, #ff6767, #ff8c8c) !important;
-  border: none !important;
-  box-shadow: 0 3px 10px rgba(255, 103, 103, 0.25);
-  letter-spacing: 0.5px;
-}
-
-.bind-btn:disabled {
-  background: linear-gradient(135deg, #e0e0e0, #eeeeee) !important;
-  box-shadow: none !important;
-}
-
-/* 兑换链接 */
-.exchange-link {
-  text-align: center;
-  margin-top: 12px;
-  font-size: 12px;
-  color: #1890ff;
-  cursor: pointer;
-  padding: 6px 0;
-}
-
-.exchange-link:hover {
-  color: #096dd9;
-  text-decoration: underline;
-}
-
-/* 购买卡片 */
-.purchase-section {
-  animation: fadeInUp 0.4s ease;
-}
-
-.purchase-card {
-  background: linear-gradient(135deg, #fff8f0, #fff3e0);
-  border: 1px solid #ffe0b2;
-  border-radius: 12px;
-  padding: 14px 14px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
-}
-
-.success-tip {
-  text-align: center;
-  font-size: 13px;
-  font-weight: 500;
-  color: #52c41a;
-  margin-bottom: 12px;
-  padding: 8px;
-  background: #f6ffed;
-  border-radius: 8px;
-  border: 1px solid #b7eb8f;
-}
-
-.purchase-label {
-  font-size: 12px;
-  color: #606266;
-  margin-bottom: 6px;
-}
-
-.purchase-link-text {
-  font-size: 12px;
-  color: #1890ff;
+  color: #007aff;
+  text-align: right;
   word-break: break-all;
-  background: #f0f5ff;
-  padding: 8px 10px;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  line-height: 1.5;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.gb-arrow {
+  color: #c7c7cc;
+  flex-shrink: 0;
 }
 
-.jump-btn {
-  height: 38px;
-  font-size: 13px;
-  font-weight: 500;
-  background: linear-gradient(135deg, #1890ff, #40a9ff) !important;
-  border: none !important;
-  box-shadow: 0 3px 10px rgba(24, 144, 255, 0.25);
-  letter-spacing: 0.5px;
+/* ---------- 操作按钮 ---------- */
+.gb-action {
+  display: block;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: #ff6767;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 590;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.gb-action:active {
+  opacity: 0.8;
+}
+.gb-action:disabled {
+  background: #e0e0e0;
+  color: #fff;
+  cursor: not-allowed;
+}
+.gb-action-blue {
+  background: #007aff;
 }
 
-.jump-btn:disabled {
-  background: linear-gradient(135deg, #e0e0e0, #eeeeee) !important;
-  box-shadow: none !important;
+/* ---------- 兑换链接脚注 ---------- */
+.gb-exchange {
+  text-align: center;
+  font-size: 14px;
+  color: #007aff;
+  margin: 12px 0 0;
+  cursor: pointer;
+}
+.gb-exchange:active {
+  opacity: 0.5;
 }
 
-/* 过渡动画 */
-.slide-fade-enter-active {
-  transition: all 0.4s ease;
+/* ---------- 绑定成功结果区 ---------- */
+.gb-result {
+  margin-top: 20px;
 }
-.slide-fade-leave-active {
-  transition: all 0.2s ease;
+.gb-callout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: #f0faf0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #2e7d32;
+  border: 1px solid #c6e6c6;
 }
-.slide-fade-enter-from {
+
+/* ---------- 弹簧动画 ---------- */
+.gb-pop-enter-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gb-pop-leave-active {
+  transition: all 0.2s;
+}
+.gb-pop-enter-from {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(20px) scale(0.96);
 }
-.slide-fade-leave-to {
+.gb-pop-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-10px) scale(0.96);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
+/* ---------- 加载圈 ---------- */
+.gb-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: gb-spin 0.6s linear infinite;
+}
+@keyframes gb-spin {
   to {
-    opacity: 1;
-    transform: translateY(0);
+    transform: rotate(360deg);
   }
 }
 
-/* 响应式 */
-@media (max-width: 375px) {
-  .main-title {
-    font-size: 16px;
+@media (prefers-color-scheme: dark) {
+  .gb-group {
+    background: #2c2c2e;
   }
-  .group-bind-card {
-    padding: 8px 10px;
+  .gb-row + .gb-row {
+    border-top-color: #38383a;
+  }
+  .gb-label {
+    color: #f2f2f7;
+  }
+  .gb-hero-title {
+    color: #f2f2f7;
+  }
+  .gb-url {
+    color: #0a84ff;
+  }
+  .gb-field {
+    --van-field-input-color: #f2f2f7;
+    --van-field-placeholder-color: #636366;
+  }
+  .gb-callout {
+    background: #1c3a1c;
+    color: #30d158;
+    border-color: #2c5c2c;
   }
 }
 </style>

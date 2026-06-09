@@ -1,302 +1,318 @@
 <template>
-  <div class="config-card main-switch-card">
-    <div class="card-header">
-      <span class="card-title">启用配置</span>
+  <div class="login-config-card apple-card">
+    <div class="apple-card-header">
+      <cute-icon name="calendar-clock" size="20" color="#007AFF" />
+      <span class="apple-card-title">启用配置</span>
       <van-count-down
         v-if="nextRunTime > 0"
         :time="nextRunTime"
         @finish="$emit('getConfig')"
-        format="距离自动上号还剩：HH 时 mm 分 ss 秒"
+        format="HH:mm:ss"
+        class="apple-countdown"
       />
     </div>
 
-    <div class="card-content" v-show="expanded">
+    <div class="apple-card-content">
       <!-- 保持启用 -->
-      <van-cell
-        class="main-switch-cell"
-        center
-        title="保持启用"
-        :label="
-          currentUser.gameId == 1 || (currentUser.gameId == 2 && currentUser.userName == null)
-            ? '开启后每次登录会自动开始挂机'
-            : '开启后被挤号后会定时自动启动'
-        "
-      >
-        <template #right-icon>
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">保持启用</div>
+          <div class="apple-cell-label">
+            {{
+              currentUser.gameId == 1 || (currentUser.gameId == 2 && currentUser.userName == null)
+                ? '开启后每次登录会自动开始挂机'
+                : '开启后被挤号后会定时自动启动'
+            }}
+          </div>
+        </div>
+        <div class="apple-cell-right">
           <van-switch
             :disabled="!currentUser || currentUser.refreshNeed || !currentUser.subscribe"
             :model-value="innerLogin.relogin.status == 1"
             @update:model-value="onReloginChange"
-            size="24"
-            class="main-switch"
+            size="22"
           />
-        </template>
-      </van-cell>
+        </div>
+      </div>
 
-      <!-- 上号倒计时 -->
+      <!-- 上号倒计时（子分区） -->
       <div
         v-show="
           innerLogin.relogin.status == 1 && currentUser.gameId == 2 && currentUser.userName != null
         "
-        class="order-advanced-section"
+        class="apple-sub-section apple-indent"
       >
-        <div class="indent">
-          <div class="section-title">
-            <van-icon name="setting-o" size="16" color="#8c8c8c" />
-            <span>计时设置</span>
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
+          <span>计时设置</span>
+        </div>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">上号倒计时</div>
+            <div class="apple-cell-label">被挤号后 N 分钟自动上号挂机</div>
           </div>
-          <van-cell class="advanced-cell" title="上号倒计时" label="被挤号后 N 分钟自动上号挂机">
-            <van-stepper
-              :model-value="innerLogin.relogin.waitingTime"
-              @update:model-value="onWaitingTimeChange"
-              step="5"
-              integer
-              min="0"
-              theme="round"
-              button-size="24px"
-              class="stepper-control"
+          <div class="apple-cell-right">
+            <CustomArrayStepper
+              v-model="innerLogin.relogin.waitingTime"
+              :min="0"
+              :step="5"
+              :inputDisabled="false"
+              class="apple-stepper-wrap"
+              @change="syncParent"
             />
-          </van-cell>
+          </div>
         </div>
       </div>
 
       <!-- 循环上号 -->
-      <van-cell class="main-switch-cell" center title="循环上号（V1）">
-        <template #label>
-          <div
-            v-if="innerLogin.loop?.status == 1 && scheduleTimeInfo"
-            class="schedule-label-status"
-          >
-            <span
-              v-if="
-                localLoop.startRemainMs != null &&
-                localLoop.startRemainMs > 0 &&
-                localLoop.endRemainMs == null
-              "
-              class="label-status-inner"
-              style="color: #faad14"
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">循环上号（V1）</div>
+          <div class="apple-cell-label">
+            <div
+              v-if="innerLogin.loop?.status == 1 && scheduleTimeInfo"
+              class="schedule-label-status"
             >
-              <van-icon name="fire-o" size="14" /> 下次上号
-              {{ formatRemain(localLoop.startRemainMs) }}
-            </span>
-            <span
-              v-if="localLoop.endRemainMs != null && localLoop.endRemainMs > 0"
-              class="label-status-inner"
-              style="color: #ff4d4f"
-            >
-              <van-icon name="poweroff" size="14" /> 下次下号
-              {{ formatRemain(localLoop.endRemainMs) }}
-            </span>
-            <span
-              v-if="localLoop.startRemainMs == null && localLoop.endRemainMs == null"
-              class="label-status-inner muted"
-            >
-              <van-icon name="info-o" size="14" /> 暂无活跃循环
-            </span>
+              <span
+                v-if="
+                  localLoop.startRemainMs != null &&
+                  localLoop.startRemainMs > 0 &&
+                  localLoop.endRemainMs == null
+                "
+                class="label-status-inner"
+                style="color: #faad14"
+              >
+                <van-icon name="fire-o" size="14" /> 下次上号
+                {{ formatRemain(localLoop.startRemainMs) }}
+              </span>
+              <span
+                v-if="localLoop.endRemainMs != null && localLoop.endRemainMs > 0"
+                class="label-status-inner"
+                style="color: #ff4d4f"
+              >
+                <van-icon name="poweroff" size="14" /> 下次下号
+                {{ formatRemain(localLoop.endRemainMs) }}
+              </span>
+              <span
+                v-if="localLoop.startRemainMs == null && localLoop.endRemainMs == null"
+                class="label-status-inner muted"
+              >
+                <van-icon name="info-o" size="14" /> 暂无活跃循环
+              </span>
+            </div>
+            <div v-else class="schedule-label-status">
+              <span class="label-status-inner muted">
+                <van-icon name="info-o" size="14" /> 每隔一段时间自动上号一段时间
+              </span>
+            </div>
           </div>
-          <div v-else class="schedule-label-status">
-            <span class="label-status-inner muted">
-              <van-icon name="info-o" size="14" /> 每隔一段时间自动上号一段时间
-            </span>
-          </div>
-        </template>
-        <template #right-icon>
+        </div>
+        <div class="apple-cell-right">
           <van-switch
             :disabled="!currentUser || currentUser.refreshNeed || !currentUser.subscribe"
             :model-value="innerLogin.loop?.status == 1"
             @update:model-value="onLoopChange"
-            size="24"
-            class="main-switch"
+            size="22"
           />
-        </template>
-      </van-cell>
-      <div v-show="innerLogin.loop?.status == 1" class="order-advanced-section">
-        <div class="indent">
-          <div class="section-title">
-            <van-icon name="setting-o" size="16" color="#8c8c8c" />
-            <span>循环上号设置</span>
+        </div>
+      </div>
+
+      <!-- 循环上号设置（子分区） -->
+      <div v-show="innerLogin.loop?.status == 1" class="apple-sub-section apple-indent">
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
+          <span>循环上号设置</span>
+        </div>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">间隔时长</div>
+            <div class="apple-cell-label">每隔多久自动上号（分钟）</div>
           </div>
-          <!-- 循环状态提示 -->
-          <!-- 已移至上方 van-cell label 区域 -->
-          <van-cell class="advanced-cell" title="间隔时长" label="每隔多久自动上号（分钟）">
-            <van-stepper
-              :model-value="innerLogin.loop?.interval"
-              @update:model-value="onLoopIntervalChange"
-              step="5"
-              integer
-              min="1"
-              theme="round"
-              button-size="24px"
-              class="stepper-control"
+          <div class="apple-cell-right">
+            <CustomArrayStepper
+              v-model="innerLogin.loop.interval"
+              :min="1"
+              :step="5"
+              :inputDisabled="false"
+              class="apple-stepper-wrap"
+              @change="syncParent"
             />
-          </van-cell>
-          <van-cell class="advanced-cell" title="上号时长" label="每次上号持续多久（分钟）">
-            <van-stepper
-              :model-value="innerLogin.loop?.duration"
-              @update:model-value="onLoopDurationChange"
-              step="5"
-              integer
-              min="1"
-              theme="round"
-              button-size="24px"
-              class="stepper-control"
+          </div>
+        </div>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">上号时长</div>
+            <div class="apple-cell-label">每次上号持续多久（分钟）</div>
+          </div>
+          <div class="apple-cell-right">
+            <CustomArrayStepper
+              v-model="innerLogin.loop.duration"
+              :min="1"
+              :step="5"
+              :inputDisabled="false"
+              class="apple-stepper-wrap"
+              @change="syncParent"
             />
-          </van-cell>
+          </div>
         </div>
       </div>
 
       <!-- 定时上号 -->
-      <van-cell class="main-switch-cell" center title="定时上号（V1）">
-        <template #label>
-          <!-- 定时状态实时提示 -->
-          <div
-            v-if="innerLogin.scheduled.status == 1 && scheduleTimeInfo"
-            class="schedule-label-status"
-          >
-            <span
-              v-if="
-                localScheduled.inScheduledPeriod &&
-                localScheduled.endRemainMs != null &&
-                localScheduled.endRemainMs > 0
-              "
-              class="label-status-inner"
-              style="color: #52c41a"
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">定时上号（V1）</div>
+          <div class="apple-cell-label">
+            <div
+              v-if="innerLogin.scheduled.status == 1 && scheduleTimeInfo"
+              class="schedule-label-status"
             >
-              <van-icon name="success" size="14" /> 当前在定时时段内
-            </span>
-            <span
-              v-if="
-                localScheduled.inScheduledPeriod &&
-                localScheduled.endRemainMs != null &&
-                localScheduled.endRemainMs > 0
-              "
-              class="label-status-inner"
-              style="color: #faad14"
-            >
-              <van-icon name="clock-o" size="14" /> 定时结束
-              {{ formatRemain(localScheduled.endRemainMs) }}
-            </span>
-            <span
-              v-if="
-                localScheduled.inScheduledPeriod &&
-                (localScheduled.endRemainMs == null || localScheduled.endRemainMs <= 0) &&
-                localScheduled.startRemainMs != null &&
-                localScheduled.startRemainMs > 0
-              "
-              class="label-status-inner"
-              style="color: #ff4d4f"
-            >
-              <van-icon name="pause-circle-o" size="14" /> 用户手动停止，下次上号
-              {{ formatRemain(localScheduled.startRemainMs) }}
-            </span>
-            <span v-if="!localScheduled.inScheduledPeriod" class="label-status-inner muted">
-              <van-icon name="pause-circle-o" size="14" /> 当前不在定时时段
-            </span>
-            <span
-              v-if="
-                !localScheduled.inScheduledPeriod &&
-                localScheduled.startRemainMs != null &&
-                localScheduled.startRemainMs > 0
-              "
-              class="label-status-inner"
-              style="color: #1890ff"
-            >
-              <van-icon name="clock-o" size="14" /> 下次上号
-              {{ formatRemain(localScheduled.startRemainMs) }}
-            </span>
-            <span
-              v-if="
-                localScheduled.startRemainMs == null &&
-                localScheduled.endRemainMs == null &&
-                !localScheduled.inScheduledPeriod
-              "
-              class="label-status-inner muted"
-            >
-              <van-icon name="info-o" size="14" /> 暂无可用的定时计划，开启后可配置定时上号时间段
-            </span>
+              <span
+                v-if="
+                  localScheduled.inScheduledPeriod &&
+                  localScheduled.endRemainMs != null &&
+                  localScheduled.endRemainMs > 0
+                "
+                class="label-status-inner"
+                style="color: #52c41a"
+              >
+                <van-icon name="success" size="14" /> 当前在定时时段内
+              </span>
+              <span
+                v-if="
+                  localScheduled.inScheduledPeriod &&
+                  localScheduled.endRemainMs != null &&
+                  localScheduled.endRemainMs > 0
+                "
+                class="label-status-inner"
+                style="color: #faad14"
+              >
+                <van-icon name="clock-o" size="14" /> 定时结束
+                {{ formatRemain(localScheduled.endRemainMs) }}
+              </span>
+              <span
+                v-if="
+                  localScheduled.inScheduledPeriod &&
+                  (localScheduled.endRemainMs == null || localScheduled.endRemainMs <= 0) &&
+                  localScheduled.startRemainMs != null &&
+                  localScheduled.startRemainMs > 0
+                "
+                class="label-status-inner"
+                style="color: #ff4d4f"
+              >
+                <van-icon name="pause-circle-o" size="14" /> 用户手动停止，下次上号
+                {{ formatRemain(localScheduled.startRemainMs) }}
+              </span>
+              <span v-if="!localScheduled.inScheduledPeriod" class="label-status-inner muted">
+                <van-icon name="pause-circle-o" size="14" /> 当前不在定时时段
+              </span>
+              <span
+                v-if="
+                  !localScheduled.inScheduledPeriod &&
+                  localScheduled.startRemainMs != null &&
+                  localScheduled.startRemainMs > 0
+                "
+                class="label-status-inner"
+                style="color: #1890ff"
+              >
+                <van-icon name="clock-o" size="14" /> 下次上号
+                {{ formatRemain(localScheduled.startRemainMs) }}
+              </span>
+              <span
+                v-if="
+                  localScheduled.startRemainMs == null &&
+                  localScheduled.endRemainMs == null &&
+                  !localScheduled.inScheduledPeriod
+                "
+                class="label-status-inner muted"
+              >
+                <van-icon name="info-o" size="14" /> 暂无可用的定时计划，开启后可配置定时上号时间段
+              </span>
+            </div>
+            <div v-else class="schedule-label-status">
+              <span class="label-status-inner muted">
+                <van-icon name="info-o" size="14" /> 开启后可配置定时上号时间段
+              </span>
+            </div>
           </div>
-          <div v-else class="schedule-label-status">
-            <span class="label-status-inner muted">
-              <van-icon name="info-o" size="14" /> 开启后可配置定时上号时间段
-            </span>
-          </div>
-        </template>
-        <template #right-icon>
+        </div>
+        <div class="apple-cell-right">
           <van-switch
             :disabled="!currentUser || currentUser.refreshNeed || !currentUser.subscribe"
             :model-value="innerLogin.scheduled.status == 1"
             @update:model-value="onScheduledChange"
-            size="24"
-            class="main-switch"
+            size="22"
           />
-        </template>
-      </van-cell>
+        </div>
+      </div>
 
-      <!-- 时间段列表 -->
+      <!-- 定时上号时段列表 -->
       <div v-show="innerLogin.scheduled.status == 1" class="scheduled-section">
-        <div class="section-title">
-          <van-icon name="clock-o" size="16" color="#8c8c8c" />
+        <div class="apple-sub-header" style="margin-top: 4px">
+          <van-icon name="clock-o" size="14" color="#86868B" />
           <span>定时上号时段</span>
         </div>
 
-        <div v-if="innerLogin.scheduled.times.length === 0" class="empty-state">
-          <van-empty description="暂无定时配置，点击添加按钮创建" class="empty-content" />
+        <!-- 空状态 -->
+        <div v-if="innerLogin.scheduled.times.length === 0" class="apple-empty">
+          <div class="apple-empty-icon">
+            <van-icon name="clock-o" size="40" color="#C7C7CC" />
+          </div>
+          <div class="apple-empty-text">暂无定时配置</div>
+          <div class="apple-empty-desc">点击下方按钮添加定时时段</div>
         </div>
 
-        <div
-          v-for="(timeSlot, index) in innerLogin.scheduled.times"
-          :key="index"
-          class="time-slot-row"
-        >
-          <van-switch
-            :model-value="timeSlot.status"
-            @update:model-value="(val) => onTimeSlotStatusChange(index, val)"
-            :active-value="1"
-            :inactive-value="0"
-            size="20"
-            class="slot-switch"
-          />
-
-          <div class="slot-time clickable" @click="showTime(index, 'beginTime')">
-            <span class="slot-time-label">开始</span>
-            <span class="slot-time-value">{{ formatTime(timeSlot.beginTime) }}</span>
+        <!-- 时间段行 -->
+        <div v-for="(timeSlot, index) in innerLogin.scheduled.times" :key="index" class="apple-row">
+          <div class="apple-row-item" style="flex: 0.4">
+            <div class="apple-row-label">启用</div>
+            <div class="apple-row-value" style="justify-content: center">
+              <van-switch
+                :model-value="timeSlot.status"
+                @update:model-value="(val) => onTimeSlotStatusChange(index, val)"
+                :active-value="1"
+                :inactive-value="0"
+                size="18"
+              />
+            </div>
           </div>
 
-          <span class="time-separator">—</span>
-
-          <div class="slot-time clickable" @click="showTime(index, 'endTime')">
-            <span class="slot-time-label">结束</span>
-            <span class="slot-time-value">{{ formatTime(timeSlot.endTime) }}</span>
+          <div class="apple-row-item clickable" @click="showTime(index, 'beginTime')">
+            <div class="apple-row-label">开始</div>
+            <div class="apple-row-value">
+              <span>{{ formatTime(timeSlot.beginTime) }}</span>
+              <van-icon name="arrow" size="12" color="#C7C7CC" />
+            </div>
           </div>
 
-          <van-button
-            class="delete-button"
-            icon="delete-o"
-            size="mini"
-            type="danger"
-            plain
-            @click="deleteTimeSlot(index)"
-          />
+          <div class="apple-row-item clickable" @click="showTime(index, 'endTime')">
+            <div class="apple-row-label">结束</div>
+            <div class="apple-row-value">
+              <span>{{ formatTime(timeSlot.endTime) }}</span>
+              <van-icon name="arrow" size="12" color="#C7C7CC" />
+            </div>
+          </div>
+
+          <button class="apple-delete-btn" @click="deleteTimeSlot(index)">
+            <van-icon name="delete-o" size="16" color="#FF3B30" />
+          </button>
         </div>
 
-        <van-button class="add-button" block type="primary" icon="add-o" @click="addTimeSlot">
-          添加时间段
-        </van-button>
+        <button class="apple-add-btn" @click="addTimeSlot">
+          <van-icon name="add-o" size="16" />
+          <span>添加时间段</span>
+        </button>
       </div>
     </div>
 
     <!-- 时间选择器 -->
-    <van-popup v-model:show="showTimePicker" round position="bottom" class="custom-popup">
-      <div class="popup-header">
-        <span class="popup-title">选择时间</span>
-      </div>
-      <van-time-picker :formatter="formatter" @confirm="confirmTime" class="custom-time-picker" />
-    </van-popup>
+    <TimePickerSheet v-model="showTimePicker" @confirm="confirmTime" />
   </div>
 </template>
 
 <script setup>
 import { ref, watch, toRaw, onMounted, onUnmounted, reactive } from 'vue'
+import CustomArrayStepper from '@/components/CustomArrayStepper.vue'
+import TimePickerSheet from '@/components/TimePickerSheet.vue'
 
 const props = defineProps({
   login: {
@@ -304,7 +320,7 @@ const props = defineProps({
     default: () => ({
       relogin: { status: 1, waitingTime: 100 },
       scheduled: { status: 1, times: [] },
-      loop: { status: 0, interval: 60, duration: 10 }, // 新增默认
+      loop: { status: 0, interval: 60, duration: 10 },
     }),
   },
   currentUser: {
@@ -324,7 +340,6 @@ const props = defineProps({
 const emit = defineEmits(['update:login', 'getConfig'])
 
 // ---------- 实时倒计时状态 ----------
-// 局部实时倒计时（每秒更新），从 scheduleTimeInfo prop 同步过来
 const localScheduled = reactive({
   inScheduledPeriod: false,
   startRemainMs: null,
@@ -338,7 +353,6 @@ const localLoop = reactive({
 
 let countdownTimer = null
 
-// 从 props 同步倒计时值到本地
 const syncCountdownFromProps = () => {
   const info = props.scheduleTimeInfo
   if (!info) {
@@ -357,7 +371,6 @@ const syncCountdownFromProps = () => {
   localLoop.endRemainMs = toNum(info.loopEndRemain)
 }
 
-// 每秒减 1000ms
 const tickCountdown = () => {
   const tickOne = (val) => (val != null && val > 0 ? Math.max(0, val - 1000) : val)
 
@@ -366,7 +379,6 @@ const tickCountdown = () => {
   localLoop.startRemainMs = tickOne(localLoop.startRemainMs)
   localLoop.endRemainMs = tickOne(localLoop.endRemainMs)
 
-  // 如果有任何一个倒计时归零，触发刷新
   if (
     (localScheduled.startRemainMs != null && localScheduled.startRemainMs <= 0) ||
     (localScheduled.endRemainMs != null && localScheduled.endRemainMs <= 0) ||
@@ -377,7 +389,6 @@ const tickCountdown = () => {
   }
 }
 
-// 监听 scheduleTimeInfo prop 变化，重新同步
 watch(
   () => props.scheduleTimeInfo,
   () => {
@@ -399,27 +410,22 @@ onUnmounted(() => {
 })
 // ---------- 实时倒计时状态结束 ----------
 
-// 生成默认登录配置
 const createDefaultLogin = () => ({
   relogin: { status: 1, waitingTime: 100 },
   scheduled: { status: 1, times: [] },
-  loop: { status: 0, interval: 60, duration: 10 }, // 新增默认
+  loop: { status: 0, interval: 60, duration: 10 },
 })
 
-// 安全的深拷贝函数（只适合简单数据，不包含函数/循环引用）
 const deepClone = (obj) => {
   try {
     return JSON.parse(JSON.stringify(toRaw(obj)))
   } catch (e) {
-    // 若克隆失败，返回一个全新的默认对象作为兜底
     return createDefaultLogin()
   }
 }
 
-// 内部响应式拷贝，初始值从 prop 获取
 const innerLogin = ref(deepClone(props.login) || createDefaultLogin())
 
-// 同步外部 prop 到内部
 watch(
   () => props.login,
   (newVal) => {
@@ -428,19 +434,13 @@ watch(
   { deep: true },
 )
 
-// 通知父组件更新
 const syncParent = () => {
-  // emit 时也发送一个普通对象的克隆，避免响应式泄漏
   emit('update:login', deepClone(innerLogin.value))
 }
 
-// 各字段修改处理（保持不变）
+// 各字段修改处理
 const onReloginChange = (val) => {
   innerLogin.value.relogin.status = val ? 1 : 0
-  syncParent()
-}
-const onWaitingTimeChange = (val) => {
-  innerLogin.value.relogin.waitingTime = val
   syncParent()
 }
 const onScheduledChange = (val) => {
@@ -456,23 +456,11 @@ const onLoopChange = (val) => {
   innerLogin.value.loop.status = val ? 1 : 0
   syncParent()
 }
-const onLoopIntervalChange = (val) => {
-  if (!innerLogin.value.loop) innerLogin.value.loop = { status: 1, interval: 60, duration: 10 }
-  innerLogin.value.loop.interval = val
-  syncParent()
-}
-const onLoopDurationChange = (val) => {
-  if (!innerLogin.value.loop) innerLogin.value.loop = { status: 1, interval: 60, duration: 10 }
-  innerLogin.value.loop.duration = val
-  syncParent()
-}
 
-// 时间选择器相关（不变）
 const showTimePicker = ref(false)
 const editingTimeIndex = ref(-1)
 const editingTimeField = ref('beginTime')
 
-// 时间转换：分钟数 → HH:mm
 const formatTime = (minutes) => {
   if (minutes == null) return '00:00'
   const h = String(Math.floor(minutes / 60)).padStart(2, '0')
@@ -480,29 +468,25 @@ const formatTime = (minutes) => {
   return `${h}:${m}`
 }
 
-// 选择器确认：将 [hour, minute] → 总分钟数
-const confirmTime = ({ selectedValues }) => {
-  const [h, m] = selectedValues.map(Number)
-  const totalMinutes = h * 60 + m
+const confirmTime = (timestampMs) => {
+  // TimePickerSheet 返回毫秒时间戳（从午夜开始），转为分钟
+  const totalMinutes = Math.floor(timestampMs / 60000)
   const times = innerLogin.value.scheduled.times
   if (editingTimeIndex.value >= 0 && times[editingTimeIndex.value]) {
     times[editingTimeIndex.value][editingTimeField.value] = totalMinutes
     syncParent()
   }
-  showTimePicker.value = false
 }
 
-// 新增时间段默认值（0 分钟 – 1440 分钟，即全天）
 const addTimeSlot = () => {
   innerLogin.value.scheduled.times.push({
     beginTime: 0,
-    endTime: 1440, // 24 * 60
+    endTime: 1440,
     status: 1,
   })
   syncParent()
 }
 
-// 毫秒数 → 可读的倒计时文本（已确保传入的是数字）
 const formatRemain = (ms) => {
   if (ms == null) return ''
   if (ms <= 0) return '即将开始'
@@ -515,12 +499,6 @@ const formatRemain = (ms) => {
   return `${s} 秒`
 }
 
-const formatter = (type, option) => {
-  if (type === 'hour') option.text += '时'
-  if (type === 'minute') option.text += '分'
-  return option
-}
-
 const showTime = (index, field) => {
   editingTimeIndex.value = index
   editingTimeField.value = field
@@ -531,274 +509,91 @@ const deleteTimeSlot = (index) => {
   innerLogin.value.scheduled.times.splice(index, 1)
   syncParent()
 }
-
-const expanded = ref(true)
 </script>
 
 <style scoped>
-/* 卡片基础样式 */
-.config-card {
-  background-color: #fff;
+/* ============================================================
+   🔑 LoginConfig – iOS 17 Settings 风格
+   与 PlantConfig 保持完全一致的样式体系
+   ============================================================ */
+
+/* 卡片容器：磨砂玻璃 + 圆角，与 PlantConfig 一致 */
+.login-config-card {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(32px) saturate(1.4);
+  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.02) inset;
   border-radius: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  margin-bottom: 15px;
-  border: 1px solid #e6f7ff;
-  animation: fadeIn 0.3s ease-out;
+  margin-bottom: 16px;
 }
 
-.card-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid #f5f5f5;
+.login-config-card .apple-card-header {
+  padding: 16px 16px 0;
 }
 
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-  flex: 1;
+.login-config-card .apple-card-content {
+  padding: 4px 16px 12px;
 }
 
-.card-content {
-  padding: 16px 20px;
+/* 倒计时文字 */
+.apple-countdown {
+  font-size: 12px;
+  font-weight: 500;
+  color: #86868b;
+  font-family: -apple-system, 'SF Pro Text', 'PingFang SC', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.1px;
 }
 
-/* 开关行 */
-.main-switch-cell {
-  background-color: transparent;
-  padding: 8px 0;
-}
-
-.main-switch {
-  --van-switch-active-color: #1890ff;
+/* CustomArrayStepper 宽度限制（与 PlantConfig 一致） */
+.apple-stepper-wrap {
+  width: 108px;
 }
 
 /* 定时上号 label 内的状态提示 */
 .schedule-label-status {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
-  margin-top: 2px;
+  gap: 2px 8px;
+  margin-top: 1px;
 }
 
 .label-status-inner {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
-  color: #555;
-  line-height: 1.5;
-}
-
-.label-status-inner.muted {
-  color: #bbb;
-}
-
-/* 上号倒计时区域 */
-.order-advanced-section {
-  margin-top: 12px;
-}
-
-.scheduled-section {
-  margin-top: 12px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #8c8c8c;
-  margin-bottom: 10px;
-}
-
-/* 状态提示 */
-.status-hint {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  padding: 8px 0 4px 0;
-  margin-bottom: 4px;
-}
-
-.status-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #555;
+  font-size: 11px;
+  color: #6b6b70;
   line-height: 1.4;
 }
 
-.status-item.muted {
-  color: #bbb;
+.label-status-inner.muted {
+  color: #aeaeb2;
 }
 
-/* 缩进样式 */
-.indent {
-  position: relative;
-  padding-left: 14px;
-  margin-left: 4px;
-}
-.indent::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 2px;
-  background: repeating-linear-gradient(
-    to bottom,
-    #eaeaea 0px,
-    #eaeaea 6px,
-    transparent 6px,
-    transparent 12px
-  );
-  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+/* 定时上号时段区块 */
+.scheduled-section {
+  margin-top: 8px;
 }
 
-/* 高级设置项 */
-.advanced-cell {
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.stepper-control {
-  width: auto;
-}
-
-/* 时间段行 — 移动端单行紧凑布局 */
-.time-slot-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  flex-wrap: nowrap; /* 禁止换行 */
-}
-
-.slot-switch {
-  flex-shrink: 0;
-}
-
-/* 时间胶囊 */
-.slot-time {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 2px;
-  background: #f5f7fa;
-  border-radius: 8px;
+/* 时间段行内的点击项 */
+.clickable {
   cursor: pointer;
-  transition: background 0.2s;
 }
 
-.slot-time:active {
-  background: #e8ecf1;
-}
-
-.slot-time-label {
-  font-size: 10px;
-  color: #999;
-  line-height: 1.2;
-}
-
-.slot-time-value {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  line-height: 1.3;
-  margin-top: 1px;
-}
-
-.time-separator {
-  font-size: 12px;
-  color: #ccc;
-  flex-shrink: 0;
-}
-
-/* 删除按钮 */
-.delete-button {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-}
-
-.add-button {
-  margin-top: 12px;
-  border-radius: 12px;
-  height: 44px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-}
-
-.empty-state {
-  padding: 20px 0;
-  display: flex;
-  justify-content: center;
-}
-
-/* 时间选择器弹窗 */
-.custom-popup {
-  border-radius: 20px 20px 0 0;
-}
-
-.popup-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.popup-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.custom-time-picker {
-  padding: 0 20px 20px;
+/* 覆盖 apple-row-item 以便点击整个区域 */
+.apple-row-item:active {
+  background: rgba(229, 229, 234, 0.7);
 }
 
 /* 超小屏适配 */
 @media screen and (max-width: 350px) {
-  .time-slot-row {
-    gap: 4px;
-    padding: 6px 0;
-  }
-
-  .slot-time {
-    padding: 3px 1px;
-    border-radius: 6px;
-  }
-
-  .slot-time-label {
-    font-size: 9px;
-  }
-
-  .slot-time-value {
-    font-size: 11px;
-  }
-
-  .delete-button {
-    width: 26px;
-    height: 26px;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .apple-stepper-wrap {
+    width: 92px;
   }
 }
 </style>

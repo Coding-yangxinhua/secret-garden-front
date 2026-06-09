@@ -1,31 +1,35 @@
 <template>
-  <!-- 精简版步进器容器 -->
-  <div 
-    class="custom-stepper" 
-    :class="{ 
-      'custom-stepper--small': size === 'small',
-      'custom-stepper--mini': size === 'mini',
-      'custom-stepper--array-mode': isOptionsMode
-    }"
+  <!-- 🍎 新苹果风格步进器 – iOS 17+ UIStepper 风格 -->
+  <div
+    class="custom-stepper"
+    :class="[
+      `custom-stepper--${size}`,
+      {
+        'custom-stepper--array-mode': isOptionsMode,
+        'custom-stepper--disabled': inputDisabled,
+      },
+    ]"
   >
-    <!-- 减号按钮：缩小尺寸，仅控制索引禁用 -->
+    <!-- 减号按钮 -->
     <button
       class="custom-stepper__btn custom-stepper__btn--minus"
       :class="{ 'custom-stepper__btn--disabled': isDecrementDisabled }"
       @click="handleMinus"
       :disabled="isDecrementDisabled"
+      :aria-label="t('decrement')"
     >
       <svg viewBox="0 0 24 24" class="custom-stepper__icon">
-        <path d="M20 13H4v-2h16v2z" fill="currentColor"/>
+        <path d="M19 13H5v-2h14v2z" fill="currentColor" />
       </svg>
     </button>
 
-    <!-- 输入框：仅控制输入框禁用，按钮不受影响 -->
+    <!-- 输入框 -->
     <div class="custom-stepper__input-wrap">
-      <input 
-        type="text" 
-        class="custom-stepper__input" 
-        :value="displayValue" 
+      <input
+        type="text"
+        class="custom-stepper__input"
+        :class="{ 'custom-stepper__input--error': showValidationError }"
+        :value="displayValue"
         :readonly="inputDisabled"
         :disabled="inputDisabled"
         @input="handleInput"
@@ -34,25 +38,22 @@
         :placeholder="t('enterValue')"
         :title="t('enterValueInRange')"
       />
-      <!-- 输入验证提示 -->
-      <div 
-        v-if="showValidationError" 
-        class="custom-stepper__error-tip"
-        :class="{ 'custom-stepper__error-tip--visible': showValidationError }"
-      >
+      <!-- 验证提示 -->
+      <div v-if="showValidationError" class="custom-stepper__error-tip">
         {{ validationErrorText }}
       </div>
     </div>
 
-    <!-- 加号按钮：缩小尺寸，仅控制索引禁用 -->
+    <!-- 加号按钮 -->
     <button
       class="custom-stepper__btn custom-stepper__btn--plus"
       :class="{ 'custom-stepper__btn--disabled': isIncrementDisabled }"
       @click="handlePlus"
       :disabled="isIncrementDisabled"
+      :aria-label="t('increment')"
     >
       <svg viewBox="0 0 24 24" class="custom-stepper__icon">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/>
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
       </svg>
     </button>
   </div>
@@ -74,29 +75,30 @@ const props = defineProps({
   size: {
     type: String,
     default: 'default', // default / small / mini
-    validator: (val) => ['default', 'small', 'mini'].includes(val)
+    validator: (val) => ['default', 'small', 'mini'].includes(val),
   },
-  inputDisabled: { // 仅控制输入框禁用/启用
+  inputDisabled: {
+    // 仅控制输入框禁用/启用
     type: Boolean,
-    default: false // 默认不禁用输入框
+    default: false, // 默认不禁用输入框
   },
   // 数值模式相关属性
   min: {
     type: Number,
-    default: -Infinity
+    default: -Infinity,
   },
   max: {
     type: Number,
-    default: Infinity
+    default: Infinity,
   },
   step: {
     type: Number,
-    default: 1
+    default: 1,
   },
   precision: {
     type: Number,
-    default: 0 // 默认不保留小数位
-  }
+    default: 0, // 默认不保留小数位
+  },
 })
 
 // 2. 定义 emits
@@ -160,12 +162,12 @@ const validationErrorText = computed(() => {
 // 8. 智能匹配索引（用于选项模式）
 const findMatchedIndex = (targetVal, options) => {
   // 第一步：严格相等匹配
-  const strictIndex = options.findIndex(item => item === targetVal)
+  const strictIndex = options.findIndex((item) => item === targetVal)
   if (strictIndex >= 0) return strictIndex
 
   // 第二步：字符串宽松匹配
   if (typeof targetVal === 'string' || typeof targetVal === 'number') {
-    return options.findIndex(item => String(item) === String(targetVal))
+    return options.findIndex((item) => String(item) === String(targetVal))
   }
 
   return -1
@@ -187,7 +189,7 @@ const initializeMode = () => {
 const initOptionsMode = () => {
   let newIndex = 0
   let newInternalValue = 0
-  
+
   if (props.modelValue !== null && props.modelValue !== undefined) {
     const matchedIndex = findMatchedIndex(props.modelValue, optionsArr.value)
     if (matchedIndex >= 0) {
@@ -223,10 +225,10 @@ const initNumericMode = () => {
       newValue = Math.max(props.min, Math.min(props.max, parsed))
     }
   }
-  
+
   // 应用精度限制
   newValue = applyPrecision(newValue)
-  
+
   internalValue.value = newValue
   emit('update:modelValue', internalValue.value)
   emit('change', internalValue.value)
@@ -246,7 +248,7 @@ watch(
   () => {
     initializeMode()
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 )
 
 // 14. 监听数值模式下的值变化
@@ -256,12 +258,12 @@ watch(
   (newVal) => {
     if (isOptionsMode.value) {
       if (newVal === null || newVal === undefined || optionsArr.value.length === 0) return
-      
+
       const matchedIndex = findMatchedIndex(newVal, optionsArr.value)
       if (matchedIndex >= 0) {
         currentIndex.value = matchedIndex
         internalValue.value = optionsArr.value[matchedIndex]
-        
+
         // 只有当值真正发生变化时才触发change事件
         if (previousValue !== internalValue.value) {
           emit('change', internalValue.value)
@@ -278,7 +280,7 @@ watch(
         const finalValue = applyPrecision(clampedValue)
         if (finalValue !== internalValue.value) {
           internalValue.value = finalValue
-          
+
           // 只有当值真正发生变化时才触发change事件
           if (previousValue !== internalValue.value) {
             emit('change', internalValue.value)
@@ -288,16 +290,16 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // 15. 输入框手动输入处理
 const handleInput = (e) => {
   if (props.inputDisabled) return
-  
+
   const inputVal = e.target.value
   originalValue.value = inputVal
-  
+
   if (isOptionsMode.value) {
     // 选项模式：在选项模式下，我们只接受匹配现有选项的输入
     const matchedIndex = findMatchedIndex(inputVal, optionsArr.value)
@@ -315,7 +317,7 @@ const handleInput = (e) => {
       showValidationError.value = true
       emit('validation-error', {
         value: inputVal,
-        message: '请输入有效的选项值'
+        message: '请输入有效的选项值',
       })
     }
   } else {
@@ -332,7 +334,7 @@ const handleInput = (e) => {
         showValidationError.value = true
         emit('validation-error', {
           value: inputVal,
-          message: `值应在 ${props.min} 到 ${props.max} 之间`
+          message: `值应在 ${props.min} 到 ${props.max} 之间`,
         })
       }
     } else if (inputVal === '') {
@@ -342,7 +344,7 @@ const handleInput = (e) => {
       showValidationError.value = true
       emit('validation-error', {
         value: inputVal,
-        message: '请输入有效的数值'
+        message: '请输入有效的数值',
       })
     }
   }
@@ -351,7 +353,7 @@ const handleInput = (e) => {
 // 16. 输入框失焦处理 - 恢复有效值
 const handleInputBlur = (e) => {
   if (props.inputDisabled) return
-  
+
   if (isOptionsMode.value) {
     // 选项模式：如果输入无效，恢复到当前有效值
     const inputVal = e.target.value
@@ -373,7 +375,7 @@ const handleInputBlur = (e) => {
 // 17. 键盘事件处理
 const handleKeydown = (e) => {
   if (props.inputDisabled) return
-  
+
   // 允许的按键：退格、删除、Tab、Escape、Enter、箭头键、Ctrl+A、Ctrl+C、Ctrl+V、Ctrl+X
   if (
     e.key === 'Backspace' ||
@@ -389,21 +391,21 @@ const handleKeydown = (e) => {
   ) {
     return
   }
-  
+
   if (isOptionsMode.value) {
     // 选项模式：允许输入任何字符，因为选项可能是字符串
     return
   }
-  
+
   // 数值模式时允许输入数字、小数点、负号
   if (
-    e.key >= '0' && e.key <= '9' ||
+    (e.key >= '0' && e.key <= '9') ||
     e.key === '.' ||
     e.key === '-' // 负号
   ) {
     return
   }
-  
+
   // 阻止其他按键
   e.preventDefault()
 }
@@ -466,212 +468,236 @@ const t = (key) => {
     enterValueInRange: '请输入范围内的值',
     invalidValueTip: '值不在有效范围内',
     invalidValueTipRange: '请输入有效范围内的数值',
-    invalidValueRange: '值应在选项范围内'
+    invalidValueRange: '值应在选项范围内',
+    decrement: '减少',
+    increment: '增加',
   }
   return translations[key] || key
 }
 </script>
 
 <style scoped>
-/* 基础样式：紧凑设计，缩小整体尺寸 */
+/* ============================================================
+   🍎 CustomArrayStepper – 全新苹果风格 (iOS 17+)
+   ============================================================
+   设计理念：
+   - 整体胶囊形态，背景统一为浅灰
+   - 按钮与输入区域共用同一背景，仅用垂直线分隔
+   - 细腻的微交互动效
+   - SF Pro 字体体系
+   - 自适应深色模式
+   ============================================================ */
+
 .custom-stepper {
   display: inline-flex;
   align-items: center;
-  border-radius: 6px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  height: 32px;
+  background: #f2f2f7;
+  border-radius: 20px;
+  padding: 0;
   user-select: none;
-  font-size: 14px;
-  border: 1px solid #e5e7eb;
   position: relative;
+  transition: opacity 0.2s ease;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.8);
 }
 
 /* 小尺寸 */
 .custom-stepper--small {
-  font-size: 12px;
-  border-radius: 5px;
+  height: 28px;
+  border-radius: 18px;
 }
 
 /* 迷你尺寸 */
 .custom-stepper--mini {
-  font-size: 11px;
-  border-radius: 4px;
+  height: 24px;
+  border-radius: 16px;
 }
 
-/* 按钮样式：大幅缩小尺寸 */
+/* 禁用态 - 整体半透明 */
+.custom-stepper--disabled {
+  opacity: 0.55;
+}
+
+/* ============================================================
+   按钮样式 – 无边框、无背景、仅有分隔线
+   ============================================================ */
+
 .custom-stepper__btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 100%;
   border: none;
-  background: #f9fafb;
-  color: #4b5563;
+  background: transparent;
+  color: #007aff;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
   flex-shrink: 0;
   padding: 0;
+  margin: 0;
+  position: relative;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 小尺寸按钮 */
 .custom-stepper--small .custom-stepper__btn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
 }
 
 /* 迷你尺寸按钮 */
 .custom-stepper--mini .custom-stepper__btn {
-  width: 20px;
-  height: 20px;
+  width: 24px;
 }
 
-/* 减号按钮圆角 */
-.custom-stepper__btn--minus {
-  border-radius: 5px 0 0 5px;
-  border-right: 1px solid #e5e7eb;
+/* 减号按钮 - 右侧分隔线 */
+.custom-stepper__btn--minus::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 22%;
+  height: 56%;
+  width: 1px;
+  background: #c7c7cc;
+  transition: opacity 0.2s ease;
 }
 
-.custom-stepper--small .custom-stepper__btn--minus {
-  border-radius: 4px 0 0 4px;
+/* 加号按钮 - 左侧分隔线 */
+.custom-stepper__btn--plus::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22%;
+  height: 56%;
+  width: 1px;
+  background: #c7c7cc;
+  transition: opacity 0.2s ease;
 }
 
-.custom-stepper--mini .custom-stepper__btn--minus {
-  border-radius: 3px 0 0 3px;
+/* 按钮悬浮状态 (仅桌面hover) */
+@media (hover: hover) {
+  .custom-stepper__btn:not(.custom-stepper__btn--disabled):hover {
+    background: rgba(0, 122, 255, 0.06);
+    color: #007aff;
+  }
 }
 
-/* 加号按钮圆角 */
-.custom-stepper__btn--plus {
-  border-radius: 0 5px 5px 0;
-  border-left: 1px solid #e5e7eb;
-}
-
-.custom-stepper--small .custom-stepper__btn--plus {
-  border-radius: 0 4px 4px 0;
-}
-
-.custom-stepper--mini .custom-stepper__btn--plus {
-  border-radius: 0 3px 3px 0;
-}
-
-/* 按钮悬浮效果 */
-.custom-stepper__btn:not(.custom-stepper__btn--disabled):hover {
-  background: #f3f4f6;
-  color: #3b82f6;
-}
-
-/* 按钮点击效果 */
+/* 按钮点击状态 */
 .custom-stepper__btn:not(.custom-stepper__btn--disabled):active {
-  background: #e5e7eb;
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
+  transform: scale(0.92);
 }
 
-/* 禁用按钮样式（仅索引限制） */
+/* 禁用按钮 */
 .custom-stepper__btn--disabled {
-  opacity: 0.6;
+  opacity: 0.28;
   cursor: not-allowed;
-  background: #f9fafb !important;
-  color: #9ca3af !important;
+  color: #c7c7cc !important;
+  background: transparent !important;
 }
 
-/* 图标样式：同步缩小 */
+/* 图标 */
 .custom-stepper__icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s ease;
+}
+
+.custom-stepper--small .custom-stepper__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.custom-stepper--mini .custom-stepper__icon {
   width: 12px;
   height: 12px;
 }
 
-.custom-stepper--small .custom-stepper__icon {
-  width: 10px;
-  height: 10px;
-}
+/* ============================================================
+   输入框样式
+   ============================================================ */
 
-.custom-stepper--mini .custom-stepper__icon {
-  width: 8px;
-  height: 8px;
-}
-
-/* 输入框容器：精简内边距 */
 .custom-stepper__input-wrap {
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
+  position: relative;
+  min-width: 0;
 }
 
-/* 输入框样式：紧凑设计 */
 .custom-stepper__input {
-  width: 42px;
-  height: 28px;
-  line-height: 28px;
+  width: 44px;
+  height: 100%;
+  line-height: 1;
   border: none;
   outline: none;
   text-align: center;
   background: transparent;
-  color: #111827;
-  font-size: inherit;
+  color: #1d1d1f;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   box-sizing: border-box;
-  transition: all 0.2s ease;
+  padding: 0 2px;
+  transition: color 0.2s ease;
+  letter-spacing: 0.2px;
 }
 
 /* 小尺寸输入框 */
 .custom-stepper--small .custom-stepper__input {
-  width: 42px;
-  height: 24px;
-  line-height: 24px;
-  padding: 0 4px;
+  width: 38px;
+  font-size: 12px;
 }
 
 /* 迷你尺寸输入框 */
 .custom-stepper--mini .custom-stepper__input {
-  width: 42px;
-  height: 20px;
-  line-height: 20px;
-  padding: 0 2px;
+  width: 34px;
+  font-size: 11px;
 }
 
-
-/* 输入框禁用样式 */
+/* 输入框禁用 */
 .custom-stepper__input:disabled {
-  color: #9ca3af;
+  color: #c7c7cc;
   cursor: not-allowed;
 }
 
-/* 输入框焦点样式 */
+/* 输入框焦点 - 轻微高亮 */
 .custom-stepper__input:not(:disabled):focus {
-  color: #3b82f6;
-  background: #f9fafb;
-  border-radius: 3px;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.06);
+  border-radius: 6px;
 }
 
-/* 错误状态样式 */
-.custom-stepper__input.error-state {
-  color: #ef4444;
-  background: #fef2f2;
+/* 输入框错误状态 */
+.custom-stepper__input--error {
+  color: #ff3b30 !important;
 }
 
-/* 错误提示样式 */
+/* ============================================================
+   错误提示气泡 – 苹果风格
+   ============================================================ */
+
 .custom-stepper__error-tip {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: #ef4444;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
+  background: #ff3b30;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 8px;
   font-size: 11px;
+  font-weight: 500;
   white-space: nowrap;
-  z-index: 10;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
+  z-index: 100;
   pointer-events: none;
-  margin-bottom: 4px;
-}
-
-.custom-stepper__error-tip--visible {
-  opacity: 1;
-  visibility: visible;
+  animation: errorTipBounce 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
 }
 
 .custom-stepper__error-tip::after {
@@ -680,75 +706,89 @@ const t = (key) => {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-width: 4px;
-  border-style: solid;
-  border-color: #ef4444 transparent transparent transparent;
+  border: 5px solid transparent;
+  border-top-color: #ff3b30;
 }
 
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .custom-stepper {
-    font-size: 13px;
+/* ============================================================
+   动画
+   ============================================================ */
+
+@keyframes errorTipBounce {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px) scale(0.96);
   }
-  
-  .custom-stepper__input {
-    width: 42px;
+  60% {
+    transform: translateX(-50%) translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 
-/* 深色模式适配 */
+/* ============================================================
+   深色模式
+   ============================================================ */
+
 @media (prefers-color-scheme: dark) {
   .custom-stepper {
-    background: #1f2937;
-    border-color: #374151;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: #2c2c2e;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
   }
-  
+
   .custom-stepper__btn {
-    background: #273040;
-    border-color: #374151;
-    color: #e5e7eb;
+    color: #0a84ff;
   }
-  
-  .custom-stepper__btn:not(.custom-stepper__btn--disabled):hover {
-    background: #303c50;
-    color: #60a5fa;
+
+  .custom-stepper__btn--minus::after,
+  .custom-stepper__btn--plus::before {
+    background: #38383a;
   }
-  
+
+  @media (hover: hover) {
+    .custom-stepper__btn:not(.custom-stepper__btn--disabled):hover {
+      background: rgba(10, 132, 255, 0.1);
+      color: #0a84ff;
+    }
+  }
+
   .custom-stepper__btn:not(.custom-stepper__btn--disabled):active {
-    background: #374151;
+    background: rgba(10, 132, 255, 0.18);
+    color: #0a84ff;
   }
-  
+
   .custom-stepper__btn--disabled {
-    background: #273040 !important;
-    color: #6b7280 !important;
+    color: #636366 !important;
   }
-  
+
   .custom-stepper__input {
-    color: #f9fafb;
-    background: transparent;
+    color: #f2f2f7;
   }
-  
+
   .custom-stepper__input:disabled {
-    color: #6b7280;
+    color: #636366;
   }
-  
+
   .custom-stepper__input:not(:disabled):focus {
-    color: #60a5fa;
-    background: #273040;
+    color: #0a84ff;
+    background: rgba(10, 132, 255, 0.1);
   }
-  
-  .custom-stepper__input.error-state {
-    color: #fca5a5;
-    background: #3f3f46;
+
+  .custom-stepper__input--error {
+    color: #ff453a !important;
   }
-  
+
   .custom-stepper__error-tip {
-    background: #7f1d1d;
+    background: #ff453a;
+    box-shadow: 0 4px 12px rgba(255, 69, 58, 0.3);
   }
-  
+
   .custom-stepper__error-tip::after {
-    border-color: #7f1d1d transparent transparent transparent;
+    border-top-color: #ff453a;
   }
 }
 </style>
