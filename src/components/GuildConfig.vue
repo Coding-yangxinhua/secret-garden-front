@@ -404,6 +404,9 @@ const toggleTaskStatus = (taskId) => {
   if (taskIndex !== -1) {
     const task = localConfig.value.race.tasks[taskIndex]
     task.status = task.status === 1 ? 0 : 1
+  } else {
+    // 如果 config 中不存在该任务（如新 config），则自动创建并默认启用
+    localConfig.value.race.tasks.push({ id: taskId, status: 1 })
   }
 }
 

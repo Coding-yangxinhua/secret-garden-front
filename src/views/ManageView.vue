@@ -40,7 +40,10 @@
           测试节点配置
         </button>
       </div>
-      <button class="refresh-btn" @click="refreshData">刷新数据</button>
+      <div class="header-actions">
+        <button class="manage-link-btn" @click="goToFeedbackManage">反馈管理</button>
+        <button class="refresh-btn" @click="refreshData">刷新数据</button>
+      </div>
     </div>
 
     <!-- ========== 模块一：节点管理 ========== -->
@@ -309,14 +312,20 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { Checkbox as VanCheckbox, Loading as VanLoading, Icon as VanIcon, showNotify } from 'vant'
 import TestNodeConfig from '@/components/TestNodeConfig.vue'
 import CardCodeGenerator from '@/components/CardCodeGenerator.vue'
 
 // ================= 全局切换 =================
+const router = useRouter()
 const activeTab = ref('node')
 const cardCodeRef = ref(null)
+
+const goToFeedbackManage = () => {
+  router.push({ name: 'manageFeedback' })
+}
 const switchTab = (tab) => {
   activeTab.value = tab
   refreshData()
@@ -634,8 +643,25 @@ onMounted(() => refreshData())
   cursor: pointer;
   font-size: 14px;
 }
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 .refresh-btn:active {
   background: #1677ff;
+}
+.manage-link-btn {
+  background: #07c160;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.manage-link-btn:hover {
+  background: #06ad56;
 }
 
 .tab-group {

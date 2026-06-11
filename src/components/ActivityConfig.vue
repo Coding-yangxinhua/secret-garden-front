@@ -213,7 +213,7 @@
             <div class="apple-cell-title">花艺组合</div>
             <div class="apple-cell-label">选择需要上架的花艺</div>
           </div>
-          <div class="apple-cell-right" style="max-width: 140px; overflow: hidden">
+          <div class="apple-cell-right" style="max-width: 270px">
             <ArrangeSelect :gameId="2" v-model="localConfig.activity.hd23.arrangeId" />
           </div>
         </div>
@@ -345,6 +345,19 @@
           <van-icon name="flower-o" size="14" color="#86868B" />
           <span>赏花会场</span>
         </div>
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">免费加速（测试中）</div>
+            <div class="apple-cell-label">当有免费加速时，只提交已有的最高品质的花，再加速</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              v-model="localConfig.activity.hd50.freeRefresh"
+              size="22"
+            />
+          </div>
+        </div>
 
         <div class="apple-cell">
           <div class="apple-cell-left">
@@ -452,6 +465,77 @@
             <van-switch
               :disabled="!config"
               v-model="localConfig.activity.hd69.autoPlay"
+              size="22"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 寻芳之旅 hd68 ==================== -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">寻芳之旅（测试中）</div>
+          <div class="apple-cell-label">自动派遣与宝箱领取</div>
+        </div>
+        <div class="apple-cell-right">
+          <van-switch
+            :disabled="!config"
+            :active-value="1"
+            :inactive-value="0"
+            v-model="localConfig.activity.hd68.status"
+            size="22"
+          />
+        </div>
+      </div>
+      <div v-show="localConfig.activity.hd68.status" class="apple-sub-section apple-indent">
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
+          <span>详细配置</span>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动领取达标奖励</div>
+            <div class="apple-cell-label">考察次数达标奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              :active-value="1"
+              :inactive-value="0"
+              v-model="localConfig.activity.hd68.autoRwd"
+              size="22"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动购买免费礼包</div>
+            <div class="apple-cell-label">自动购买免费出游礼包</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              :active-value="1"
+              :inactive-value="0"
+              v-model="localConfig.activity.hd68.autoBuy"
+              size="22"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动加速</div>
+            <div class="apple-cell-label">自动加速考察时间</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              :active-value="1"
+              :inactive-value="0"
+              v-model="localConfig.activity.hd68.autoSpeedUp"
               size="22"
             />
           </div>

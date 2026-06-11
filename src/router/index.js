@@ -28,6 +28,16 @@ const router = createRouter({
       component: ManageView,
     },
     {
+      path: '/manage/feedback',
+      name: 'manageFeedback',
+      component: () => import('@/views/ManageFeedbackView.vue'),
+    },
+    {
+      path: '/feedback',
+      name: 'feedback',
+      component: () => import('@/views/FeedbackView.vue'),
+    },
+    {
       path: '/test-node-config',
       name: 'testNodeConfig',
       component: () => import('@/components/TestNodeConfig.vue'),

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main class="page-container">
     <version-checker ref="updateModalRef" v-show="currentUser.gameId == 2" />
 
@@ -172,144 +172,113 @@
       </div>
 
       <div class="config-wrapper" v-if="currentUser && currentUser?.subscribe?.subscribeId >= 0">
-        <!-- VIP 子配置 — iOS 17 卡片式横向滑动分页（含 LoginConfig 作为首页） -->
+        <!-- VIP 子配置 — 滑动分页组件 -->
         <template v-if="currentUser && currentUser?.subscribe?.subscribeId > 0">
-          <!-- 模块指示器圆点 (iOS 17 小圆点) -->
-          <div class="swipe-indicator" v-if="swipeModuleList.length > 1">
-            <span
-              v-for="(m, i) in swipeModuleList"
-              :key="m.key"
-              class="swipe-dot"
-              :class="{ active: swipeCurrentIndex === i }"
-              @click="swipeToModule(i)"
-            ></span>
-          </div>
-
-          <!-- 滑动容器 — iOS 17 横向分页滑动（高度跟随当前页面内容） -->
-          <div
-            class="swipe-area"
-            ref="swipeAreaRef"
-            :style="{ height: swipeAreaHeight }"
-            @touchstart="onSwipeTouchStart"
-            @touchmove="onSwipeTouchMove"
-            @touchend="onSwipeTouchEnd"
-            @touchcancel="onSwipeTouchEnd"
+          <SwipeModule
+            v-model="selectedModule"
+            v-model:direction="swipeDirection"
+            :game-id="currentUser.gameId"
+            :module-defs="allSwipeModules"
           >
-            <div
-              class="swipe-track"
-              :style="swipeTrackStyle"
-              :class="{ 'swipe-animating': !isSwiping }"
-            >
-              <div
-                v-for="(m, i) in swipeModuleList"
-                :key="m.key"
-                class="swipe-page"
-                :data-page-key="m.key"
-                :ref="(el) => setPageRef(el, m.key)"
-              >
-                <LoginConfig
-                  v-if="m.key === 'enable'"
-                  v-model:login="config.login"
-                  :current-user="currentUser"
-                  :next-run-time="nextRunTime"
-                  :schedule-time-info="accountInfo.scheduleTimeInfo"
-                  @get-config="getConfig"
-                  :key="currentUser?.id"
-                />
-                <!-- 自动种植 -->
-                <PlantConfig
-                  v-if="m.key === 'plant'"
-                  v-model:plantConfig="plantConfig"
-                  :currentUser="currentUser"
-                  :availableSeeds="availableSeeds"
-                />
-                <!-- 订单管理 -->
-                <OrderConfig
-                  v-else-if="m.key === 'order'"
-                  v-model="orderConfig"
-                  :currentUser="currentUser"
-                />
-                <!-- 小号管理 -->
-                <AltConfig
-                  v-else-if="m.key === 'alt'"
-                  v-model:autoAccept="config.autoAccept"
-                  v-model:userAlts="accountInfo.userAlts"
-                  :currentUser="currentUser"
-                  :friends="friends"
-                />
-                <!-- 摸花管理 (鲜花小镇) -->
-                <StealFlowerConfig
-                  v-else-if="m.key === 'stealFlower'"
-                  v-model="stealFlowerConfig"
-                  :currentUser="currentUser"
-                  :friends="friends"
-                  :availableSeeds="availableSeeds"
-                  :currentUserId="currentUserId"
-                />
-                <!-- 摸花/爬架管理 (海蓝游戏) -->
-                <StealConfig
-                  v-else-if="m.key === 'steal'"
-                  :user="currentUser"
-                  :config="config"
-                  :friends="currentUser.gameUser.friends || []"
-                  :expand-states="expandStates"
-                  @update:config="handleConfigUpdate"
-                  @update-expand-states="handleExpandStateUpdate"
-                />
-                <!-- 店铺管理 -->
-                <ShopConfig
-                  v-else-if="m.key === 'shop'"
-                  v-model="shopConfig"
-                  :currentUser="currentUser"
-                  :friends="friends"
-                  :availableSeeds="availableSeeds"
-                  :tradeMap="tradeMap"
-                />
-                <!-- 公会配置 -->
-                <GuildConfig
-                  v-else-if="m.key === 'guild'"
-                  :user="currentUser"
-                  :config="config"
-                  :expand-states="expandStates"
-                  @update:config="handleConfigUpdate"
-                  @update-expand-states="handleExpandStateUpdate"
-                />
-                <!-- 兑换码 -->
-                <ExchangeCodeConfig
-                  v-else-if="m.key === 'exchangeCode'"
-                  v-model:autoExchange="config.autoExchange"
-                  :currentUserId="currentUserId"
-                />
-                <!-- 活动配置 -->
-                <ActivityConfig
-                  v-else-if="m.key === 'activity'"
-                  :user="currentUser"
-                  :config="config"
-                  :expand-states="expandStates"
-                  @update:config="handleConfigUpdate"
-                  @update-expand-states="handleExpandStateUpdate"
-                />
-                <!-- 自动广告 -->
-                <AutoAdConfig
-                  v-else-if="m.key === 'autoAd'"
-                  :user="currentUser"
-                  :config="config"
-                  :expand-states="expandStates"
-                  @update:config="handleConfigUpdate"
-                  @update-expand-states="handleExpandStateUpdate"
-                />
-                <!-- 其他配置 -->
-                <OtherConfig
-                  v-else-if="m.key === 'other'"
-                  :user="currentUser"
-                  :config="config"
-                  :expand-states="expandStates"
-                  @update:config="handleConfigUpdate"
-                  @update-expand-states="handleExpandStateUpdate"
-                />
-              </div>
-            </div>
-          </div>
+            <template #enable>
+              <LoginConfig
+                v-model:login="config.login"
+                :current-user="currentUser"
+                :next-run-time="nextRunTime"
+                :schedule-time-info="accountInfo.scheduleTimeInfo"
+                @get-config="getConfig"
+                :key="currentUser?.id"
+              />
+            </template>
+            <template #plant>
+              <PlantConfig
+                v-model:plantConfig="plantConfig"
+                :currentUser="currentUser"
+                :availableSeeds="availableSeeds"
+              />
+            </template>
+            <template #order>
+              <OrderConfig v-model="orderConfig" :currentUser="currentUser" />
+            </template>
+            <template #alt>
+              <AltConfig
+                v-model:autoAccept="config.autoAccept"
+                v-model:userAlts="accountInfo.userAlts"
+                :currentUser="currentUser"
+                :friends="friends"
+              />
+            </template>
+            <template #stealFlower>
+              <StealFlowerConfig
+                v-model="stealFlowerConfig"
+                :currentUser="currentUser"
+                :friends="friends"
+                :availableSeeds="availableSeeds"
+                :currentUserId="currentUserId"
+              />
+            </template>
+            <template #steal>
+              <StealConfig
+                :user="currentUser"
+                :config="config"
+                :friends="currentUser.gameUser.friends || []"
+                :expand-states="expandStates"
+                @update:config="handleConfigUpdate"
+                @update-expand-states="handleExpandStateUpdate"
+              />
+            </template>
+            <template #shop>
+              <ShopConfig
+                v-model="shopConfig"
+                :currentUser="currentUser"
+                :friends="friends"
+                :availableSeeds="availableSeeds"
+                :tradeMap="tradeMap"
+              />
+            </template>
+            <template #guild>
+              <GuildConfig
+                :user="currentUser"
+                :config="config"
+                :expand-states="expandStates"
+                @update:config="handleConfigUpdate"
+                @update-expand-states="handleExpandStateUpdate"
+              />
+            </template>
+            <template #exchangeCode>
+              <ExchangeCodeConfig
+                v-model:autoExchange="config.autoExchange"
+                :currentUserId="currentUserId"
+              />
+            </template>
+            <template #activity>
+              <ActivityConfig
+                :user="currentUser"
+                :config="config"
+                :expand-states="expandStates"
+                @update:config="handleConfigUpdate"
+                @update-expand-states="handleExpandStateUpdate"
+              />
+            </template>
+            <template #autoAd>
+              <AutoAdConfig
+                :user="currentUser"
+                :config="config"
+                :expand-states="expandStates"
+                @update:config="handleConfigUpdate"
+                @update-expand-states="handleExpandStateUpdate"
+              />
+            </template>
+            <template #other>
+              <OtherConfig
+                :user="currentUser"
+                :config="config"
+                :expand-states="expandStates"
+                @update:config="handleConfigUpdate"
+                @update-expand-states="handleExpandStateUpdate"
+              />
+            </template>
+          </SwipeModule>
         </template>
 
         <!-- 非VIP提示 -->
@@ -339,6 +308,7 @@
         v-if="config && currentUser?.subscribe?.subscribeId > 0"
         :game-id="currentUser.gameId"
         v-model:current-module="selectedModule"
+        v-model:swipe-direction="swipeDirection"
       />
 
       <!-- 底部导航 -->
@@ -359,7 +329,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed, watch, nextTick } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import request from '@/utils/request'
 import { showLoadingToast, showNotify } from 'vant'
 import flowerUtil from '@/utils/flowerUtil'
@@ -383,6 +353,7 @@ import StealFlowerConfig from '@/components/StealFlowerConfig.vue'
 import ShopConfig from '@/components/ShopConfig.vue'
 import ExchangeCodeConfig from '@/components/ExchangeCodeConfig.vue'
 import ModuleSelector from '@/components/ModuleSelector.vue'
+import SwipeModule from '@/components/SwipeModule.vue'
 import { isEqual, cloneDeep } from 'lodash-es'
 
 const userStore = useUserStore()
@@ -396,6 +367,9 @@ const saveToast = ref()
 
 // 当前选中的模块（默认显示启用配置，从 localStorage 恢复）
 const selectedModule = ref(localStorage.getItem('currentSelectedModule') || 'enable')
+
+// 滑动方向（默认左右滑动，从 localStorage 恢复）
+const swipeDirection = ref(localStorage.getItem('swipeDirection') || 'horizontal')
 
 // 用户与配置
 const currentUserId = ref(localStorage.getItem('currentUserId') || '')
@@ -547,21 +521,7 @@ const shopConfig = computed({
   },
 })
 
-// ===== iOS 17 卡片式横向分页滑动 =====
-// 原理：所有页面水平排列在 swipe-track 中，通过 translateX 偏移 track，
-// 手指跟随时实时偏移（无 transition），松手后以 iOS 弹簧曲线动画到目标页
-
-const swipeAreaRef = ref(null)
-const touchStartX = ref(0)
-const touchStartY = ref(0) // 用于区分垂直/水平滑动
-const touchOffsetX = ref(0) // 手指跟随偏移量（px）
-const isSwiping = ref(false) // 手指是否按下跟随时
-const isHorizontalSwipe = ref(false) // 是否已确认为水平滑动
-const isAnimating = ref(false) // 动画进行中，阻止手势
-const SWIPE_THRESHOLD = 50 // 触发翻页的最小偏移 px
-const SWIPE_DAMPING = 0.25 // 超出边界时的阻尼系数
-
-// 所有可滑动模块定义（与 ModuleSelector 保持一致，enable 为首页）
+// 所有可滑动模块定义（供 SwipeModule 组件使用）
 const allSwipeModules = [
   { key: 'enable', label: '启用配置', gameId: [1, 2] },
   { key: 'plant', label: '自动种植', gameId: [1, 2] },
@@ -576,234 +536,6 @@ const allSwipeModules = [
   { key: 'autoAd', label: '自动广告', gameId: [2] },
   { key: 'other', label: '其他配置', gameId: [1, 2] },
 ]
-
-// 根据当前游戏ID过滤可用的滑动模块列表
-const swipeModuleList = computed(() => {
-  const gid = gameId.value
-  if (!gid) return []
-  return allSwipeModules.filter((m) => m.gameId.includes(gid))
-})
-
-// 当前选中模块在 swipeModuleList 中的索引
-const swipeCurrentIndex = computed(() => {
-  const idx = swipeModuleList.value.findIndex((m) => m.key === selectedModule.value)
-  return idx >= 0 ? idx : 0
-})
-
-// 计算 track 的 translateX 偏移
-// 基准位置 = -currentIndex * 100vw，加上手指跟随偏移
-const swipeTrackStyle = computed(() => {
-  const baseX = -swipeCurrentIndex.value * 100
-  const offset = touchOffsetX.value
-  // 当不是手指跟随状态且偏移为0时，不设置 transform 避免不必要的 GPU 合成
-  if (!isSwiping.value && offset === 0 && !isAnimating.value) {
-    return { transform: `translateX(${baseX}%)` }
-  }
-  // 计算实际偏移：基准 + 手指偏移（换算成百分比）
-  // 注意：touchOffsetX 是 px，需要换算成百分比
-  // 我们用 vw 单位来保证适配
-  const areaWidth = swipeAreaRef.value?.offsetWidth || window.innerWidth
-  const offsetPercent = areaWidth > 0 ? (offset / areaWidth) * 100 : 0
-  return { transform: `translateX(${baseX + offsetPercent}%)` }
-})
-
-// ----- 触摸事件 — iOS 17 原生翻页逻辑 -----
-
-function onSwipeTouchStart(e) {
-  if (isAnimating.value) return
-  const touch = e.touches[0]
-  touchStartX.value = touch.clientX
-  touchStartY.value = touch.clientY
-  touchOffsetX.value = 0
-  isSwiping.value = true
-  isHorizontalSwipe.value = false
-}
-
-function onSwipeTouchMove(e) {
-  if (!isSwiping.value || isAnimating.value) return
-
-  const touch = e.touches[0]
-  const dx = touch.clientX - touchStartX.value
-  const dy = touch.clientY - touchStartY.value
-
-  // 方向锁定：首次判断是水平还是垂直滑动
-  if (!isHorizontalSwipe.value) {
-    const absDx = Math.abs(dx)
-    const absDy = Math.abs(dy)
-    // 如果垂直距离 > 水平距离，说明是上下滑动，忽略横向操作
-    // 设置一个最小触发距离（10px）避免误判微小的手指抖动
-    if (absDy > absDx && absDy > 10) {
-      // 垂直滑动 → 取消本次滑动，让页面正常上下滚动
-      isSwiping.value = false
-      touchOffsetX.value = 0
-      return
-    }
-    // 水平距离 > 垂直距离且足够大 → 确认为水平滑动
-    if (absDx > absDy && absDx > 10) {
-      isHorizontalSwipe.value = true
-    }
-  }
-
-  if (!isHorizontalSwipe.value) return
-
-  // 水平滑动 — 边界阻尼效果
-  const idx = swipeCurrentIndex.value
-  const list = swipeModuleList.value
-  if ((idx === 0 && dx > 0) || (idx === list.length - 1 && dx < 0)) {
-    // 超出边界：施加阻尼，让拖拽感觉更自然
-    touchOffsetX.value = dx * SWIPE_DAMPING
-  } else {
-    touchOffsetX.value = dx
-  }
-}
-
-function onSwipeTouchEnd() {
-  if (!isSwiping.value) return
-  isSwiping.value = false
-  isHorizontalSwipe.value = false
-
-  const offset = touchOffsetX.value
-  const absOffset = Math.abs(offset)
-  const idx = swipeCurrentIndex.value
-  const list = swipeModuleList.value
-
-  // 计算容器宽度（用于判断翻页是否超过一半）
-  const areaWidth = swipeAreaRef.value?.offsetWidth || window.innerWidth
-
-  // 判断是否应该翻页
-  let targetIndex = idx
-  const threshold = Math.min(SWIPE_THRESHOLD, areaWidth * 0.2)
-
-  if (absOffset > threshold) {
-    if (offset < 0 && idx < list.length - 1) {
-      targetIndex = idx + 1 // 左滑 → 下一页
-    } else if (offset > 0 && idx > 0) {
-      targetIndex = idx - 1 // 右滑 → 上一页
-    }
-  }
-
-  // 如果目标页和当前页不同，切换
-  if (targetIndex !== idx) {
-    isAnimating.value = true
-    const targetModule = list[targetIndex]
-    selectedModule.value = targetModule.key
-    localStorage.setItem('currentSelectedModule', targetModule.key)
-    touchOffsetX.value = 0
-    // 动画结束后解锁
-    setTimeout(() => {
-      isAnimating.value = false
-    }, 350)
-  } else {
-    // 回弹到当前页 — 直接将偏移置0触发回弹动画
-    touchOffsetX.value = 0
-  }
-}
-
-// 点击指示器圆点跳转 — 直接跳转，带 iOS 弹簧动画
-function swipeToModule(index) {
-  const module = swipeModuleList.value[index]
-  if (!module || isAnimating.value || index === swipeCurrentIndex.value) return
-  isAnimating.value = true
-
-  // 更新模块
-  selectedModule.value = module.key
-  localStorage.setItem('currentSelectedModule', module.key)
-  touchOffsetX.value = 0
-
-  // 动画完成后解锁
-  setTimeout(() => {
-    isAnimating.value = false
-  }, 350)
-}
-
-// ===== 动态高度：swipe-area 高度跟随当前页面内容变化 =====
-const swipeAreaHeight = ref('auto')
-const pageRefMap = {} // { [key]: HTMLElement }
-let resizeObserver = null
-let heightUpdatePending = false // 防抖标记
-
-function setPageRef(el, key) {
-  if (el) {
-    pageRefMap[key] = el
-  }
-}
-
-// 计算最终高度（内容高度 vs 最小高度）
-function calcFinalHeight(el) {
-  const contentHeight = el.scrollHeight
-
-  // 上方已占空间
-  let topOffset = 56
-  const fixedCard = document.querySelector('.fixed-top-card')
-  if (fixedCard) topOffset += fixedCard.offsetHeight || 0
-  const indicator = document.querySelector('.swipe-indicator')
-  if (indicator) topOffset += indicator.offsetHeight || 0
-  topOffset += 120 // bottom-nav
-
-  const minHeight = Math.max(200, window.innerHeight - topOffset)
-  return Math.max(contentHeight, minHeight)
-}
-
-// 设置高度（跳过 transition，直接瞬间改变）
-function setHeightImmediate(height) {
-  swipeAreaHeight.value = height > 0 ? height + 'px' : 'auto'
-}
-
-// 平滑过渡到新高度（使用 transition）
-function setHeightAnimated(height) {
-  swipeAreaHeight.value = height > 0 ? height + 'px' : 'auto'
-}
-
-// 获取当前页面元素的实际高度并应用
-function updateSwipeAreaHeight(animated = false) {
-  if (heightUpdatePending) return
-  heightUpdatePending = true
-  requestAnimationFrame(() => {
-    heightUpdatePending = false
-    const currentKey = selectedModule.value
-    const el = pageRefMap[currentKey]
-    if (el) {
-      const h = calcFinalHeight(el)
-      if (animated) {
-        setHeightAnimated(h)
-      } else {
-        setHeightImmediate(h)
-      }
-    }
-  })
-}
-
-// 监听当前页面内容变化
-function observeCurrentPage() {
-  if (resizeObserver) resizeObserver.disconnect()
-  // 用 requestAnimationFrame 防抖，避免频繁触发
-  resizeObserver = new ResizeObserver(() => {
-    // 手指拖拽或动画中不触发高度变化
-    if (isSwiping.value || isAnimating.value) return
-    updateSwipeAreaHeight(true)
-  })
-  const currentKey = selectedModule.value
-  const el = pageRefMap[currentKey]
-  if (el) {
-    resizeObserver.observe(el)
-  }
-}
-
-// 在 selectedModule 变化时切换监听的目标
-watch(
-  () => selectedModule.value,
-  () => {
-    // 先用最小高度撑住，避免高度跳动
-    const fallbackH = Math.max(200, window.innerHeight - 200)
-    setHeightImmediate(fallbackH)
-
-    // 等 DOM 更新后，用新内容的高度（不带动画，等 transform 完成后再过渡）
-    nextTick(() => {
-      updateSwipeAreaHeight(false)
-      observeCurrentPage()
-    })
-  },
-)
 
 // 运行状态
 const runningStatus = computed(() => {
@@ -903,12 +635,6 @@ const getConfig = async (force = false) => {
 
     // 标记数据已就绪（可能有缓存提前标记过，但以接口返回为准）
     isDataReady.value = true
-
-    // 接口数据返回后，重新计算 swipe-area 高度
-    nextTick(() => {
-      updateSwipeAreaHeight(false)
-      observeCurrentPage()
-    })
   } catch {
     showNotify({ type: 'danger', message: '网络错误，无法获取配置' })
   }
@@ -1107,21 +833,7 @@ onMounted(() => {
   getConfig()
   const interval = setInterval(() => getConfig(), 20000)
   window.addEventListener('beforeunload', () => clearInterval(interval))
-
-  // 初始化 swipe-area 高度观察（等 DOM 渲染后执行）
-  nextTick(() => {
-    updateSwipeAreaHeight(false)
-    observeCurrentPage()
-  })
-
-  // 窗口 resize 时重新计算高度
-  window.addEventListener('resize', onWindowResize)
 })
-
-// 窗口尺寸变化重算高度
-function onWindowResize() {
-  updateSwipeAreaHeight(false)
-}
 </script>
 
 <style scoped>
@@ -1383,80 +1095,6 @@ function onWindowResize() {
   50% {
     box-shadow: 0 0 0 4px rgba(250, 173, 20, 0.4);
   }
-}
-
-/* ============================================================
-   📱 iOS 17 卡片式横向分页滑动
-   - swipe-track: 所有页面水平排列，flex 行
-   - swipe-animating: iOS 弹簧曲线过渡
-   - swipe-page: 每个页面占满 swipe-area 宽度
-   ============================================================ */
-
-/* 滑动容器 — 固定宽度，overflow hidden，禁止水平滚动 */
-.swipe-area {
-  margin-top: 4px;
-  touch-action: pan-y;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-  will-change: height;
-}
-
-/* 轨道 — 水平排列所有页面 */
-.swipe-track {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: flex-start; /* 顶部对齐，不被拉伸 */
-  width: auto;
-  will-change: transform;
-}
-
-/* 动画进行时（非手指跟随状态）：iOS 弹簧曲线 */
-.swipe-animating {
-  transition: transform 0.35s cubic-bezier(0.32, 0.94, 0.6, 1) !important;
-}
-
-/* 每个页面占满 100% 宽度 */
-.swipe-page {
-  flex: 0 0 100%;
-  min-width: 0;
-  min-height: 0;
-  box-sizing: border-box;
-  padding: 0 8px;
-}
-
-/* 指示器圆点 (iOS 17 风格) */
-.swipe-indicator {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px 4px;
-}
-
-.swipe-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #dccec7;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.swipe-dot.active {
-  width: 18px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #c08ca8, #d4a0b8);
-  box-shadow: 0 1px 4px rgba(180, 120, 140, 0.3);
-}
-
-.swipe-dot:hover {
-  background: #c4a8b4;
-}
-
-.swipe-dot.active:hover {
-  background: linear-gradient(90deg, #c08ca8, #d4a0b8);
 }
 
 /* ========== 🦴 骨架屏 ========== */

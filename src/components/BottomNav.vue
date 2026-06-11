@@ -95,6 +95,12 @@
             </div>
             <span class="more-menu-item-text">活动</span>
           </div>
+          <div class="more-menu-item" @click="openFeedback">
+            <div class="more-menu-item-icon">
+              <cute-icon name="notes" size="20" />
+            </div>
+            <span class="more-menu-item-text">问题反馈</span>
+          </div>
           <div class="more-menu-item" @click="openGroupBindPanel">
             <div class="more-menu-item-icon">
               <cute-icon name="vip" size="20" />
@@ -510,6 +516,15 @@ const formatTime = (timeStr) => {
 onMounted(() => {
   if (systemUser.value) fetchUnreadCount()
 })
+
+const openFeedback = () => {
+  if (!systemUser.value) {
+    router.push({ name: 'login' })
+    return
+  }
+  showMoreMenu.value = false
+  router.push({ name: 'feedback' })
+}
 
 const openAccountBindSheet = () => {
   if (!systemUser.value) {

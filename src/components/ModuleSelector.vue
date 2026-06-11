@@ -8,10 +8,7 @@
     @mousedown="startDrag"
     @touchstart="startDrag"
   >
-    <div
-      class="fab-icon-wrap"
-      v-if="!isLeftEdge && !isRightEdge && !isTopEdge && !isBottomEdge"
-    >
+    <div class="fab-icon-wrap" v-if="!isLeftEdge && !isRightEdge && !isTopEdge && !isBottomEdge">
       <cute-icon :name="currentModuleIcon" size="20" color="#c08ca8" />
     </div>
     <div class="edge-peek" v-if="isLeftEdge || isRightEdge || isTopEdge || isBottomEdge">
@@ -38,6 +35,18 @@
         </span>
       </div>
     </div>
+
+    <!-- 滑动方向切换按钮 -->
+    <div class="cc-swipe-toggle-wrap">
+      <button class="cc-swipe-toggle" @click="toggleSwipeDirection">
+        <cute-icon
+          :name="swipeDirection === 'horizontal' ? 'arrow-right' : 'arrow-down'"
+          size="14"
+          color="#8e8e93"
+        />
+        <span>{{ swipeDirection === 'horizontal' ? '左右滑动' : '上下滑动' }}</span>
+      </button>
+    </div>
   </ModernSheet>
 </template>
 
@@ -51,13 +60,24 @@ const SIZE = 44
 const PEEK = 14
 const STORAGE_POS = 'moduleFabPos'
 
+const SWIPE_DIR_STORAGE_KEY = 'swipeDirection'
+
 const props = defineProps({
   gameId: { type: Number, default: 1 },
   isVip: { type: Boolean, default: false },
   currentModule: { type: String, default: 'enable' },
 })
 
-const emit = defineEmits(['update:currentModule'])
+const emit = defineEmits(['update:currentModule', 'update:swipeDirection'])
+
+const swipeDirection = ref(localStorage.getItem(SWIPE_DIR_STORAGE_KEY) || 'horizontal')
+
+function toggleSwipeDirection() {
+  const newDir = swipeDirection.value === 'horizontal' ? 'vertical' : 'horizontal'
+  swipeDirection.value = newDir
+  localStorage.setItem(SWIPE_DIR_STORAGE_KEY, newDir)
+  emit('update:swipeDirection', newDir)
+}
 
 const showPanel = ref(false)
 const fabRef = ref(null)
@@ -259,6 +279,7 @@ const moduleIconMap = {
 const currentModuleIcon = computed(() => moduleIconMap[props.currentModule] || 'apps-o')
 
 function selectModule(key) {
+  console.log('[ModuleSelector] selectModule:', key, 'currentModule prop:', props.currentModule)
   emit('update:currentModule', key)
   localStorage.setItem(STORAGE_KEY, key)
   showPanel.value = false
@@ -415,5 +436,36 @@ function selectModule(key) {
 .cc-tile-label--active {
   color: #5a3d5a;
   font-weight: 600;
+}
+
+/* ---------- 滑动方向切换按钮 ---------- */
+.cc-swipe-toggle-wrap {
+  padding: 0 20px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.cc-swipe-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.cc-swipe-toggle:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.8);
 }
 </style>
