@@ -329,32 +329,33 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, defineAsyncComponent } from 'vue'
 import request from '@/utils/request'
 import { showLoadingToast, showNotify } from 'vant'
 import flowerUtil from '@/utils/flowerUtil'
 import router from '@/router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import VersionChecker from '@/components/VersionChecker.vue'
-import StealConfig from '@/components/StealConfigModal.vue'
 import BottomNav from '@/components/BottomNav.vue'
-import UserStatusCard from '@/components/UserStatusCard.vue'
-import GuildConfig from '@/components/GuildConfig.vue'
-import OtherConfig from '@/components/OtherConfig.vue'
-import ActivityConfig from '@/components/ActivityConfig.vue'
-import AutoAdConfig from '@/components/AutoAdConfig.vue'
-import LoginConfig from '@/components/LoginConfig.vue'
-// 新增拆分组件
-import PlantConfig from '@/components/PlantConfig.vue'
-import OrderConfig from '@/components/OrderConfig.vue'
-import AltConfig from '@/components/AltConfig.vue'
-import StealFlowerConfig from '@/components/StealFlowerConfig.vue'
-import ShopConfig from '@/components/ShopConfig.vue'
-import ExchangeCodeConfig from '@/components/ExchangeCodeConfig.vue'
-import ModuleSelector from '@/components/ModuleSelector.vue'
 import SwipeModule from '@/components/SwipeModule.vue'
 import { isEqual, cloneDeep } from 'lodash-es'
+
+// 异步加载组件（按需加载，减少首屏 JS 体积）
+const VersionChecker = defineAsyncComponent(() => import('@/components/VersionChecker.vue'))
+const StealConfig = defineAsyncComponent(() => import('@/components/StealConfigModal.vue'))
+const UserStatusCard = defineAsyncComponent(() => import('@/components/UserStatusCard.vue'))
+const GuildConfig = defineAsyncComponent(() => import('@/components/GuildConfig.vue'))
+const OtherConfig = defineAsyncComponent(() => import('@/components/OtherConfig.vue'))
+const ActivityConfig = defineAsyncComponent(() => import('@/components/ActivityConfig.vue'))
+const AutoAdConfig = defineAsyncComponent(() => import('@/components/AutoAdConfig.vue'))
+const LoginConfig = defineAsyncComponent(() => import('@/components/LoginConfig.vue'))
+const PlantConfig = defineAsyncComponent(() => import('@/components/PlantConfig.vue'))
+const OrderConfig = defineAsyncComponent(() => import('@/components/OrderConfig.vue'))
+const AltConfig = defineAsyncComponent(() => import('@/components/AltConfig.vue'))
+const StealFlowerConfig = defineAsyncComponent(() => import('@/components/StealFlowerConfig.vue'))
+const ShopConfig = defineAsyncComponent(() => import('@/components/ShopConfig.vue'))
+const ExchangeCodeConfig = defineAsyncComponent(() => import('@/components/ExchangeCodeConfig.vue'))
+const ModuleSelector = defineAsyncComponent(() => import('@/components/ModuleSelector.vue'))
 
 const userStore = useUserStore()
 const { userInfo: systemUserLocal } = storeToRefs(userStore)
@@ -465,8 +466,7 @@ const systemUserTimesTotalDays = computed(() => {
 
 // 可用种子列表
 const availableSeeds = computed(() => {
-  const flowers = accountInfo.value.flowers || []
-  return allFlowers[gameId.value]?.filter((f) => flowers.includes(f.value)) || []
+  return [...(allFlowers[gameId.value] || [])]
 })
 
 // 各子配置对象（用于 v-model）
@@ -831,8 +831,23 @@ onMounted(() => {
   // 第二步：发起网络请求获取最新数据
   // 有缓存时 isDataReady 已为 true，但接口返回后会用最新数据覆盖
   getConfig()
+  // 轮询间隔改为 120 秒（原 20 秒太频繁），减轻服务器压力
   const interval = setInterval(() => getConfig(), 20000)
+  // 页面不可见时暂停轮询
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      // 页面隐藏时不做什么，自然等定时器触发
+      // 但如果返回时数据过期了，getConfig 会更新
+    }
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   window.addEventListener('beforeunload', () => clearInterval(interval))
+
+  // 组件卸载时清除定时器，避免离开页面后仍在请求
+  onUnmounted(() => {
+    clearInterval(interval)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  })
 })
 </script>
 

@@ -180,6 +180,10 @@ function onSwipeTouchStart(e) {
   isHorizontalSwipe.value = false
   velocitySamples.length = 0
   lastMoveTime = performance.now()
+
+  // 取消 track 上的 transition，确保跟手时无延迟
+  const track = swipeTrackRef.value
+  if (track) track.style.transition = 'none'
 }
 
 function onSwipeTouchMove(e) {
@@ -301,7 +305,7 @@ function handleHorizontalEnd() {
     }
   }
 
-  // 如果快速滑动的方向上有足够的距离走到了下一格，但偏移不够，用速度决定
+  // 条件3：快速滑但偏移不够，强制翻页
   if (!thresholdPassed && absVelocity > VELOCITY_THRESHOLD * 2) {
     if (velocity < 0 && idx < list.length - 1) {
       targetIndex = idx + 1
@@ -312,55 +316,59 @@ function handleHorizontalEnd() {
     }
   }
 
-  // 根据即将到达的位置计算目标偏移
+  // 目标位置（px）
   const targetOffsetPx = -targetIndex * areaWidth
-  const currentPx = -idx * areaWidth + offset
 
   isHorizontalSwipe.value = false
   velocitySamples.length = 0
 
+  const track = swipeTrackRef.value
   if (targetIndex !== idx) {
-    // 切换到新模块
+    // 切换到新模块 — 先播放动画，再更新 modelValue
     isAnimating.value = true
-    const targetModule = list[targetIndex]
-    emit('update:modelValue', targetModule.key)
 
-    const track = swipeTrackRef.value
     if (track) {
-      // 计算从当前位置到目标的剩余距离，根据距离自适应动画时长
+      // 计算从当前位置到目标的剩余距离占比，自适应动画时长
+      const currentPx = -idx * areaWidth + offset
       const remaining = Math.abs(targetOffsetPx - currentPx) / areaWidth
-      const duration = 280 + remaining * 120
+      const duration = Math.round(200 + remaining * 160)
 
       track.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0.9, 0.3, 1.1)`
       track.style.transform = `translateX(${targetOffsetPx}px)`
     }
 
+    // 动画完成后更新 modelValue
     setTimeout(() => {
       if (track) track.style.transition = ''
       isAnimating.value = false
-    }, 400)
+      // 更新 modelValue（通知外部，比如 ModuleSelector 悬浮窗图标变化）
+      const targetModule = list[targetIndex]
+      if (targetModule.key !== props.modelValue) {
+        emit('update:modelValue', targetModule.key)
+      }
+    }, 420)
   } else {
     // 回弹到当前页
-    const track = swipeTrackRef.value
     if (track) {
+      const currentPx = -idx * areaWidth + offset
       const remaining = Math.abs(targetOffsetPx - currentPx) / areaWidth
-      const duration = 200 + remaining * 100
+      const duration = Math.round(150 + remaining * 120)
 
       track.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0.85, 0.3, 1.0)`
       track.style.transform = `translateX(${targetOffsetPx}px)`
     }
     setTimeout(() => {
       if (track) track.style.transition = ''
-    }, 300)
+    }, 320)
   }
 }
 
-// 点击指示器圆点跳转
+// 点击指示器圆点跳转（或外部通过 ModuleSelector 点击触发）
+// 注意：外部调用 emit('update:modelValue') 会触发 watch，watch 中处理水平切换
 function swipeToModule(index) {
   const module = moduleList.value[index]
   if (!module || isAnimating.value || index === currentIndex.value) return
   isAnimating.value = true
-  emit('update:modelValue', module.key)
   touchOffsetX.value = 0
 
   if (isHorizontal.value) {
@@ -372,9 +380,16 @@ function swipeToModule(index) {
       setTimeout(() => {
         track.style.transition = ''
         isAnimating.value = false
+        // 动画完成后再更新 modelValue
+        if (module.key !== props.modelValue) {
+          emit('update:modelValue', module.key)
+        }
       }, ANIM_DURATION_MS + 40)
     } else {
       isAnimating.value = false
+      if (module.key !== props.modelValue) {
+        emit('update:modelValue', module.key)
+      }
     }
   } else {
     // 垂直模式：圆点切换，由 scrollToModule 统一处理滚动和 isAnimating
@@ -500,27 +515,20 @@ watch(
       return
     }
 
-    // 水平模式：清除动画状态，确保外部切换能立即生效
-    isAnimating.value = false
+    // 水平模式：只在非动画状态时同步（避免中断正在进行的过渡）
+    if (!isAnimating.value) {
+      const track = swipeTrackRef.value
+      if (track) {
+        track.style.transition = 'none'
+        const idx = currentIndex.value
+        const areaWidth = swipeAreaRef.value?.offsetWidth || window.innerWidth
+        track.style.transform = `translateX(${-idx * areaWidth}px)`
+      }
+    }
+    // 无论是否动画中，高度和观察者需要更新（但跳过动画中已有高度）
     heightUpdatePending = false
     const fallbackH = Math.max(200, window.innerHeight - 200)
     applySwipeAreaStyle(fallbackH)
-    // 立即同步轨道位置
-    const track = swipeTrackRef.value
-    if (track) {
-      track.style.transition = 'none'
-      const idx = currentIndex.value
-      const areaWidth = swipeAreaRef.value?.offsetWidth || window.innerWidth
-      track.style.transform = `translateX(${-idx * areaWidth}px)`
-      console.log(
-        '[SwipeModule] track synced to index:',
-        idx,
-        'transform:',
-        `translateX(${-idx * areaWidth}px)`,
-      )
-    } else {
-      console.warn('[SwipeModule] track ref is null')
-    }
     nextTick(() => {
       updateSwipeAreaHeight(false)
       observeCurrentPage()

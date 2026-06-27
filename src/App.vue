@@ -1,6 +1,18 @@
 <script setup>
+import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import '@vant/touch-emulator'
+
+onMounted(() => {
+  // 隐藏首屏 loading（Vue 已挂载，资源已就绪）
+  const loading = document.getElementById('app-loading')
+  if (loading) {
+    loading.style.opacity = '0'
+    setTimeout(() => loading.remove(), 300)
+  }
+  // 确保 app 显示
+  document.getElementById('app').style.display = ''
+})
 </script>
 
 <template>
@@ -21,3 +33,4 @@ import '@vant/touch-emulator'
 <style scoped>
 
 </style>
+

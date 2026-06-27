@@ -233,34 +233,8 @@
       </div>
     </van-popup>
 
-    <!-- 用户菜单弹窗（保持不变） -->
-    <van-popup
-      v-model:show="showUserMenu"
-      round
-      position="bottom"
-      class="user-menu-popup"
-      :style="{ height: 'auto', maxHeight: '300px' }"
-    >
-      <div class="user-menu-header">
-        <h3 class="user-menu-title">账户管理</h3>
-        <van-icon name="close" size="20" @click="showUserMenu = false" class="close-icon" />
-      </div>
-      <div class="user-info-section" v-if="systemUser">
-        <div class="user-avatar">
-          <van-icon name="user-circle-o" size="48" color="#1890ff" />
-        </div>
-        <div class="user-details">
-          <div class="user-name">{{ systemUser.userName }}</div>
-          <div class="user-email" v-if="systemUser.email">{{ systemUser.email }}</div>
-          <div class="login-time">登录时间: {{ formatLoginTime(systemUser.loginTime) }}</div>
-        </div>
-      </div>
-      <van-cell-group inset class="user-menu-actions">
-        <van-cell title="个人资料" is-link @click="goToProfile" />
-        <van-cell title="安全设置" is-link @click="goToSecurity" />
-        <van-cell title="退出登录" is-link @click="logout" class="logout-cell" />
-      </van-cell-group>
-    </van-popup>
+    <!-- 🍎 个人中心 – 内嵌编辑功能的子组件 -->
+    <UserProfileSheet v-model="showUserMenu" @logout="logout" />
   </div>
 </template>
 
@@ -272,6 +246,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import CuteIcon from './CuteIcon.vue'
 import ModernSheet from './ModernSheet.vue'
+import UserProfileSheet from './UserProfileSheet.vue'
 import AccountBindSheet from './AccountBindSheet.vue'
 import ExchangeSheet from './ExchangeSheet.vue'
 import request from '@/utils/request'
@@ -298,15 +273,7 @@ const props = defineProps({
   runningStatus: { type: Number, default: 0 },
   exchangeDefaultOpenId: { type: String, default: '' },
 })
-const emit = defineEmits([
-  'saveConfig',
-  'toLog',
-  'triggerRobot',
-  'handleUserAction',
-  'goToProfile',
-  'goToSecurity',
-  'logout',
-])
+const emit = defineEmits(['saveConfig', 'toLog', 'triggerRobot', 'logout'])
 
 // 在其他状态声明后添加
 const showActivityPanel = ref(false)
@@ -353,31 +320,17 @@ const handleTriggerRobot = () => emit('triggerRobot', isBatchOperate.value)
 const showMoreMenu = ref(false)
 const showUserMenu = ref(false)
 
-const formatLoginTime = (loginTime) => {
-  if (!loginTime) return '首次登录'
-  return new Date(loginTime).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 const handleUserAction = () => {
   systemUser.value ? (showUserMenu.value = true) : router.push({ name: 'login' })
 }
-const goToProfile = () => {
-  showUserMenu.value = false
-}
-const goToSecurity = () => {
-  showUserMenu.value = false
-}
+
+// ==================== 退出登录 ====================
 const logout = async () => {
   showUserMenu.value = false
   userStore.clearUserInfo()
   showNotify({ type: 'success', message: '已成功退出登录', duration: 2000 })
 }
+
 const openExchangeModal = () => {
   showMoreMenu.value = false
   exchangeSheetRef.value?.openSheet()
@@ -753,67 +706,6 @@ defineExpose({
 /* 安全区 */
 .modern-sheet-safe-bottom {
   height: env(safe-area-inset-bottom, 12px);
-}
-
-/* 用户弹窗 */
-.user-menu-popup {
-  border-radius: 20px 20px 0 0 !important;
-  overflow: hidden;
-}
-.user-menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
-}
-.user-menu-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-}
-.close-icon {
-  cursor: pointer;
-  color: #8c8c8c;
-}
-.user-info-section {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #f5f5f5;
-}
-.user-avatar {
-  margin-right: 16px;
-}
-.user-details {
-  flex: 1;
-}
-.user-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 4px;
-}
-.user-email {
-  font-size: 14px;
-  color: #8c8c8c;
-  margin-bottom: 4px;
-}
-.login-time {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-.user-menu-actions {
-  margin: 0;
-  border-radius: 0;
-}
-.logout-cell {
-  --van-cell-text-color: #ff4d4f;
-  --van-cell-background-color: #fff8f8;
-  margin-top: 8px;
-  border-radius: 12px;
 }
 
 /* ========== 站内信面板样式（紧凑优化） ========== */

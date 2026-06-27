@@ -140,7 +140,7 @@
           <van-icon name="location-o" size="14" color="#86868B" />
           <span>土地</span>
         </div>
-
+        <!-- 恢复：自动加速卡开关（之前被意外移除） -->
         <div class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">视频加速</div>
@@ -154,7 +154,67 @@
             />
           </div>
         </div>
-
+        <div v-if="localConfig.ad.land.autoSpeedAd" class="apple-sub-section apple-indent">
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">加速类型</div>
+              <div class="apple-cell-label">只加速对应条件的花</div>
+            </div>
+            <div class="apple-cell-right">
+              <!-- 使用与 PlantConfig 一致的分段控制样式 -->
+              <div class="apple-segment" role="tablist" aria-label="视频加速选项">
+                <button
+                  v-for="opt in [
+                    { text: '所有花', value: 0 },
+                    { text: '竞赛花', value: 1 },
+                    { text: '星灵花（未开放）', value: 2 },
+                  ]"
+                  :key="opt.value"
+                  class="apple-segment-btn"
+                  :class="{ active: localConfig.ad.land.autoSpeedMode === opt.value }"
+                  @click="setAutoSpeedMode(opt.value)"
+                >
+                  {{ opt.text }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">加速限制</div>
+              <div class="apple-cell-label">只加速收获时间大于 N 分钟的土地</div>
+            </div>
+            <div class="apple-cell-right">
+              <custom-array-stepper
+                :min="0"
+                :max="600"
+                :step="30"
+                v-model="localConfig.ad.land.minAdHarvestGap"
+                @change="onConfigChange"
+                :inputDisabled="false"
+                class="apple-stepper-wrap"
+              />
+            </div>
+          </div>
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">土地限制</div>
+              <div class="apple-cell-label">需要加速的土地数少于 N 块就不加速</div>
+            </div>
+            <div class="apple-cell-right">
+              <custom-array-stepper
+                :min="0"
+                :max="64"
+                :step="16"
+                v-model="localConfig.ad.land.minAdLand"
+                @change="onConfigChange"
+                :inputDisabled="false"
+                class="apple-stepper-wrap"
+              />
+            </div>
+          </div>
+        </div>
+        <!-- 恢复：自动加速卡开关（之前被意外移除） -->
         <div class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">自动加速卡</div>
@@ -168,7 +228,6 @@
             />
           </div>
         </div>
-
         <div v-if="localConfig.ad.land.autoSpeedCard" class="apple-sub-section apple-indent">
           <div class="apple-cell">
             <div class="apple-cell-left">
@@ -394,9 +453,33 @@ watch(
   (newConfig) => {
     // 深拷贝配置对象
     localConfig.value = JSON.parse(JSON.stringify(newConfig))
+    // 规范化 ad.land.autoSpeedMode
+    try {
+      if (!localConfig.value.ad) localConfig.value.ad = {}
+      if (!localConfig.value.ad.land) localConfig.value.ad.land = {}
+      // 兼容旧字段：如果存在 autoSpeedAd 布尔，则把 true 映射为 1（所有花），false -> 0
+      if (typeof localConfig.value.ad.land.autoSpeedMode === 'undefined') {
+        if (typeof localConfig.value.ad.land.autoSpeedAd !== 'undefined') {
+          localConfig.value.ad.land.autoSpeedMode = localConfig.value.ad.land.autoSpeedAd ? 1 : 0
+        } else {
+          // 默认关闭
+          localConfig.value.ad.land.autoSpeedMode = 0
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
   },
   { deep: true, immediate: true },
 )
+
+// 新增：设置视频加速模式
+const setAutoSpeedMode = (mode) => {
+  if (!localConfig.value.ad) localConfig.value.ad = {}
+  if (!localConfig.value.ad.land) localConfig.value.ad.land = {}
+  localConfig.value.ad.land.autoSpeedMode = mode
+  onConfigChange()
+}
 
 // 时间格式化器
 const formatter = (type, option) => {
@@ -464,6 +547,40 @@ const adFeatureLabel = computed(() => {
 /* CustomArrayStepper 宽度限制 */
 .apple-stepper-wrap {
   width: 108px;
+}
+
+/* segmented control - use global apple-card styles for consistency */
+.apple-segment {
+  display: inline-flex;
+  background: var(--apple-bg-secondary);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.apple-segment-btn {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.apple-segment-btn.active {
+  background: #fff;
+  color: var(--apple-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.apple-segment-btn:active {
+  opacity: 0.7;
 }
 
 /* ============================================================

@@ -23,7 +23,7 @@
       />
     </div>
 
-    <van-picker
+    <VanPicker
       :columns="filteredSeeds"
       @confirm="confirmFlower"
       @cancel="$emit('update:modelValue', false)"
@@ -38,6 +38,8 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { Picker as VanPicker } from 'vant'
+import 'vant/es/picker/style'
 import ModernSheet from './ModernSheet.vue'
 
 const props = defineProps({

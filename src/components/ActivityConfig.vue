@@ -306,14 +306,37 @@
         </div>
       </div>
 
-      <!-- ==================== 斗芳争艳 hd13 ==================== -->
+      <!-- ==================== 奇芳争艳 hd13 ==================== -->
       <div class="apple-cell">
         <div class="apple-cell-left">
-          <div class="apple-cell-title">斗芳争艳</div>
+          <div class="apple-cell-title">奇芳争艳</div>
           <div class="apple-cell-label">自动点赞、领取任务奖励</div>
         </div>
         <div class="apple-cell-right">
           <van-switch :disabled="!config" v-model="localConfig.activity.hd13.status" size="22" />
+        </div>
+      </div>
+       <div v-show="localConfig.activity.hd13.status" class="apple-sub-section apple-indent">
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
+          <span>详细配置</span>
+        </div>
+        
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">累计点赞</div>
+            <div class="apple-cell-label">达到此数量后不再点赞</div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="0"
+              :max="9999"
+              :step="100"
+              v-model="localConfig.activity.hd13.score"
+              :inputDisabled="false"
+              class="apple-stepper-wrap"
+            />
+          </div>
         </div>
       </div>
 
@@ -346,6 +369,19 @@
           <span>赏花会场</span>
         </div>
         <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">任务奖励领取</div>
+            <div class="apple-cell-label">自动领取任务奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              v-model="localConfig.activity.hd50.taskRwd"
+              size="22"
+            />
+          </div>
+        </div>
+         <div class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">免费加速（测试中）</div>
             <div class="apple-cell-label">当有免费加速时，只提交已有的最高品质的花，再加速</div>

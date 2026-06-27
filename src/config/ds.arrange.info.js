@@ -10966,6 +10966,28 @@ export const DS_ARRANGE_INFO = {
         "old_flowers": "53067, 51094, 50008",
         "old_sell_item": "2, 773"
     },
+    "531701": {
+        "id": 531701,
+        "customItem_itemArr": "[3, 1110], [2, 672 ], [1101, 1]",
+        "flowers": "53074, 52144, 51097",
+        "lv": 30,
+        "sell_item": "2, 773",
+        "vase": 5317,
+        "old_customItem_itemArr": "[3, 1110], [2, 672 ], [1101, 1]",
+        "old_flowers": "53074, 52144, 51097",
+        "old_sell_item": "2, 773"
+    },
+    "531702": {
+        "id": 531702,
+        "customItem_itemArr": "[3, 1120], [2, 678 ], [1101, 1]",
+        "flowers": "53074, 52145, 51097",
+        "lv": 30,
+        "sell_item": "2, 780",
+        "vase": 5317,
+        "old_customItem_itemArr": "[3, 1120], [2, 678 ], [1101, 1]",
+        "old_flowers": "53074, 52145, 51097",
+        "old_sell_item": "2, 780"
+    },
     "541001": {
         "id": 541001,
         "customItem_itemArr": "[3, 1660], [2, 1066 ], [1101, 1]",
@@ -11353,35 +11375,101 @@ export const DS_ARRANGE_INFO = {
     },
     "542701": {
         "id": 542701,
-        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "customItem_itemArr": "[3, 2250], [2, 1496 ], [1101, 1]",
         "flowers": "54027, 54028, 53071",
         "lv": 30,
-        "sell_item": "2, 1164",
+        "sell_item": "2, 1720",
         "vase": 5427,
-        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_customItem_itemArr": "[3, 2250], [2, 1496 ], [1101, 1]",
         "old_flowers": "54027, 54028, 53071",
-        "old_sell_item": "2, 1164"
+        "old_sell_item": "2, 1720"
     },
     "542702": {
         "id": 542702,
-        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "customItem_itemArr": "[3, 2250], [2, 1496 ], [1101, 1]",
         "flowers": "54027, 54028, 53072",
         "lv": 30,
-        "sell_item": "2, 1164",
+        "sell_item": "2, 1720",
         "vase": 5427,
-        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_customItem_itemArr": "[3, 2250], [2, 1496 ], [1101, 1]",
         "old_flowers": "54027, 54028, 53072",
-        "old_sell_item": "2, 1164"
+        "old_sell_item": "2, 1720"
     },
     "542703": {
         "id": 542703,
-        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "customItem_itemArr": "[3, 2250], [2, 1496 ], [1101, 1]",
         "flowers": "54027, 54028, 53073",
         "lv": 30,
-        "sell_item": "2, 1164",
+        "sell_item": "2, 1720",
         "vase": 5427,
-        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_customItem_itemArr": "[3, 2250], [2, 1496 ], [1101, 1]",
         "old_flowers": "54027, 54028, 53073",
+        "old_sell_item": "2, 1720"
+    },
+    "542801": {
+        "id": 542801,
+        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "flowers": "54029, 53075, 51110",
+        "lv": 30,
+        "sell_item": "2, 1164",
+        "vase": 5428,
+        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_flowers": "54029, 53075, 51110",
+        "old_sell_item": "2, 1164"
+    },
+    "542901": {
+        "id": 542901,
+        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "flowers": "54030, 53076, 51111",
+        "lv": 30,
+        "sell_item": "2, 1100",
+        "vase": 5429,
+        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_flowers": "54030, 53076, 51111",
+        "old_sell_item": "2, 1100"
+    },
+    "542902": {
+        "id": 542902,
+        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "flowers": "54030, 53077, 51111",
+        "lv": 30,
+        "sell_item": "2, 1100",
+        "vase": 5429,
+        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_flowers": "54030, 53077, 51111",
+        "old_sell_item": "2, 1100"
+    },
+    "542903": {
+        "id": 542903,
+        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "flowers": "54030, 53078, 51111",
+        "lv": 30,
+        "sell_item": "2, 1100",
+        "vase": 5429,
+        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_flowers": "54030, 53078, 51111",
+        "old_sell_item": "2, 1100"
+    },
+    "543001": {
+        "id": 543001,
+        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "flowers": "54031, 53079, 53080",
+        "lv": 30,
+        "sell_item": "2, 1164",
+        "vase": 5430,
+        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_flowers": "54031, 53079, 53080",
+        "old_sell_item": "2, 1164"
+    },
+    "543101": {
+        "id": 543101,
+        "customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "flowers": "54032, 52149, 52150",
+        "lv": 30,
+        "sell_item": "2, 1164",
+        "vase": 5431,
+        "old_customItem_itemArr": "[3, 1580], [2, 1012 ], [1101, 1]",
+        "old_flowers": "54032, 52149, 52150",
         "old_sell_item": "2, 1164"
     }
 }

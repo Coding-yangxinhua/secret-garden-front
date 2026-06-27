@@ -177,6 +177,26 @@
           v-if="currentUser?.gameId == 2 && localConfig.other.elves.autoDispatch"
           class="apple-sub-section"
         >
+          <!-- 收获模式：Apple 分段控制器 -->
+          <div class="apple-cell">
+            <div class="apple-cell-left">
+              <div class="apple-cell-title">奖励类型</div>
+              <div class="apple-cell-label">派遣奖励类型</div>
+            </div>
+            <div class="apple-cell-right">
+              <div class="apple-segment">
+                <button
+                  v-for="opt in typeOptions"
+                  :key="opt.value"
+                  class="apple-segment-btn"
+                  :class="{ active: localConfig.other.elves.dispatchType === opt.value }"
+                  @click="localConfig.other.elves.dispatchType = opt.value"
+                >
+                  {{ opt.text }}
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="apple-cell">
             <div class="apple-cell-left">
               <div class="apple-cell-title">派遣数量</div>
@@ -492,6 +512,12 @@ watch(
   },
   { deep: true, flush: 'pre' },
 )
+
+const typeOptions = [
+  { text: '星灵币', value: 1107 },
+  { text: '星芒币', value: 1173 },
+]
+
 
 // 防止递归更新的标志
 let isUpdatingFromChild = false

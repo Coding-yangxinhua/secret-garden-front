@@ -39,6 +39,13 @@
         >
           测试节点配置
         </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'proxy' }"
+          @click="switchTab('proxy')"
+        >
+          代理IP管理
+        </button>
       </div>
       <div class="header-actions">
         <button class="manage-link-btn" @click="goToFeedbackManage">反馈管理</button>
@@ -93,8 +100,30 @@
                 {{ node.nodeStatus === 'RUN' ? '在线' : '离线' }}
               </span>
               <span class="node-name">{{ node.nodeId }}</span>
+              <!-- 版本显示 -->
+              <span
+                class="version-badge"
+                :class="
+                  node.latestJarVersion === true
+                    ? 'ver-latest'
+                    : node.latestJarVersion === false
+                      ? 'ver-old'
+                      : 'ver-unknown'
+                "
+              >
+                {{ node.jarVersion == null ? '未知' : 'v' + node.jarVersion }}
+              </span>
             </div>
-            <span class="arrow">{{ expandedNodes.includes(node.nodeId) ? '▲' : '▼' }}</span>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <button
+                v-if="node.latestJarVersion === false"
+                class="update-btn"
+                @click.stop="updateNode(node)"
+              >
+                更新
+              </button>
+              <span class="arrow">{{ expandedNodes.includes(node.nodeId) ? '▲' : '▼' }}</span>
+            </div>
           </div>
           <div class="node-base-info">
             <span>用户数：{{ node.userCount }}</span>
@@ -110,6 +139,15 @@
             <div class="user-id-list">
               <span class="user-id" v-for="uid in node.userIds" :key="uid">{{ uid }}</span>
             </div>
+          </div>
+
+          <!-- 节点版本信息与操作 -->
+          <div class="node-version-info">
+            <div class="version-badge">
+              V{{ node.jarVersion }}
+              <span v-if="node.latestJarVersion" class="latest-tag">最新</span>
+            </div>
+            <button class="update-btn" @click="updateNode(node)">更新节点</button>
           </div>
         </div>
         <div class="empty-state" v-if="nodeList.length === 0">暂无节点数据</div>
@@ -271,6 +309,101 @@
       <TestNodeConfig />
     </div>
 
+    <!-- ========== 模块六：代理IP管理 ========== -->
+    <div v-if="activeTab === 'proxy'" class="proxy-container">
+      <!-- 1. 代理池概况卡片 -->
+      <div class="card proxy-summary-card">
+        <div class="card-header"><span class="card-title">🌐 代理池概况</span></div>
+        <div class="summary-grid">
+          <div class="summary-item status-primary">
+            <div class="item-label">可用IP数量</div>
+            <div class="item-value">{{ proxyCount }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="item-label">最后更新时间</div>
+            <div class="item-value" style="font-size: 14px">{{ proxyLastUpdate || '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Token管理卡片 -->
+      <div class="card token-card">
+        <div class="card-header"><span class="card-title">🔑 Token 管理</span></div>
+        <div class="token-body">
+          <div class="token-display">
+            <span class="token-label">当前Token：</span>
+            <span class="token-value">{{ currentToken || '未设置' }}</span>
+          </div>
+          <div class="token-update-row">
+            <input
+              v-model="newToken"
+              type="text"
+              class="input token-input"
+              placeholder="请输入新的Token"
+            />
+            <button
+              class="update-btn"
+              :disabled="tokenUpdating || !newToken.trim()"
+              @click="handleUpdateToken"
+            >
+              <van-loading v-if="tokenUpdating" size="14" color="#fff" style="margin-right: 4px" />
+              {{ tokenUpdating ? '更新中...' : '更新Token' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 代理IP列表卡片 -->
+      <div class="card proxy-list-card">
+        <div class="card-header flex-between">
+          <span class="card-title">📋 代理IP列表</span>
+          <div class="search-box" style="width: 240px; margin-bottom: 0">
+            <van-icon name="search" size="16" color="#999" />
+            <input
+              v-model="proxySearchKeyword"
+              type="text"
+              class="input search-input"
+              placeholder="搜索IP/端口/用户名..."
+            />
+          </div>
+        </div>
+        <div class="proxy-table">
+          <div class="proxy-header">
+            <div class="th th-node">节点名称</div>
+            <div class="th th-key">代理地址</div>
+            <div class="th th-user">用户名</div>
+            <div class="th th-expire">到期时间</div>
+            <div class="th th-flow">今日流量</div>
+            <div class="th th-flow">总流量</div>
+          </div>
+          <div class="proxy-row" v-for="(proxy, index) in filteredProxyList" :key="index">
+            <div class="td td-node">{{ proxy.nodeName || '-' }}</div>
+            <div class="td td-key">{{ proxy.ip }}:{{ proxy.port }}</div>
+            <div class="td td-user">{{ proxy.username }}</div>
+            <div class="td td-expire">{{ formatEndTime(proxy.endTime) }}</div>
+            <div class="td td-flow">{{ formatBytes(proxy.flowUsedToday) }}</div>
+            <div class="td td-flow">{{ formatBytes(proxy.flowLimit) }}</div>
+          </div>
+          <div class="empty-state" v-if="filteredProxyList.length === 0">暂无代理IP数据</div>
+        </div>
+        <div class="proxy-count-footer" v-if="proxyList.length > 0">
+          共 {{ proxyList.length }} 条记录
+          <span v-if="proxySearchKeyword">，筛选后 {{ filteredProxyList.length }} 条</span>
+        </div>
+      </div>
+
+      <!-- 4. 操作栏 -->
+      <div class="card action-bar-card">
+        <div class="action-bar">
+          <button class="proxy-refresh-btn" :disabled="refreshing" @click="handleRefresh">
+            <van-loading v-if="refreshing" size="16" color="#fff" style="margin-right: 6px" />
+            {{ refreshing ? '刷新中...' : '🔄 手动刷新代理池' }}
+          </button>
+          <button class="manage-link-btn" @click="loadProxyData">刷新数据</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ========== 新增/编辑配置弹窗 ========== -->
     <div class="modal-mask" v-show="showEditModal" @click="closeEditModal">
       <div class="modal-content" @click.stop>
@@ -311,7 +444,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { Checkbox as VanCheckbox, Loading as VanLoading, Icon as VanIcon, showNotify } from 'vant'
@@ -358,7 +491,11 @@ const processNodeData = (data) => {
       } else if (!Array.isArray(userIds)) {
         userIds = []
       }
-      return { ...node, userIds }
+      // 规范化版本字段（后端可能缺失）
+      const jarVersion = typeof node.jarVersion !== 'undefined' ? node.jarVersion : null
+      const latestJarVersion =
+        typeof node.latestJarVersion === 'boolean' ? node.latestJarVersion : null
+      return { ...node, userIds, jarVersion, latestJarVersion }
     })
     .sort((a, b) => Number(a.nodeId) - Number(b.nodeId))
 }
@@ -396,6 +533,27 @@ const getNodeData = async () => {
     }
   } catch (err) {
     console.error('节点数据请求失败：', err)
+  }
+}
+
+// 新增：触发节点更新（向后端发送 update 命令）
+const updateNode = async (node) => {
+  if (!node || !node.nodeId) return
+  try {
+    const res = await request({
+      url: '/manage/node/update?nodeId=' + encodeURIComponent(node.nodeId),
+      method: 'POST',
+    })
+    // 后端可能直接返回字符串或结构体，优先显示 data 或 remark
+    const message =
+      (res && (res.data || res.remark)) ||
+      (res && res.code === 200 ? `✅ 更新命令已发送至节点 ${node.nodeId}` : '❌ 操作失败')
+    showNotify({ type: res && res.code === 200 ? 'success' : 'danger', message })
+  } catch (err) {
+    showNotify({
+      type: 'danger',
+      message: '❌ 请求失败: ' + (err && err.message ? err.message : err),
+    })
   }
 }
 
@@ -589,6 +747,135 @@ const submitGrant = async () => {
   }
 }
 
+// ================= 代理IP管理 =================
+const proxyList = ref([])
+const proxyCount = ref(0)
+const proxyLastUpdate = ref('')
+const currentToken = ref('')
+const newToken = ref('')
+const proxySearchKeyword = ref('')
+const tokenUpdating = ref(false)
+const refreshing = ref(false)
+
+const filteredProxyList = computed(() => {
+  if (!proxySearchKeyword.value.trim()) return proxyList.value
+  const keyword = proxySearchKeyword.value.trim().toLowerCase()
+  return proxyList.value.filter(
+    (p) =>
+      (p.ip && p.ip.toLowerCase().includes(keyword)) ||
+      (p.port && String(p.port).includes(keyword)) ||
+      (p.username && p.username.toLowerCase().includes(keyword)) ||
+      (p.nodeName && p.nodeName.toLowerCase().includes(keyword)) ||
+      `${p.ip}:${p.port}`.includes(keyword),
+  )
+})
+
+const formatEndTime = (endTime) => {
+  if (!endTime) return '—'
+  const d = new Date(endTime * 1000)
+  const now = Date.now()
+  const diff = d.getTime() - now
+  if (diff < 0) return '已过期'
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  return `${days}天${hours}小时后`
+}
+
+const formatBytes = (bytes) => {
+  if (bytes === null || bytes === undefined) return '—'
+  if (bytes === 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i]
+}
+
+const getProxyList = async () => {
+  try {
+    const res = await request({ url: 'api/proxy/list', method: 'GET' })
+    if (res.code === 200 && Array.isArray(res.data)) {
+      proxyList.value = res.data
+      proxyLastUpdate.value = new Date().toLocaleString()
+    }
+  } catch (err) {
+    console.error('代理列表请求失败：', err)
+  }
+}
+
+const getProxyCount = async () => {
+  try {
+    const res = await request({ url: '/proxy/count', method: 'GET' })
+    if (res.code === 200 && typeof res.data === 'number') {
+      proxyCount.value = res.data
+    }
+  } catch (err) {
+    console.error('代理数量请求失败：', err)
+  }
+}
+
+const getTokenStatus = async () => {
+  try {
+    const res = await request({ url: '/proxy/token-status', method: 'GET' })
+    if (res.code === 200 && res.data) {
+      currentToken.value = res.data.currentToken || ''
+      if (res.data.proxyCount !== undefined) {
+        proxyCount.value = res.data.proxyCount
+      }
+    }
+  } catch (err) {
+    console.error('Token状态请求失败：', err)
+  }
+}
+
+const handleUpdateToken = async () => {
+  if (!newToken.value.trim()) {
+    showNotify({ type: 'warning', message: '请输入新的Token' })
+    return
+  }
+  tokenUpdating.value = true
+  try {
+    const res = await request({
+      url: '/proxy/update-token',
+      method: 'POST',
+      data: { token: newToken.value.trim() },
+    })
+    if (res.code === 200) {
+      if (res.data) {
+        currentToken.value = res.data.currentToken || ''
+        if (res.data.proxyCount !== undefined) {
+          proxyCount.value = res.data.proxyCount
+        }
+      }
+      newToken.value = ''
+      showNotify({ type: 'success', message: res.data?.message || 'Token更新成功' })
+    } else {
+      showNotify({ type: 'danger', message: res.remark || 'Token更新失败' })
+    }
+  } catch (err) {
+    showNotify({ type: 'danger', message: '请求失败: ' + (err.message || err) })
+  } finally {
+    tokenUpdating.value = false
+  }
+}
+
+const handleRefresh = async () => {
+  refreshing.value = true
+  try {
+    const res = await request({ url: '/proxy/refresh', method: 'POST' })
+    const message = res.data || res.remark || '手动刷新请求已发送'
+    showNotify({ type: 'success', message })
+    // 刷新后重新加载数据
+    await Promise.all([getProxyList(), getProxyCount(), getTokenStatus()])
+  } catch (err) {
+    showNotify({ type: 'danger', message: '刷新请求失败: ' + (err.message || err) })
+  } finally {
+    refreshing.value = false
+  }
+}
+
+const loadProxyData = async () => {
+  await Promise.all([getProxyList(), getTokenStatus()])
+}
+
 // ================= 统一刷新 =================
 const refreshData = () => {
   if (activeTab.value === 'node') getNodeData()
@@ -596,10 +883,8 @@ const refreshData = () => {
   if (activeTab.value === 'code' && cardCodeRef.value) {
     cardCodeRef.value.fetchStats()
   }
-  if (activeTab.value === 'grant') {
-  }
-  if (activeTab.value === 'testNode') {
-  }
+  if (activeTab.value === 'proxy') loadProxyData()
+  // grant/testNode 不需要统一刷新动作
 }
 
 // ================= 生命周期 =================
@@ -1169,5 +1454,199 @@ onMounted(() => refreshData())
   background: #b0d4ff;
   box-shadow: none;
   cursor: not-allowed;
+}
+
+/* ========== 节点版本信息样式 ========== */
+.node-version-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: #e8f3ff;
+  color: #1989fa;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.latest-tag {
+  margin-left: 4px;
+  padding: 2px 6px;
+  background: #07c160;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.update-btn {
+  padding: 6px 12px;
+  background: #1989fa;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 12px;
+}
+.update-btn:hover {
+  background: #1677ff;
+}
+
+/* ========== 代理IP管理样式 ========== */
+.proxy-container {
+  margin-top: 8px;
+}
+.proxy-summary-card .summary-grid {
+  display: flex;
+  gap: 16px;
+}
+.proxy-summary-card .summary-item {
+  min-width: 200px;
+}
+.token-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.token-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f7f8fa;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.token-label {
+  color: #666;
+  white-space: nowrap;
+}
+.token-value {
+  color: #333;
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+.token-update-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.token-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  font-family: monospace;
+}
+.token-input:focus {
+  border-color: #1989fa;
+}
+.token-card .update-btn {
+  white-space: nowrap;
+  padding: 10px 20px;
+  font-size: 14px;
+  margin-left: 0;
+}
+.proxy-table {
+  width: 100%;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.proxy-header {
+  display: flex;
+  padding: 12px;
+  background: #f7f8fa;
+  font-weight: 500;
+  color: #666;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.proxy-row {
+  display: flex;
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 13px;
+  color: #333;
+  transition: background 0.15s;
+}
+.proxy-row:last-child {
+  border-bottom: none;
+}
+.proxy-row:hover {
+  background: #fafafa;
+}
+.proxy-table .th,
+.proxy-table .td {
+  text-align: left;
+}
+.proxy-table .th-node,
+.proxy-table .td-node {
+  flex: 0 0 120px;
+}
+.proxy-table .th-key,
+.proxy-table .td-key {
+  flex: 1 1 140px;
+  font-family: monospace;
+  font-size: 12px;
+}
+.proxy-table .th-user,
+.proxy-table .td-user {
+  flex: 0 0 80px;
+}
+.proxy-table .th-expire,
+.proxy-table .td-expire {
+  flex: 0 0 100px;
+  font-size: 12px;
+}
+.proxy-table .th-flow,
+.proxy-table .td-flow {
+  flex: 0 0 72px;
+  font-size: 12px;
+}
+.proxy-count-footer {
+  margin-top: 10px;
+  padding: 8px 4px;
+  font-size: 13px;
+  color: #999;
+  text-align: right;
+}
+.action-bar-card .action-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.proxy-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  background: #ff976a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.proxy-refresh-btn:hover:not(:disabled) {
+  background: #ff7d4a;
+}
+.proxy-refresh-btn:disabled {
+  background: #ffd4be;
+  cursor: not-allowed;
+}
+.proxy-list-card .card-header {
+  margin-bottom: 12px;
+}
+.proxy-list-card .search-box {
+  margin-bottom: 0;
+  height: 36px;
 }
 </style>

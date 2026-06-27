@@ -272,6 +272,102 @@
         </div>
       </div>
     </div>
+
+    <!-- 忘记密码查询弹窗 -->
+    <div v-if="showForgotDialog" class="modal-overlay" @click="closeForgotDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2 class="modal-title">🔍 查询小助手账号</h2>
+        </div>
+        <div class="modal-body">
+          <p class="success-message">输入你的游戏账号，查询绑定的小助手账号</p>
+          <div class="input-group" style="margin: 12px 0">
+            <div class="input-wrapper">
+              <cute-icon name="user" size="18" color="#f8a1d1" style="margin-right: 5px" />
+              <input
+                v-model="forgotGameUserName"
+                type="text"
+                placeholder="请输入游戏账号"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <!-- 查询成功 - 显示结构化结果 -->
+          <div v-if="forgotResult && forgotResult.type === 'success'" class="query-result-card">
+            <div class="result-header">
+              <span class="result-icon">🔍</span>
+              <span class="result-title">查询结果</span>
+            </div>
+            <div class="result-body">
+          
+              <div class="result-row">
+                <span class="result-label">👤 小助手账号</span>
+                <span class="result-value system-account">{{ forgotResult.systemAccount }}</span>
+              </div>
+            </div>
+            <div class="result-footer">
+              <span class="result-hint">💡 请使用上方账号登录，如忘记密码请联系小助手</span>
+            </div>
+          </div>
+
+          <!-- 查询失败 - 未绑定 -->
+          <div
+            v-if="forgotResult && forgotResult.type === 'not_bound'"
+            class="query-result-card result-card-warning"
+          >
+            <div class="result-header">
+              <span class="result-icon">❓</span>
+              <span class="result-title">未绑定账号</span>
+            </div>
+            <div class="result-body">
+              <div class="result-row">
+                <span class="result-label">🎮 小助手账号</span>
+                <span class="result-value game-account">{{ forgotResult.gameAccount }}</span>
+              </div>
+            </div>
+            <div class="result-footer">
+              <span class="result-hint"
+                >⚠️ 该游戏账号未绑定任何小助手账号，请先<a
+                  class="result-link"
+                  @click="closeForgotDialog"
+                  >注册账号</a
+                ></span
+              >
+            </div>
+          </div>
+
+          <!-- 查询失败 - 错误 -->
+          <div
+            v-if="forgotResult && forgotResult.type === 'error'"
+            class="query-result-card result-card-error"
+          >
+            <div class="result-header">
+              <span class="result-icon">😵</span>
+              <span class="result-title">查询失败</span>
+            </div>
+            <div class="result-body">
+              <p class="error-reason">{{ forgotResult.message }}</p>
+            </div>
+            <div class="result-footer">
+              <span class="result-hint">💡 请检查游戏账号是否正确，稍后重试</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="flex-direction: column; gap: 8px">
+          <button class="close-btn" @click="queryForgotAccount" :disabled="isQuerying">
+            {{ isQuerying ? '查询中...' : '查询账号' }}
+          </button>
+          <button
+            class="close-btn"
+            style="background: #f0f0f0; color: #666; box-shadow: none"
+            @click="closeForgotDialog"
+          >
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -280,7 +376,7 @@ import { showNotify, showDialog } from 'vant'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { userLogin, userReg } from '@/utils/userRequest'
+import { userLogin, userReg, queryBoundSystemUser } from '@/utils/userRequest'
 import CuteIcon from '@/components/CuteIcon.vue'
 
 const userStore = useUserStore()
@@ -600,13 +696,60 @@ const closeSuccessModal = () => {
   switchToLogin()
 }
 
-// 忘记密码处理
+// 忘记密码处理 — 查询绑定的系统账号
+const forgotGameUserName = ref('')
+const forgotResult = ref(null)
+const showForgotDialog = ref(false)
+const isQuerying = ref(false)
+
 const handleForgotPassword = () => {
-  showDialog({
-    message: '联系小助手找回密码哦',
-  }).then(() => {
-    // on close
-  })
+  forgotGameUserName.value = ''
+  forgotResult.value = null
+  showForgotDialog.value = true
+}
+
+const queryForgotAccount = async () => {
+  if (!forgotGameUserName.value.trim()) {
+    showNotify({ type: 'warning', message: '请输入游戏用户名' })
+    return
+  }
+  isQuerying.value = true
+  try {
+    const res = await queryBoundSystemUser(forgotGameUserName.value.trim())
+    const gameAccount = forgotGameUserName.value.trim()
+    if (res.code === 200) {
+      if (res.data) {
+        forgotResult.value = {
+          type: 'success',
+          gameAccount,
+          systemAccount: res.data,
+        }
+      } else {
+        forgotResult.value = {
+          type: 'not_bound',
+          gameAccount,
+        }
+      }
+    } else {
+      forgotResult.value = {
+        type: 'error',
+        gameAccount,
+        message: res.remark || '未知错误',
+      }
+    }
+  } catch {
+    forgotResult.value = {
+      type: 'error',
+      gameAccount: forgotGameUserName.value.trim(),
+      message: '网络异常，请稍后重试',
+    }
+  } finally {
+    isQuerying.value = false
+  }
+}
+
+const closeForgotDialog = () => {
+  showForgotDialog.value = false
 }
 
 // 初始化验证码和加载记住的登录信息
@@ -1273,6 +1416,156 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   margin: 15px 0 0 0;
+}
+
+/* 查询结果卡片 */
+.query-result-card {
+  background: linear-gradient(135deg, #fef7ff 0%, #fdf2f8 100%);
+  border: 1.5px solid rgba(248, 161, 209, 0.3);
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 16px 0;
+  animation: result-pop 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes result-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.result-header {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result-icon {
+  font-size: 18px;
+}
+
+.result-title {
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.result-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.result-label {
+  font-size: 12px;
+  color: #f472b6;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.result-value {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid rgba(249, 168, 212, 0.2);
+}
+
+.game-account {
+  color: #ec4899;
+}
+
+.system-account {
+  color: #8b5cf6;
+  background: linear-gradient(to right, #faf5ff, #fff);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.result-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(248, 161, 209, 0.3), transparent);
+  margin: 4px 0;
+}
+
+.result-footer {
+  padding: 10px 16px;
+  background: rgba(248, 161, 209, 0.08);
+  border-top: 1px solid rgba(248, 161, 209, 0.15);
+}
+
+.result-hint {
+  font-size: 12px;
+  color: #f472b6;
+  line-height: 1.5;
+  display: block;
+}
+
+.result-link {
+  color: #ec4899;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.result-link:hover {
+  color: #db2777;
+}
+
+/* 警告型结果卡片 */
+.result-card-warning {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.result-card-warning .result-header {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.result-card-warning .result-hint {
+  color: #d97706;
+}
+
+.result-card-warning .result-value {
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+/* 错误型结果卡片 */
+.result-card-error {
+  border-color: rgba(244, 63, 94, 0.3);
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+}
+
+.result-card-error .result-header {
+  background: linear-gradient(135deg, #fb7185, #f43f5e);
+}
+
+.result-card-error .result-hint {
+  color: #e11d48;
+}
+
+.error-reason {
+  color: #be123c;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  margin: 8px 0;
+  padding: 8px;
 }
 
 .modal-footer {

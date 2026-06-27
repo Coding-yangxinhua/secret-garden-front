@@ -37,7 +37,6 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import flowerUtil from '@/utils/flowerUtil.js'
 import DS_FLOWER_INFO from '@/config/ds.flower.info.js'
 
-
 // ===================== 1. Props 定义 =====================
 const props = defineProps({
   // 游戏ID（必传）
@@ -222,10 +221,10 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 
 /* 禁用状态 */
 .custom-select.disabled .select-display {
-  background: #F7F8FA;
-  color: #C9CDD4;
+  background: #f7f8fa;
+  color: #c9cdd4;
   cursor: not-allowed;
-  border-color: #E4E6EB;
+  border-color: #e4e6eb;
 }
 
 /* 激活状态（下拉展开） */
@@ -237,25 +236,25 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 .select-display {
   height: 36px;
   padding: 0 12px;
-  border: 1px solid #E4E6EB;
+  border: 1px solid #e4e6eb;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  background: #FFFFFF;
+  background: #ffffff;
   transition: border-color 0.2s;
 }
 
 /* 粉色系 hover 边框 */
 .select-display:hover {
-  border-color: #FF7CB7;
+  border-color: #ff7cb7;
 }
 
 /* 下拉箭头 */
 .arrow {
   font-size: 12px;
-  color: #8B939F;
+  color: #8b939f;
 }
 
 /* 下拉选项容器 */
@@ -266,7 +265,7 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 999999;
@@ -294,13 +293,13 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 
 /* 粉色系 选项选中状态 */
 .select-option.selected {
-  background: #FFF0F6;
-  color: #FF7CB7;
+  background: #fff0f6;
+  color: #ff7cb7;
 }
 
 .select-option:hover {
-  background: #FFF0F6;
-  color: #FF7CB7;
+  background: #fff0f6;
+  color: #ff7cb7;
 }
 
 /* ===================== 多选样式优化 ===================== */
@@ -314,10 +313,10 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 }
 /* 有选中标签时：添加外框和背景 */
 .tag-wrapper.hasTags {
-  border: 1px solid #FFD1E3;
+  border: 1px solid #ffd1e3;
   border-radius: 8px;
   padding: 10px 12px;
-  background: #FFFAFC;
+  background: #fffafc;
   min-height: 40px;
 }
 
@@ -327,8 +326,8 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #FFF0F6;
-  color: #FF7CB7;
+  background: #fff0f6;
+  color: #ff7cb7;
   border-radius: 4px;
   font-size: 12px;
 }
@@ -337,7 +336,7 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 .tag-close {
   cursor: pointer;
   font-size: 12px;
-  color: #FF7CB7;
+  color: #ff7cb7;
   background: none;
   width: auto;
   height: auto;
@@ -346,7 +345,7 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 }
 
 .tag-close:hover {
-  color: #FF5CA8;
+  color: #ff5ca8;
 }
 
 /* 动画 */
@@ -367,7 +366,7 @@ onUnmounted(() => window.removeEventListener('click', closeOptions))
 }
 
 .select-options::-webkit-scrollbar-thumb {
-  background: #DCE0E6;
+  background: #dce0e6;
   border-radius: 3px;
 }
 </style>
