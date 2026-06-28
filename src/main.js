@@ -9,12 +9,16 @@ import router from './router'
 
 // 按需引入 Vant 组件（而不是全量引入）
 import {
+  ActionSheet,
   Button,
   Cell,
   CellGroup,
   Checkbox,
   CheckboxGroup,
   Dialog,
+  DropdownItem,
+  DropdownMenu,
+  Empty,
   Field,
   Form,
   Icon,
@@ -37,12 +41,16 @@ import {
   showLoadingToast,
   showToast,
 } from 'vant'
+import 'vant/es/action-sheet/style'
 import 'vant/es/button/style'
 import 'vant/es/cell/style'
 import 'vant/es/cell-group/style'
 import 'vant/es/checkbox/style'
 import 'vant/es/checkbox-group/style'
 import 'vant/es/dialog/style'
+import 'vant/es/dropdown-item/style'
+import 'vant/es/dropdown-menu/style'
+import 'vant/es/empty/style'
 import 'vant/es/field/style'
 import 'vant/es/form/style'
 import 'vant/es/icon/style'
@@ -69,11 +77,15 @@ const pinia = createPinia()
 app.use(pinia)
 
 // 按需注册 Vant 组件
+app.use(ActionSheet)
 app.use(Button)
 app.use(Cell)
 app.use(CellGroup)
 app.use(Checkbox)
 app.use(CheckboxGroup)
+app.use(DropdownItem)
+app.use(DropdownMenu)
+app.use(Empty)
 app.use(Field)
 app.use(Form)
 app.use(Icon)

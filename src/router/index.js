@@ -5,7 +5,7 @@ import LoginView from '@/views/LoginView.vue'
 import LogView from '@/views/LogView.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory('/'), // 确保 base 为 '/'
   routes: [
     {
       path: '/',
@@ -36,6 +36,11 @@ const router = createRouter({
       path: '/feedback',
       name: 'feedback',
       component: () => import('@/views/FeedbackView.vue'),
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/ProfileView.vue'),
     },
     {
       path: '/test-node-config',
