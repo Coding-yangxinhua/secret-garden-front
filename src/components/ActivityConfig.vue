@@ -428,8 +428,8 @@
 
         <div class="apple-cell">
           <div class="apple-cell-left">
-            <div class="apple-cell-title">鲜花加速</div>
-            <div class="apple-cell-label">加速指定品质鲜花，达到指定积分后停止</div>
+            <div class="apple-cell-title">鲜花钻石加速</div>
+            <div class="apple-cell-label">使用钻石加速指定品质鲜花，达到指定积分后停止</div>
           </div>
           <div class="apple-cell-right">
             <van-switch :disabled="!config" v-model="localConfig.activity.hd50.speedUp" size="22" />

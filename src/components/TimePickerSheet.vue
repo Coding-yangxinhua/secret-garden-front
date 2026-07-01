@@ -10,11 +10,8 @@
 </template>
 
 <script setup>
+import 'vant/es/time-picker/style'
 import ModernSheet from './ModernSheet.vue'
-
-const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-})
 
 const emit = defineEmits(['update:modelValue', 'confirm'])
 

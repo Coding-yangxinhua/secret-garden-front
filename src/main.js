@@ -26,6 +26,7 @@ import {
   Loading,
   Notify,
   NumberKeyboard,
+  Picker,
   Popup,
   RadioGroup,
   Radio,
@@ -34,6 +35,7 @@ import {
   Switch,
   Tab,
   Tabs,
+  TimePicker,
   Toast,
   Uploader,
   showDialog,
@@ -57,6 +59,7 @@ import 'vant/es/icon/style'
 import 'vant/es/loading/style'
 import 'vant/es/notify/style'
 import 'vant/es/number-keyboard/style'
+import 'vant/es/picker/style'
 import 'vant/es/popup/style'
 import 'vant/es/radio-group/style'
 import 'vant/es/radio/style'
@@ -65,6 +68,7 @@ import 'vant/es/stepper/style'
 import 'vant/es/switch/style'
 import 'vant/es/tab/style'
 import 'vant/es/tabs/style'
+import 'vant/es/time-picker/style'
 import 'vant/es/toast/style'
 import 'vant/es/uploader/style'
 
@@ -91,6 +95,7 @@ app.use(Form)
 app.use(Icon)
 app.use(Loading)
 app.use(NumberKeyboard)
+app.use(Picker)
 app.use(Popup)
 app.use(RadioGroup)
 app.use(Radio)
@@ -99,6 +104,7 @@ app.use(Stepper)
 app.use(Switch)
 app.use(Tab)
 app.use(Tabs)
+app.use(TimePicker)
 app.use(Toast)
 app.use(Uploader)
 
