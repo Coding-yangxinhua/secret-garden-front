@@ -202,8 +202,8 @@
 
 /* 开启态 — 品牌粉色（通过 CSS 变量覆盖 Vant 默认蓝色） */
 :root {
-  --van-switch-on-background: #ff6767;
-  --van-switch-background: #e5e5ea;
+  --van-switch-on-background: #ff6767 !important;
+  --van-switch-background: #e5e5ea !important;
 }
 
 /* ========== 磨砂玻璃核心 Mixin (SCSS) ========== */
