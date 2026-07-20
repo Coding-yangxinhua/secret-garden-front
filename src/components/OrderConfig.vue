@@ -6,7 +6,7 @@
     </div>
     <div class="card-content">
       <!-- 顾客订单 -->
-      <div class="apple-cell">
+      <div v-if="showCustomerOrder" class="apple-cell">
         <div class="apple-cell-left">
           <div class="apple-cell-title">{{ userGameName }}订单</div>
           <div class="apple-cell-label">若无订单所需鲜花，则会自动拒绝</div>
@@ -52,7 +52,7 @@
 
         <div class="advanced-setting-group">
           <!-- 居民订单数量上限 -->
-          <div class="apple-cell">
+          <div v-if="showChallengeOrder" class="apple-cell">
             <div class="apple-cell-left">
               <div class="apple-cell-title">居民订单数量上限</div>
             </div>
@@ -161,6 +161,7 @@
 
   <!-- ========== 🍎 顾客订单选择 Sheet ========== -->
   <SingleSelectSheet
+    v-if="showCustomerOrder"
     v-model="showCustomerSheet"
     title="选择顾客订单模式"
     :current-value="local.autoComplete"
@@ -224,6 +225,8 @@ watch(
 const userGameName = computed(() => (props.currentUser.gameId == 1 ? '客户' : '顾客'))
 const userOrderName = computed(() => (props.currentUser.gameId == 1 ? '鲜花' : '居民'))
 const orderMaxLimit = computed(() => (props.currentUser.gameId == 1 ? 1500 : 1200))
+const showCustomerOrder = computed(() => props.currentUser.gameId != 3)
+const showChallengeOrder = computed(() => props.currentUser.gameId != 3)
 
 // ==================== Sheet 弹窗状态 ====================
 const showCustomerSheet = ref(false)

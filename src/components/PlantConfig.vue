@@ -66,8 +66,8 @@
         </div>
       </div>
 
-      <!-- 种植模式选择 -->
-      <div v-if="currentUser.gameId != 2" class="apple-cell">
+      <!-- 秘密花园种植模式选择 -->
+      <div v-if="currentUser.gameId == 1" class="apple-cell">
         <div class="apple-cell-left">
           <div class="apple-cell-title">种植模式</div>
           <div class="apple-cell-label">配置种植策略和时间计划</div>
@@ -87,15 +87,15 @@
         </div>
       </div>
 
-      <!-- 深海花园补仓设置 -->
+      <!-- 支持品质补仓的游戏使用开关配置 -->
       <div v-else class="apple-cell">
         <div class="apple-cell-left">
           <div class="apple-cell-title">种植设置</div>
-          <div class="apple-cell-label">开启深海花园自动种植配置</div>
+          <div class="apple-cell-label">开启{{ currentUser.gameId == 2 ? '深海花园' : '我的花园世界' }}自动种植配置</div>
         </div>
         <div class="apple-cell-right">
           <van-switch
-            v-model="deepSeaPlantEnabled"
+            v-model="qualityPlantEnabled"
             size="22"
             active-color="#ff6767"
             inactive-color="#e5e5ea"
@@ -144,7 +144,7 @@
 
         <div class="apple-cell">
           <div class="apple-cell-left">
-            <div class="apple-cell-title">任务整齐（测试中）</div>
+            <div class="apple-cell-title">任务整齐</div>
             <div class="apple-cell-label">任务/订单种的花也保持整齐</div>
           </div>
           <div class="apple-cell-right">
@@ -195,8 +195,8 @@
         </template>
       </div>
 
-      <!-- 深海花园任务种植配置 -->
-      <div v-if="currentUser.gameId == 2 && localConfig.autoPlant == 5" class="plant-dashed-section">
+      <!-- 品质补仓任务种植配置 -->
+      <div v-if="[2, 3].includes(Number(currentUser.gameId)) && localConfig.autoPlant == 5" class="plant-dashed-section">
         <div class="apple-sub-header">
           <van-icon name="records-o" size="14" color="#86868B" />
           <span>任务种植设置</span>
@@ -276,17 +276,17 @@
         </template>
       </div>
 
-      <!-- 深海花园星灵种植配置 -->
-      <div v-if="currentUser.gameId == 2 && localConfig.autoPlant == 5" class="plant-dashed-section">
+      <!-- 深海花园星灵 / 我的花园世界花灵种植配置 -->
+      <div v-if="[2, 3].includes(Number(currentUser.gameId)) && localConfig.autoPlant == 5" class="plant-dashed-section">
         <div class="apple-sub-header">
           <van-icon name="gem-o" size="14" color="#86868B" />
-          <span>星灵种植设置</span>
+          <span>{{ plantSpiritName }}种植设置</span>
         </div>
 
         <div class="apple-cell">
           <div class="apple-cell-left">
-            <div class="apple-cell-title">星灵种植</div>
-            <div class="apple-cell-label">指定星灵花种、清地和收获方式</div>
+            <div class="apple-cell-title">{{ plantSpiritName }}种植</div>
+            <div class="apple-cell-label">指定{{ plantSpiritName }}花种、清地和收获方式</div>
           </div>
           <div class="apple-cell-right">
             <van-switch
@@ -333,7 +333,7 @@
           <div class="elve-row">
             <div>
               <div class="elve-row-label">协助人数</div>
-              <div class="elve-row-desc">星灵好友协助达到指定人数才进行种植</div>
+              <div class="elve-row-desc">{{ plantSpiritName }}好友协助达到指定人数才进行种植</div>
             </div>
             <CustomArrayStepper
               v-model="localConfig.quality.elves.helpCount"
@@ -393,7 +393,7 @@
           <div v-show="localConfig.quality.elves.harvestMode === 1" class="elve-row">
             <div>
               <div class="elve-row-label">定时收获</div>
-              <div class="elve-row-desc">星灵花成熟后 N 秒收获</div>
+              <div class="elve-row-desc">{{ plantSpiritName }}花成熟后 N 秒收获</div>
             </div>
             <CustomArrayStepper
               v-model="localConfig.quality.elves.harvestWaitingTime"
@@ -408,7 +408,7 @@
 
       <!-- 种植时间段配置 -->
       <div
-        v-show="currentUser.gameId != 2 && localConfig.autoPlant == 1"
+        v-show="currentUser.gameId == 1 && localConfig.autoPlant == 1"
         class="plant-periods-section"
       >
         <div class="apple-sub-header">
@@ -674,7 +674,11 @@ const plantText = computed(() => {
   return autoPlantTextMap[localConfig.autoPlant] || '未选择'
 })
 
-const deepSeaPlantEnabled = computed({
+const plantSpiritName = computed(() => {
+  return Number(props.currentUser.gameId) === 3 ? '花灵' : '星灵'
+})
+
+const qualityPlantEnabled = computed({
   get() {
     return localConfig.autoPlant === 5
   },
@@ -1061,7 +1065,6 @@ const deleteTaskPlant = (index) => {
 @media (max-width: 430px) {
   .elve-row {
     align-items: flex-start;
-    flex-direction: column;
   }
 
   .elve-row-control {

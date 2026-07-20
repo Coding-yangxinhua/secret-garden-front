@@ -510,7 +510,7 @@
       <!-- ==================== 寻芳之旅 hd68 ==================== -->
       <div class="apple-cell">
         <div class="apple-cell-left">
-          <div class="apple-cell-title">寻芳之旅（测试中）</div>
+          <div class="apple-cell-title">寻芳之旅</div>
           <div class="apple-cell-label">自动派遣与宝箱领取</div>
         </div>
         <div class="apple-cell-right">
@@ -577,6 +577,97 @@
           </div>
         </div>
       </div>
+
+      <!-- ==================== 采药济将 hd3003 ==================== -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">采药济将</div>
+          <div class="apple-cell-label">自动领水、疗伤，并领取达标奖励</div>
+        </div>
+        <div class="apple-cell-right">
+          <van-switch
+            :disabled="!config"
+            :active-value="1"
+            :inactive-value="0"
+            v-model="localConfig.activity.hd3003.status"
+            size="22"
+          />
+        </div>
+      </div>
+
+      <!-- ==================== 御敌守玉 hd1009 ==================== -->
+      <div class="apple-cell">
+        <div class="apple-cell-left">
+          <div class="apple-cell-title">御敌守玉</div>
+          <div class="apple-cell-label">自动攻击，领取阶段与拼图奖励</div>
+        </div>
+        <div class="apple-cell-right">
+          <van-switch
+            :disabled="!config"
+            :active-value="1"
+            :inactive-value="0"
+            v-model="localConfig.activity.hd1009.status"
+            size="22"
+          />
+        </div>
+      </div>
+      <div v-show="localConfig.activity.hd1009.status" class="apple-sub-section apple-indent">
+        <div class="apple-sub-header">
+          <van-icon name="setting-o" size="14" color="#86868B" />
+          <span>详细配置</span>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动攻击次数</div>
+            <div class="apple-cell-label">每日攻击达到指定次数后停止</div>
+          </div>
+          <div class="apple-cell-right">
+            <custom-array-stepper
+              :min="0"
+              :step="10"
+              v-model="localConfig.activity.hd1009.atkNum"
+              :inputDisabled="false"
+              class="apple-stepper-wrap"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动领取阶段任务</div>
+            <div class="apple-cell-label">领取已完成的阶段任务和节点奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              :active-value="1"
+              :inactive-value="0"
+              v-model="localConfig.activity.hd1009.stageTaskRwd"
+              size="22"
+            />
+          </div>
+        </div>
+
+        <div class="apple-cell">
+          <div class="apple-cell-left">
+            <div class="apple-cell-title">自动领取拼图奖励</div>
+            <div class="apple-cell-label">领取已完成的拼图单格任务奖励</div>
+          </div>
+          <div class="apple-cell-right">
+            <van-switch
+              :disabled="!config"
+              :active-value="1"
+              :inactive-value="0"
+              v-model="localConfig.activity.hd1009.puzzleTaskRwd"
+              size="22"
+            />
+          </div>
+        </div>
+      </div>
+
+
+
     </div>
   </div>
 </template>
@@ -606,6 +697,25 @@ const emit = defineEmits(['update:config', 'update-expand-states'])
 
 const localConfig = reactive({})
 
+const ensureActivityDefaults = () => {
+  if (!localConfig.activity) {
+    localConfig.activity = {}
+  }
+  if (!localConfig.activity.hd1009) {
+    localConfig.activity.hd1009 = {
+      status: 0,
+      atkNum: 150,
+      stageTaskRwd: 0,
+      puzzleTaskRwd: 0,
+    }
+  }
+  if (!localConfig.activity.hd3003) {
+    localConfig.activity.hd3003 = {
+      status: 0,
+    }
+  }
+}
+
 const hd17Options = [
   { id: 20008, title: '种植鲜花' },
   { id: 20007, title: '顾客订单' },
@@ -618,6 +728,7 @@ watch(
   () => props.config,
   (newConfig) => {
     Object.assign(localConfig, newConfig)
+    ensureActivityDefaults()
   },
   { deep: true, immediate: true },
 )

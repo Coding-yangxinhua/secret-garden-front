@@ -22,7 +22,7 @@
           <span>水滴</span>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">定时水滴</div>
             <div class="apple-cell-label">定时领取水滴广告</div>
@@ -36,7 +36,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">水桶领取</div>
             <div class="apple-cell-label">自动领取水桶中的水滴</div>
@@ -85,13 +85,13 @@
       </div>
 
       <!-- 珍珠相关配置 -->
-      <div class="apple-sub-section">
+      <div v-if="props.user.gameId === 2" class="apple-sub-section">
         <div class="apple-sub-header">
           <van-icon name="gem-o" size="14" color="#86868B" />
           <span>珍珠</span>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="[2, 3].includes(props.user.gameId)" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">珍珠广告</div>
             <div class="apple-cell-label">自动领取珍珠广告奖励</div>
@@ -105,7 +105,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">珍珠收获</div>
             <div class="apple-cell-label">自动收获珍珠</div>
@@ -119,7 +119,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">珍珠抽奖</div>
             <div class="apple-cell-label">自动参与珍珠抽奖</div>
@@ -135,13 +135,13 @@
       </div>
 
       <!-- 土地相关配置 -->
-      <div class="apple-sub-section">
+      <div v-if="props.user.gameId === 2" class="apple-sub-section">
         <div class="apple-sub-header">
           <van-icon name="location-o" size="14" color="#86868B" />
           <span>土地</span>
         </div>
         <!-- 恢复：自动加速卡开关（之前被意外移除） -->
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">视频加速</div>
             <div class="apple-cell-label">观看视频加速土地收获</div>
@@ -166,8 +166,7 @@
                 <button
                   v-for="opt in [
                     { text: '所有花', value: 0 },
-                    { text: '竞赛花', value: 1 },
-                    { text: '星灵花（未开放）', value: 2 },
+                    { text: '竞赛花', value: 1 }
                   ]"
                   :key="opt.value"
                   class="apple-segment-btn"
@@ -215,7 +214,7 @@
           </div>
         </div>
         <!-- 恢复：自动加速卡开关（之前被意外移除） -->
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">自动加速卡</div>
             <div class="apple-cell-label">使用加速卡加速土地</div>
@@ -273,7 +272,7 @@
           <span>其他功能</span>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">主线剧情</div>
             <div class="apple-cell-label">自动推进主线剧情</div>
@@ -283,7 +282,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">免费钻石礼包</div>
             <div class="apple-cell-label">自动领取免费钻石礼包</div>
@@ -293,7 +292,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">视频双倍</div>
             <div class="apple-cell-label">观看视频获得双倍奖励</div>
@@ -303,7 +302,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="[2, 3].includes(props.user.gameId)" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">排行榜点赞</div>
             <div class="apple-cell-label">自动为排行榜好友点赞</div>
@@ -313,7 +312,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">深海寻宝</div>
             <div class="apple-cell-label">自动参与深海寻宝活动</div>
@@ -323,7 +322,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">随机小动物互动</div>
             <div class="apple-cell-label">自动与小动物互动</div>
@@ -333,7 +332,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="[2, 3].includes(props.user.gameId)" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">每日签到</div>
             <div class="apple-cell-label">自动完成每日签到</div>
@@ -343,7 +342,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">自动分享</div>
             <div class="apple-cell-label">自动分享到社交平台</div>
@@ -353,7 +352,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">培育广告加速</div>
             <div class="apple-cell-label">观看广告加速培育</div>
@@ -363,7 +362,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">反诈骗奖励</div>
             <div class="apple-cell-label">自动领取反诈骗奖励</div>
@@ -373,7 +372,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="[2, 3].includes(props.user.gameId)" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">邮件奖励</div>
             <div class="apple-cell-label">自动领取邮件奖励</div>
@@ -383,7 +382,7 @@
           </div>
         </div>
 
-        <div class="apple-cell">
+        <div v-if="props.user.gameId === 2" class="apple-cell">
           <div class="apple-cell-left">
             <div class="apple-cell-title">宝箱奖励</div>
             <div class="apple-cell-label">订单、日常达到对应目标的奖励</div>
@@ -456,7 +455,25 @@ watch(
     // 规范化 ad.land.autoSpeedMode
     try {
       if (!localConfig.value.ad) localConfig.value.ad = {}
+      if (!localConfig.value.ad.water) {
+        localConfig.value.ad.water = {
+          autoWaterAd: 1,
+          autoWater: 1,
+          maxWaterNum: 60,
+          lackGet: 0,
+        }
+      }
+      if (!localConfig.value.ad.pearl) {
+        localConfig.value.ad.pearl = {
+          autoPearlAd: 0,
+          autoPearlHarvest: 0,
+          autoPearlDraw: 0,
+        }
+      }
       if (!localConfig.value.ad.land) localConfig.value.ad.land = {}
+      localConfig.value.ad.autoWelfare = localConfig.value.ad.autoWelfare ?? 1
+      localConfig.value.ad.autoSign = localConfig.value.ad.autoSign ?? 1
+      localConfig.value.ad.autoMail = localConfig.value.ad.autoMail ?? 0
       // 兼容旧字段：如果存在 autoSpeedAd 布尔，则把 true 映射为 1（所有花），false -> 0
       if (typeof localConfig.value.ad.land.autoSpeedMode === 'undefined') {
         if (typeof localConfig.value.ad.land.autoSpeedAd !== 'undefined') {

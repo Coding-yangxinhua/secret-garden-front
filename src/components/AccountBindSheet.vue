@@ -166,7 +166,7 @@
 
 <script setup>
 import { ref, computed, reactive, watch } from 'vue'
-import { showToast, showConfirmDialog } from 'vant'
+import { showToast, showConfirmDialog, showDialog } from 'vant'
 import ModernSheet from './ModernSheet.vue'
 import request from '@/utils/request'
 
@@ -185,6 +185,23 @@ const refreshing = ref(false)
 const editingIndex = ref(null)
 const boundAccounts = ref([])
 
+const FEEDBACK_Z_INDEX = 7000
+
+const showSheetToast = (message) => {
+  showToast({
+    message,
+    zIndex: FEEDBACK_Z_INDEX,
+  })
+}
+
+const showSheetDialog = (message, title = '操作失败') => {
+  return showDialog({
+    title,
+    message,
+    zIndex: FEEDBACK_Z_INDEX,
+  })
+}
+
 const form = reactive({
   id: null,
   userName: '',
@@ -198,11 +215,17 @@ const form = reactive({
 const gameOptions = [
   { name: '秘密花园', value: 1 },
   { name: '深海花园', value: 2 },
+  { name: '我的花园世界', value: 3 },
 ]
-const platformOptions = [
+const rawPlatformOptions = [
   { name: 'IOS', value: 1 },
   { name: 'Android', value: 2 },
 ]
+
+const isMyGardenWorld = computed(() => Number(form.gameId) === 3)
+const platformOptions = computed(() =>
+  isMyGardenWorld.value ? rawPlatformOptions.filter((p) => p.value === 1) : rawPlatformOptions,
+)
 
 const selectedGameName = computed(() => {
   if (!form.gameId) return ''
@@ -210,7 +233,7 @@ const selectedGameName = computed(() => {
 })
 const selectedPlatformName = computed(() => {
   if (!form.userType) return ''
-  return platformOptions.find((p) => p.value === form.userType)?.name || ''
+  return rawPlatformOptions.find((p) => p.value == form.userType)?.name || ''
 })
 const canBind = computed(
   () =>
@@ -218,7 +241,8 @@ const canBind = computed(
     form.password.trim() !== '' &&
     form.gameId !== '' &&
     form.userType !== '' &&
-    form.serverId !== '',
+    form.serverId !== '' &&
+    (!isMyGardenWorld.value || Number(form.userType) === 1),
 )
 
 // ---- API ----
@@ -226,9 +250,9 @@ const listAccounts = async () => {
   try {
     const res = await request({ url: '/user/bindAccounts', method: 'GET' })
     if (res.code === 200) boundAccounts.value = res.data || []
-    else showToast(res.remark || '获取账号列表失败')
+    else showSheetToast(res.remark || '获取账号列表失败')
   } catch {
-    showToast('网络异常')
+    showSheetToast('网络异常')
   }
 }
 
@@ -262,16 +286,29 @@ const switchToBindForm = () => {
 }
 
 const onGameSelect = (action) => {
-  if (action.name !== '取消') form.gameId = action.value
+  if (action.name !== '取消') {
+    form.gameId = action.value
+    if (Number(action.value) === 3 && Number(form.userType) !== 1) {
+      form.userType = 1
+      showSheetToast('我的花园世界目前仅支持 iOS，已自动选择 IOS')
+    }
+  }
   showGamePicker.value = false
 }
 const onPlatformSelect = (action) => {
-  if (action.name !== '取消') form.userType = action.value
+  if (action.name !== '取消') {
+    if (isMyGardenWorld.value && Number(action.value) !== 1) {
+      showSheetToast('我的花园世界目前仅支持 iOS')
+      showPlatformPicker.value = false
+      return
+    }
+    form.userType = action.value
+  }
   showPlatformPicker.value = false
 }
 
 const getGameName = (id) => gameOptions.find((g) => g.value == id)?.name || '未知'
-const getPlatformName = (t) => platformOptions.find((p) => p.value == t)?.name || '未知'
+const getPlatformName = (t) => rawPlatformOptions.find((p) => p.value == t)?.name || '未知'
 
 const editAccount = (index) => {
   Object.assign(form, boundAccounts.value[index])
@@ -284,6 +321,7 @@ const unbindAccount = async (index) => {
     await showConfirmDialog({
       title: '确认解绑',
       message: '确定要解绑该游戏账号吗？此操作不可恢复。',
+      zIndex: FEEDBACK_Z_INDEX,
     })
     const res = await request({
       url: `/user/unbind?userId=${boundAccounts.value[index].id}`,
@@ -291,9 +329,9 @@ const unbindAccount = async (index) => {
     })
     if (res.code === 200) {
       boundAccounts.value.splice(index, 1)
-      showToast('解绑成功')
+      showSheetToast('解绑成功')
       emit('account-updated', { action: 'unbind' })
-    } else showToast(res.remark || '解绑失败')
+    } else showSheetToast(res.remark || '解绑失败')
   } catch {}
 }
 
@@ -321,11 +359,11 @@ const refreshCurrentAccount = async () => {
       },
     })
     if (res.code === 200) {
-      showToast('刷新成功')
+      showSheetToast('刷新成功')
       emit('account-updated', { action: 'refresh' })
-    } else showToast(res.remark || '刷新失败')
+    } else showSheetToast(res.remark || '刷新失败')
   } catch {
-    showToast('网络异常')
+    showSheetToast('网络异常')
   } finally {
     refreshing.value = false
   }
@@ -333,7 +371,11 @@ const refreshCurrentAccount = async () => {
 
 const handleBind = async () => {
   if (!canBind.value) {
-    showToast('请填写完整信息')
+    showSheetToast('请填写完整信息')
+    return
+  }
+  if (isMyGardenWorld.value && Number(form.userType) !== 1) {
+    showSheetToast('我的花园世界目前仅支持 iOS')
     return
   }
   try {
@@ -343,16 +385,18 @@ const handleBind = async () => {
     if (res.code === 200) {
       if (editingIndex.value !== null) {
         Object.assign(boundAccounts.value[editingIndex.value], apiData)
-        showToast('修改成功')
+        showSheetToast('修改成功')
       } else {
         boundAccounts.value.push({ ...apiData })
-        showToast('绑定成功')
+        showSheetToast('绑定成功')
         emit('account-updated', { action: 'update', account: apiData })
       }
       switchToMainView()
-    } else showToast(res.remark || '操作失败')
+    } else {
+      await showSheetDialog(res.remark || '操作失败')
+    }
   } catch {
-    showToast('网络异常')
+    await showSheetDialog('网络异常')
   } finally {
     isBinding.value = false
   }

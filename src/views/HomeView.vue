@@ -22,153 +22,12 @@
     <template v-if="isDataReady">
       <div class="fixed-top-card" v-if="config != null">
         <user-status-card
+          ref="userStatusCardRef"
           class="user-status-card"
           :system-user="systemUser"
           @update:current-user="handleUserChange"
           @allot-success="() => getConfig(true)"
         />
-      </div>
-
-      <!-- ========== 引导区域 ========== -->
-      <!-- 场景1：未登录系统账号 -->
-      <div class="no-account-guide" v-if="config != null && !systemUserLocal">
-        <div class="guide-arrow-container">
-          <svg
-            width="36"
-            height="48"
-            viewBox="0 0 36 48"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            class="guide-svg-arrow"
-          >
-            <path
-              d="M18 4V36M18 36L8 26M18 36L28 26"
-              stroke="#f472b6"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <circle cx="18" cy="8" r="3" fill="#f472b6" opacity="0.3" />
-            <circle cx="18" cy="16" r="2.5" fill="#f472b6" opacity="0.5" />
-            <circle cx="18" cy="24" r="2" fill="#f472b6" opacity="0.7" />
-          </svg>
-        </div>
-        <div class="guide-card guide-card-login" @click="goToLogin">
-          <div class="guide-icon-wrapper guide-icon-login">
-            <van-icon name="user-circle-o" size="28" color="#ec4899" />
-          </div>
-          <div class="guide-text">
-            <div class="guide-title">欢迎来到莳花小助手</div>
-            <div class="guide-desc">点击此处或底部「个人中心 → 登录」先登录或注册一个账号吧！</div>
-          </div>
-          <van-icon name="arrow-down" size="18" color="#ec4899" class="guide-bounce-arrow" />
-        </div>
-      </div>
-
-      <!-- 场景2：已登录但未绑定游戏账号 -->
-      <div
-        class="no-account-guide"
-        v-if="config != null && systemUserLocal && !systemUser.currentUser"
-      >
-        <div class="guide-arrow-container">
-          <svg
-            width="36"
-            height="48"
-            viewBox="0 0 36 48"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            class="guide-svg-arrow"
-          >
-            <path
-              d="M18 4V36M18 36L8 26M18 36L28 26"
-              stroke="#ff6767"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <circle cx="18" cy="8" r="3" fill="#ff6767" opacity="0.3" />
-            <circle cx="18" cy="16" r="2.5" fill="#ff6767" opacity="0.5" />
-            <circle cx="18" cy="24" r="2" fill="#ff6767" opacity="0.7" />
-          </svg>
-        </div>
-        <div class="guide-card" @click="openAccountModal">
-          <div class="guide-icon-wrapper">
-            <van-icon name="user-o" size="28" color="#ff6767" />
-          </div>
-          <div class="guide-text">
-            <div class="guide-title">还没有绑定游戏账号</div>
-            <div class="guide-desc">点击此处或点击底部菜单「更多 → 账号绑定」添加你的游戏账号</div>
-          </div>
-          <van-icon name="arrow-down" size="18" color="#ff6767" class="guide-bounce-arrow" />
-        </div>
-      </div>
-
-      <!-- 场景3：已绑定游戏账号但无VIP（subscribeId == -1） -->
-      <div
-        class="no-account-guide"
-        v-if="
-          config != null &&
-          systemUserLocal &&
-          systemUser.currentUser &&
-          currentUser?.subscribe?.subscribeId == -1
-        "
-      >
-        <div class="guide-arrow-container">
-          <svg
-            width="36"
-            height="48"
-            viewBox="0 0 36 48"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            class="guide-svg-arrow"
-          >
-            <path
-              d="M18 4V36M18 36L8 26M18 36L28 26"
-              stroke="#faad14"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <circle cx="18" cy="8" r="3" fill="#faad14" opacity="0.3" />
-            <circle cx="18" cy="16" r="2.5" fill="#faad14" opacity="0.5" />
-            <circle cx="18" cy="24" r="2" fill="#faad14" opacity="0.7" />
-          </svg>
-        </div>
-        <!-- 子场景3a：库存无可用时长 → 引导去活动领新人试用 -->
-        <div
-          v-if="systemUserTimesTotalDays === 0"
-          class="guide-card guide-card-vip"
-          @click="openActivityPanel"
-        >
-          <div class="guide-icon-wrapper guide-icon-vip">
-            <van-icon name="gift-o" size="28" color="#faad14" />
-          </div>
-          <div class="guide-text">
-            <div class="guide-title">还没有会员时长</div>
-            <div class="guide-desc">点击此处领取新人试用时长，即可开始使用小助手</div>
-          </div>
-          <van-icon name="arrow-down" size="18" color="#faad14" class="guide-bounce-arrow" />
-        </div>
-        <!-- 子场景3b：库存有可用时长但未分配给当前账号 → 引导点击有效期分配 -->
-        <div class="fixed-top-card" v-if="config != null">
-          <user-status-card
-            ref="userStatusCardRef"
-            class="user-status-card"
-            :system-user="systemUser"
-            @update:current-user="handleUserChange"
-            @allot-success="() => getConfig(true)"
-          />
-        </div>
-        <div v-else class="guide-card guide-card-vip" @click="scrollToVipCard">
-          <div class="guide-icon-wrapper guide-icon-vip">
-            <van-icon name="clock-o" size="28" color="#faad14" />
-          </div>
-          <div class="guide-text">
-            <div class="guide-title">你有可分配的会员时长</div>
-            <div class="guide-desc">点击上方有效期卡片，分配时长后即可使用</div>
-          </div>
-          <van-icon name="arrow-up" size="18" color="#faad14" class="guide-bounce-arrow-up" />
-        </div>
       </div>
 
       <div class="config-wrapper" v-if="currentUser && currentUser?.subscribe?.subscribeId >= 0">
@@ -312,6 +171,12 @@
       />
 
       <!-- 底部导航 -->
+      <SetupGuide
+        v-model="showSetupSpotlight"
+        :step="activeSetupGuideStep"
+        @primary="handleSetupGuidePrimary"
+        @dismiss="dismissSetupGuide"
+      />
     </template>
     <bottom-nav
       ref="bottomNavRef"
@@ -329,7 +194,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, computed, defineAsyncComponent } from 'vue'
+import { onMounted, onUnmounted, ref, computed, defineAsyncComponent, watch } from 'vue'
 import request from '@/utils/request'
 import { showLoadingToast, showNotify } from 'vant'
 import flowerUtil from '@/utils/flowerUtil'
@@ -338,6 +203,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import BottomNav from '@/components/BottomNav.vue'
 import SwipeModule from '@/components/SwipeModule.vue'
+import SetupGuide from '@/components/SetupGuide.vue'
 import { isEqual, cloneDeep } from 'lodash-es'
 
 // 异步加载组件（按需加载，减少首屏 JS 体积）
@@ -388,6 +254,9 @@ const lastUserId = ref(null)
 
 // 数据就绪状态：接口返回数据后设为 true
 const isDataReady = ref(false)
+const configGetCode = ref(null)
+const showSetupSpotlight = ref(false)
+const dismissedSetupGuideId = ref(localStorage.getItem('dismissedSetupGuideId') || '')
 
 // 缓存 key（用于从日志返回时快速回显）
 const ACCOUNT_INFO_CACHE_KEY = 'home_account_info_cache'
@@ -486,9 +355,97 @@ const systemUserTimesTotalDays = computed(() => {
   return Math.floor(totalHours / 24)
 })
 
+const shouldShowSetupGuide = computed(() => configGetCode.value === 204)
+
+const showLoginSetupGuideCard = computed(
+  () => shouldShowSetupGuide.value && !systemUserLocal.value,
+)
+
+const showBindSetupGuideCard = computed(
+  () => systemUserLocal.value && !systemUser.value.currentUser,
+)
+
+const showTrialSetupGuideCard = computed(
+  () =>
+    systemUserLocal.value &&
+    systemUser.value.currentUser &&
+    currentUser.value?.subscribe?.subscribeId == -1 &&
+    systemUserTimesTotalDays.value === 0,
+)
+
+const showAllotSetupGuideCard = computed(
+  () =>
+    systemUserLocal.value &&
+    systemUser.value.currentUser &&
+    currentUser.value?.subscribe?.subscribeId == -1 &&
+    systemUserTimesTotalDays.value > 0,
+)
+
+const activeSetupGuideStep = computed(() => {
+  if (showLoginSetupGuideCard.value) {
+    return {
+      id: 'setup-login',
+      target: '[data-guide="login-entry"]',
+      kicker: '还差一步',
+      title: '当前还没有可用配置',
+      desc: '你可以登录后绑定游戏账号，生成专属配置。',
+      actionText: '去登录',
+      accent: '#ec4899',
+      radius: 18,
+    }
+  }
+  if (showBindSetupGuideCard.value) {
+    return {
+      id: 'setup-bind-account',
+      target: '[data-guide="more-entry"]',
+      kicker: '账号绑定',
+      title: '绑定游戏账号',
+      desc: '绑定后才能为对应账号生成和执行配置。',
+      actionText: '去绑定',
+      accent: '#ff6767',
+      radius: 18,
+    }
+  }
+  if (showTrialSetupGuideCard.value) {
+    return {
+      id: 'setup-trial',
+      target: '[data-guide="more-entry"]',
+      kicker: '新人试用',
+      title: '领取新人试用',
+      desc: '领取后就可以开始使用小助手。',
+      actionText: '去领取',
+      accent: '#faad14',
+      radius: 18,
+    }
+  }
+  if (showAllotSetupGuideCard.value) {
+    return {
+      id: 'setup-allot',
+      target: '[data-guide="vip-status"]',
+      kicker: '分配时长',
+      title: '分配可用会员时长',
+      desc: '点击上方有效期卡片，把可用时长分配给当前游戏账号。',
+      actionText: '去分配',
+      accent: '#faad14',
+      radius: 16,
+    }
+  }
+  return null
+})
+
 // 可用种子列表
 const availableSeeds = computed(() => {
-  return [...(allFlowers[gameId.value] || [])]
+  const staticSeeds = [...(allFlowers[gameId.value] || [])]
+  const nameMap = new Map(staticSeeds.map((seed) => [String(seed.value), seed.text]))
+  const accountSeeds = (accountInfo.value?.flowers || [])
+    .map((item) => (typeof item === 'object' ? item.id : item))
+    .filter((id) => id !== undefined && id !== null)
+    .map((id) => ({
+      text: nameMap.get(String(id)) || `鲜花${id}`,
+      value: id,
+    }))
+  if (Number(gameId.value) === 3 && accountSeeds.length) return accountSeeds
+  return staticSeeds.length ? staticSeeds : accountSeeds
 })
 
 // 各子配置对象（用于 v-model）
@@ -545,9 +502,9 @@ const shopConfig = computed({
 
 // 所有可滑动模块定义（供 SwipeModule 组件使用）
 const allSwipeModules = [
-  { key: 'enable', label: '启用配置', gameId: [1, 2] },
-  { key: 'plant', label: '自动种植', gameId: [1, 2] },
-  { key: 'order', label: '订单管理', gameId: [1, 2] },
+  { key: 'enable', label: '启用配置', gameId: [1, 2, 3] },
+  { key: 'plant', label: '自动种植', gameId: [1, 2, 3] },
+  { key: 'order', label: '订单管理', gameId: [1, 2, 3] },
   { key: 'alt', label: '小号管理', gameId: [1] },
   { key: 'stealFlower', label: '摸花管理', gameId: [1] },
   { key: 'steal', label: '摸花/爬架管理', gameId: [2] },
@@ -555,7 +512,7 @@ const allSwipeModules = [
   { key: 'guild', label: '公会配置', gameId: [1, 2] },
   { key: 'exchangeCode', label: '兑换码', gameId: [2] },
   { key: 'activity', label: '活动配置', gameId: [2] },
-  { key: 'autoAd', label: '自动广告', gameId: [2] },
+  { key: 'autoAd', label: '自动广告', gameId: [2, 3] },
   { key: 'other', label: '其他配置', gameId: [1, 2] },
 ]
 
@@ -611,6 +568,16 @@ const getConfig = async (force = false) => {
   if (currentUserId.value) url += `?userId=${currentUserId.value}`
   try {
     const { data, code } = await request({ method: 'get', url })
+    configGetCode.value = code
+    if (code === 204) {
+      accountInfo.value = {
+        ...(data || {}),
+        config: null,
+        systemUser: data?.systemUser || accountInfo.value.systemUser,
+      }
+      isDataReady.value = true
+      return
+    }
     if (code !== 200) {
       showNotify({ type: 'warning', message: '请先登陆游戏！' })
       return
@@ -811,6 +778,24 @@ const scrollToVipCard = () => {
   }, 500)
 }
 
+const handleSetupGuidePrimary = () => {
+  const id = activeSetupGuideStep.value?.id
+  showSetupSpotlight.value = false
+  if (id === 'setup-login') return goToLogin()
+  if (id === 'setup-bind-account') return openAccountModal()
+  if (id === 'setup-trial') return openActivityPanel()
+  if (id === 'setup-allot') return scrollToVipCard()
+}
+
+const dismissSetupGuide = () => {
+  const id = activeSetupGuideStep.value?.id
+  if (id) {
+    dismissedSetupGuideId.value = id
+    localStorage.setItem('dismissedSetupGuideId', id)
+  }
+  showSetupSpotlight.value = false
+}
+
 const handleUserAction = () => {
   /* 由 BottomNav 处理 */
 }
@@ -871,6 +856,34 @@ onMounted(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
 })
+
+watch(
+  activeSetupGuideStep,
+  (step) => {
+    if (!step || dismissedSetupGuideId.value === step.id) {
+      showSetupSpotlight.value = false
+      return
+    }
+    window.setTimeout(() => {
+      if (activeSetupGuideStep.value?.id === step.id && dismissedSetupGuideId.value !== step.id) {
+        showSetupSpotlight.value = true
+      }
+    }, 480)
+  },
+  { immediate: true },
+)
+
+watch(
+  gameId,
+  (id) => {
+    const modules = allSwipeModules.filter((m) => m.gameId.includes(id))
+    if (modules.length > 0 && !modules.some((m) => m.key === selectedModule.value)) {
+      selectedModule.value = modules[0].key
+      localStorage.setItem('currentSelectedModule', selectedModule.value)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -959,164 +972,6 @@ onMounted(() => {
 
 .upgrade-btn {
   white-space: nowrap;
-}
-
-/* ========== 未绑定账号引导样式 ========== */
-.no-account-guide {
-  padding: 0 16px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  animation: fadeInGuide 0.6s ease;
-}
-
-@keyframes fadeInGuide {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.guide-arrow-container {
-  display: flex;
-  justify-content: center;
-  margin: 16px 0 8px;
-}
-
-.guide-svg-arrow {
-  animation: arrowBounce 2s ease-in-out infinite;
-}
-
-@keyframes arrowBounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(8px);
-  }
-}
-
-.guide-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px 16px;
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: 0 4px 20px rgba(255, 103, 103, 0.12);
-  border: 1.5px dashed #ff6767;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.guide-card:hover,
-.guide-card:active {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 28px rgba(255, 103, 103, 0.2);
-  background: #fff8f8;
-}
-
-.guide-icon-wrapper {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: rgba(255, 103, 103, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.guide-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.guide-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #ff6767;
-  margin-bottom: 4px;
-}
-
-.guide-desc {
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.5;
-}
-
-.guide-bounce-arrow {
-  flex-shrink: 0;
-  animation: guideArrowBounce 1.5s ease-in-out infinite;
-}
-
-@keyframes guideArrowBounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(4px);
-  }
-}
-
-/* 登录引导卡片（粉色风格） */
-.guide-card-login {
-  border-color: #f472b6;
-  box-shadow: 0 4px 20px rgba(244, 114, 182, 0.15);
-}
-
-.guide-card-login:hover,
-.guide-card-login:active {
-  box-shadow: 0 6px 28px rgba(244, 114, 182, 0.25);
-  background: #fef7ff;
-}
-
-.guide-icon-login {
-  background: rgba(244, 114, 182, 0.12);
-}
-
-/* VIP 引导卡片（金色风格） */
-.guide-card-vip {
-  border-color: #faad14;
-  box-shadow: 0 4px 20px rgba(250, 173, 20, 0.12);
-}
-
-.guide-card-vip:hover,
-.guide-card-vip:active {
-  box-shadow: 0 6px 28px rgba(250, 173, 20, 0.22);
-  background: #fffbe6;
-}
-
-.guide-card-vip .guide-title {
-  color: #d48806;
-}
-
-.guide-icon-vip {
-  background: rgba(250, 173, 20, 0.12);
-}
-
-.guide-bounce-arrow-up {
-  flex-shrink: 0;
-  animation: guideArrowUpBounce 1.5s ease-in-out infinite;
-}
-
-@keyframes guideArrowUpBounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
 }
 
 /* 高亮闪烁动画（滚动到 VIP 卡片时） */

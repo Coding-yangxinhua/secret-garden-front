@@ -27,6 +27,7 @@
       <!-- VIP状态卡片 -->
       <div
         class="status-card"
+        data-guide="vip-status"
         :style="{
           backgroundColor: vipStatusStyle.bgColor,
           color: vipStatusStyle.color,
@@ -38,7 +39,11 @@
       </div>
 
       <!-- 用户选择卡片 -->
-      <div class="status-card user-card mobile-full-width" v-if="otherUsers?.length > 1">
+      <div
+        class="status-card user-card mobile-full-width"
+        :class="{ 'is-open': showUserDropdown }"
+        v-if="otherUsers?.length > 1"
+      >
         <cute-icon name="users" size="22" color="#ff6767" />
         <div class="user-selector">
           <div class="selected-user" @click="toggleUserDropdown">
@@ -55,33 +60,40 @@
             />
           </div>
 
-          <!-- 自定义下拉选择框 -->
-          <transition name="dropdown">
-            <div v-show="showUserDropdown" class="user-dropdown">
-              <div class="user-list">
-                <div
-                  v-for="otherUser in otherUsers"
-                  :key="otherUser.id"
-                  class="user-item"
-                  :class="{ selected: otherUser.id === currentUserValue }"
-                  @click="selectUser(otherUser.id)"
-                >
-                  <div class="user-info">
-                    <span class="user-name">{{ otherUser.nickName || otherUser.userName }}</span>
-                    <span class="user-openid" v-if="otherUser.nickName && otherUser.userName">
-                      {{ otherUser.userName }}
-                    </span>
-                  </div>
-                  <div class="user-status">
-                    <span class="user-status-badge" :class="getUserStatusClass(otherUser)">
-                      {{ getUserStatusText(otherUser) }}
-                    </span>
-                  </div>
+        </div>
+
+        <transition name="dropdown">
+          <div v-show="showUserDropdown" class="user-dropdown">
+            <div class="user-list">
+              <div
+                v-for="otherUser in otherUsers"
+                :key="otherUser.id"
+                class="user-item"
+                :class="{ selected: otherUser.id === currentUserValue }"
+                @click="selectUser(otherUser.id)"
+              >
+                <div class="user-info">
+                  <span class="user-name">{{ otherUser.nickName || otherUser.userName }}</span>
+                  <span class="user-openid" v-if="otherUser.nickName && otherUser.userName">
+                    {{ otherUser.userName }}
+                  </span>
+                </div>
+                <div class="user-status">
+                  <span class="user-status-badge" :class="getUserStatusClass(otherUser)">
+                    {{ getUserStatusText(otherUser) }}
+                  </span>
+                  <van-icon
+                    v-if="otherUser.id === currentUserValue"
+                    name="success"
+                    size="14"
+                    color="#ff6767"
+                    class="user-selected-check"
+                  />
                 </div>
               </div>
             </div>
-          </transition>
-        </div>
+          </div>
+        </transition>
       </div>
 
       <!-- 用户名展示（单用户情况） -->
@@ -96,6 +108,7 @@
         </div>
       </div>
     </div>
+
     <Teleport to="body">
       <!-- ⬆️ 分配时间 - iOS 17 底部 Sheet -->
       <div v-if="showTimeAllocationPopup" class="modal-overlay" @click="closePopup">
@@ -697,7 +710,9 @@ const selectUser = (id) => {
   showUserDropdown.value = false
 }
 const closeDropdownIfClickedOutside = (e) => {
-  if (!e.target.closest('.user-selector')) showUserDropdown.value = false
+  if (!e.target.closest('.user-card') && !e.target.closest('.user-dropdown')) {
+    showUserDropdown.value = false
+  }
 }
 
 // 确认分配
@@ -881,10 +896,27 @@ defineExpose({
   line-height: 1.3;
 }
 .user-card {
+  position: relative;
+  --user-switch-surface:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 250, 252, 0.88)),
+    rgba(255, 255, 255, 0.9);
+  --user-switch-border: rgba(255, 255, 255, 0.72);
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border-color: rgba(24, 144, 255, 0.15);
+  transition:
+    border-radius 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.user-card.is-open {
+  z-index: 10010;
+  background: var(--user-switch-surface);
+  border-color: var(--user-switch-border);
+  border-radius: 14px 14px 6px 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 .username-text {
   color: #ff6767;
@@ -919,110 +951,144 @@ defineExpose({
   margin-left: 8px;
   transition: transform 0.3s;
 }
-/* 替换原 .user-dropdown 样式 */
 .user-dropdown {
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  min-width: 150px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  z-index: 10001;
-  margin-top: 8px;
-  /* ✅ 修复：外层不要overflow:hidden，交给内层滚动 */
-  overflow: visible !important;
-  max-height: none;
-  /* ✅ 修复：创建独立堆叠上下文，防止被父容器裁剪 */
+  top: calc(100% - 1px);
+  left: -1px;
+  right: -1px;
+  z-index: 10020;
+  padding: 6px;
+  border-radius: 0 0 16px 16px;
+  background: var(--user-switch-surface);
+  border: 1px solid var(--user-switch-border);
+  border-top: 0;
+  box-shadow:
+    0 22px 36px -10px rgba(98, 70, 82, 0.22),
+    0 12px 18px -12px rgba(236, 72, 153, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(14px) saturate(1.14);
+  -webkit-backdrop-filter: blur(14px) saturate(1.14);
+  overflow: hidden;
   transform: translateZ(0);
+  pointer-events: auto;
 }
 
-/* 替换原 .user-list 样式 */
+.user-dropdown::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  pointer-events: none;
+}
+
 .user-list {
-  /* ✅ 修复：只给内层设置滚动高度 */
-  max-height: 280px;
+  max-height: 260px;
   overflow-y: auto;
-  /* ✅ 修复：移动端滚动流畅度 */
   -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
 }
 .user-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  min-height: 48px;
+  padding: 9px 10px;
+  border-radius: 11px;
   cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid #f5f5f5;
+  transition:
+    background 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  border-bottom: 1px solid rgba(60, 60, 67, 0.07);
+  -webkit-tap-highlight-color: transparent;
 }
 .user-item:last-child {
   border-bottom: none;
 }
 .user-item:hover {
-  background: #f8f9fa;
+  background: rgba(255, 247, 250, 0.72);
 }
 .user-item.selected {
-  background: #e6f7ff;
-  border-left: 3px solid #1890ff;
+  background: rgba(255, 103, 103, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 103, 103, 0.12);
 }
 .user-info {
   display: flex;
+  flex-direction: column;
   min-width: 0;
   flex: 1;
+  gap: 3px;
 }
 .user-openid {
   font-size: 12px;
   color: #8c8c8c;
-  margin-top: 2px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .user-status {
   display: flex;
   align-items: center;
+  gap: 6px;
   margin-left: 10px;
+  flex: 0 0 auto;
 }
 .user-status-badge {
   font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  margin-top: 2px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 3px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 .user-status-badge.status-running {
-  background: #f6ffed;
-  color: #52c41a;
-  border: 1px solid #b7eb8f;
+  background: rgba(52, 199, 89, 0.1);
+  color: #248a3d;
+  border: 1px solid rgba(52, 199, 89, 0.18);
 }
 .user-status-badge.status-waiting {
-  background: #e6f7ff;
-  color: #1890ff;
-  border: 1px solid #91d5ff;
+  background: rgba(250, 173, 20, 0.12);
+  color: #b7791f;
+  border: 1px solid rgba(250, 173, 20, 0.18);
 }
 .user-status-badge.status-stopped {
-  background: #f5f5f5;
-  color: #8c8c8c;
-  border: 1px solid #d9d9d9;
+  background: rgba(142, 142, 147, 0.1);
+  color: #6b6b70;
+  border: 1px solid rgba(142, 142, 147, 0.14);
 }
 .user-status-badge.status-need-login {
-  background: #fff2e8;
-  color: #fa8c16;
-  border: 1px solid #ffd591;
+  background: rgba(255, 103, 103, 0.1);
+  color: #d14343;
+  border: 1px solid rgba(255, 103, 103, 0.18);
 }
 .user-status-badge.status-unknown {
-  background: #f9f9f9;
-  color: #bfbfbf;
-  border: 1px solid #d9d9d9;
+  background: rgba(142, 142, 147, 0.08);
+  color: #8c8c8c;
+  border: 1px solid rgba(142, 142, 147, 0.12);
 }
-/* 替换原过渡样式 */
+.user-selected-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 103, 103, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: all 0.3s;
-  /* ✅ 修复：动画用固定大高度，不限制内容 */
-  max-height: 500px;
+  transition:
+    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
 }
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  max-height: 0;
-  transform: translateY(-10px);
+  transform: translateY(-6px) scale(0.985);
 }
 
 /* ============================================================
@@ -1392,6 +1458,25 @@ defineExpose({
   .selected-user .user-name {
     font-size: 12px;
     max-width: 80px;
+  }
+  .user-dropdown {
+    top: calc(100% - 1px);
+    left: -1px;
+    right: -1px;
+    padding: 0 10px 10px;
+    border-radius: 0 0 14px 14px;
+  }
+  .user-item {
+    min-height: 46px;
+    padding: 8px 9px;
+    gap: 8px;
+  }
+  .user-status {
+    margin-left: 6px;
+    gap: 5px;
+  }
+  .user-status-badge {
+    padding: 3px 6px;
   }
 }
 </style>

@@ -472,6 +472,8 @@ const refreshData = () => {
   }
 }
 
+defineExpose({ refresh: refreshData })
+
 // ================= 生命周期 =================
 onMounted(() => {
   fetchList()

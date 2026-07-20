@@ -81,7 +81,7 @@
             <div class="settings-row-body">
               <span class="settings-row-label">账号</span>
               <span class="settings-row-value">
-                {{ userStore.userInfo?.userName || '' }}
+                {{ systemUser?.userName || '' }}
                 <span v-if="usernameModified" class="badge-modified">已锁定</span>
                 <span v-else class="badge-editable">可修改</span>
               </span>
@@ -123,6 +123,43 @@
             <div class="settings-row-body">
               <span class="settings-row-label">修改密码</span>
               <span class="settings-row-value hint">点击修改</span>
+            </div>
+          </div>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#c7c7cc"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </div>
+
+        <!-- 后台管理（管理员可见） -->
+        <div v-if="canOpenManage" class="user-settings-row" @click="openManagePage">
+          <div class="settings-row-left">
+            <div class="settings-icon-box manage-icon">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </div>
+            <div class="settings-row-body">
+              <span class="settings-row-label">后台管理</span>
+              <span class="settings-row-value hint">进入管理中心</span>
             </div>
           </div>
           <svg
@@ -326,6 +363,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { showNotify } from 'vant'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import ModernSheet from './ModernSheet.vue'
 import {
@@ -335,7 +373,8 @@ import {
 } from '@/utils/userRequest'
 
 const userStore = useUserStore()
-const systemUser = storeToRefs(userStore).userInfo
+const { userInfo: systemUser } = storeToRefs(userStore)
+const router = useRouter()
 
 // v-model
 const props = defineProps({ modelValue: { type: Boolean, default: false } })
@@ -358,6 +397,16 @@ const displayAvatarLetter = computed(() => {
   return name.charAt(0).toUpperCase()
 })
 const usernameModified = computed(() => systemUser.value?.usernameModified === 1)
+const canOpenManage = computed(() => [1, 2].includes(Number(systemUser.value?.userType)))
+
+const openManagePage = () => {
+  show.value = false
+  router.push({ name: 'manage' })
+}
+
+const updateSystemUserInfo = (partial) => {
+  userStore.updateUserInfo(partial)
+}
 
 // ===== 昵称编辑 =====
 const showNicknameSheet = ref(false)
@@ -387,7 +436,7 @@ const submitNickname = async () => {
   try {
     const res = await updateSystemNickname(val)
     if (res.code === 200) {
-      userStore.updateUserInfo({ nickName: val })
+      updateSystemUserInfo({ nickName: val })
       showNotify({ type: 'success', message: '✅ 昵称修改成功' })
       showNicknameSheet.value = false
     } else {
@@ -444,7 +493,7 @@ const submitUsername = async () => {
     const res = await updateSystemUsername(val)
     if (res.code === 200) {
       // 更新本地用户信息：用户名 和 usernameModified 标志
-      userStore.updateUserInfo({ userName: val, usernameModified: 1 })
+      updateSystemUserInfo({ userName: val, usernameModified: 1 })
       showNotify({ type: 'success', message: '✅ 用户名修改成功' })
       showUsernameSheet.value = false
     } else {
@@ -615,6 +664,10 @@ const handleLogout = () => {
 .password-icon {
   background: rgba(255, 149, 0, 0.08);
   color: #ff9500;
+}
+.manage-icon {
+  background: rgba(88, 86, 214, 0.08);
+  color: #5856d6;
 }
 .settings-row-body {
   flex: 1;

@@ -1,5 +1,7 @@
 import axios from 'axios'
+import { showNotify } from 'vant'
 
+import router from '@/router'
 import { useUserStore } from '@/stores/user'
 
 const service = axios.create({
@@ -10,40 +12,72 @@ const service = axios.create({
   },
 })
 
-// 请求拦截器
+let isHandlingAuthExpired = false
+
+const isAuthExpiredCode = (code) => code === 401 || code === '401'
+
+const getCurrentPath = () => {
+  const { pathname, search, hash } = window.location
+  return `${pathname}${search}${hash}`
+}
+
+const handleAuthExpired = async (message = '登录已过期，请重新登录') => {
+  if (isHandlingAuthExpired) return
+  isHandlingAuthExpired = true
+
+  const userStore = useUserStore()
+  userStore.markSessionExpired()
+
+  showNotify({ type: 'warning', message, duration: 2500 })
+
+  if (router.currentRoute.value.name !== 'login') {
+    await router.replace({
+      name: 'login',
+      query: { redirect: getCurrentPath() },
+    })
+  }
+
+  setTimeout(() => {
+    isHandlingAuthExpired = false
+  }, 1000)
+}
+
 service.interceptors.request.use(
-  // 添加Authorization头
   (config) => {
     const userStore = useUserStore()
-    // 从本地存储获取token
     const token = userStore.getToken
-    // 如果token存在，则添加到请求头
+
     if (token) {
-      // 通常使用Bearer认证方式，格式为 Bearer token值
       config.headers.Authorization = token
     }
+
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  },
+  (error) => Promise.reject(error),
 )
 
-// 响应拦截器
 service.interceptors.response.use(
   (response) => {
-    const res = response.data
-    // 处理响应错误，例如401token过期
-    const userStore = useUserStore()
-    if (res.code === 401) {
-      // 清除无效token
-      userStore.clearUserInfo()
-      // 跳转到登录页
-      window.location.href = '/login'
+    if (response.status === 204) {
+      return { code: 204, data: null }
     }
+
+    const res = response.data
+
+    if (isAuthExpiredCode(res?.code)) {
+      handleAuthExpired(res?.remark || res?.message)
+    }
+
     return res
   },
   (error) => {
+    const status = error.response?.status
+    const data = error.response?.data
+
+    if (status === 401 || isAuthExpiredCode(data?.code)) {
+      handleAuthExpired(data?.remark || data?.message)
+    }
+
     return Promise.reject(error)
   },
 )

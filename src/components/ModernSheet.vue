@@ -8,6 +8,7 @@
     :overlay-class="'modern-sheet-overlay'"
     :close-on-click-overlay="true"
     :teleport="'body'"
+    :z-index="5000"
     @closed="$emit('closed')"
     @touchstart="onDragStart"
     @touchmove="onDragMove"

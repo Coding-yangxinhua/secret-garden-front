@@ -58,6 +58,7 @@ import ModernSheet from './ModernSheet.vue'
 const STORAGE_KEY = 'currentSelectedModule'
 const SIZE = 44
 const PEEK = 14
+const BOTTOM_NAV_CLEARANCE = 104
 const STORAGE_POS = 'moduleFabPos'
 
 const SWIPE_DIR_STORAGE_KEY = 'swipeDirection'
@@ -113,11 +114,12 @@ const edgeClass = computed(() => {
   }
 })
 
+const getMaxFabY = () => Math.max(4, window.innerHeight - SIZE - BOTTOM_NAV_CLEARANCE)
+
 const snapToEdge = (x, y, skipSave) => {
   const vw = window.innerWidth
-  const vh = window.innerHeight
   let newX = x,
-    newY = y
+    newY = Math.min(y, getMaxFabY())
   if (x < edgeThreshold) {
     newX = PEEK - SIZE
     isLeftEdge.value = true
@@ -134,10 +136,6 @@ const snapToEdge = (x, y, skipSave) => {
     newY = PEEK - SIZE
     isTopEdge.value = true
     isBottomEdge.value = false
-  } else if (newY + SIZE > vh - edgeThreshold) {
-    newY = vh - PEEK
-    isBottomEdge.value = true
-    isTopEdge.value = false
   } else {
     isTopEdge.value = false
     isBottomEdge.value = false
@@ -160,7 +158,7 @@ const startDrag = (e) => {
     fabY.value = 4
     isTopEdge.value = false
   } else if (isBottomEdge.value) {
-    fabY.value = window.innerHeight - SIZE - 4
+    fabY.value = getMaxFabY()
     isBottomEdge.value = false
   }
   isDragging.value = false
@@ -183,7 +181,7 @@ const onDrag = (e) => {
   let newX = dragOriginX.value + dx
   let newY = dragOriginY.value + dy
   newX = Math.max(-SIZE * 0.4, Math.min(window.innerWidth - SIZE * 0.6, newX))
-  newY = Math.max(-SIZE * 0.4, Math.min(window.innerHeight - SIZE * 0.6, newY))
+  newY = Math.max(-SIZE * 0.4, Math.min(getMaxFabY(), newY))
   fabX.value = newX
   fabY.value = newY
 }
@@ -203,7 +201,7 @@ const endDrag = () => {
     if (isLeftEdge.value) fabX.value = 4
     else if (isRightEdge.value) fabX.value = window.innerWidth - SIZE - 4
     if (isTopEdge.value) fabY.value = 4
-    else if (isBottomEdge.value) fabY.value = window.innerHeight - SIZE - 4
+    else if (isBottomEdge.value) fabY.value = getMaxFabY()
     isLeftEdge.value = false
     isRightEdge.value = false
     isTopEdge.value = false
@@ -216,12 +214,11 @@ const endDrag = () => {
 
 const handleResize = () => {
   const vw = window.innerWidth
-  const vh = window.innerHeight
   let x = fabX.value,
     y = fabY.value
   if (x + SIZE > vw) x = vw - SIZE - 4
   if (x < 0) x = 4
-  if (y + SIZE > vh) y = vh - SIZE - 4
+  if (y > getMaxFabY()) y = getMaxFabY()
   if (y < 0) y = 4
   fabX.value = x
   fabY.value = y
@@ -244,9 +241,9 @@ onUnmounted(() => {
 })
 
 const allModuleDefs = computed(() => [
-  { key: 'enable', label: '启用配置', icon: 'calendar-clock', color: '#5b8def', gameId: [1, 2] },
-  { key: 'plant', label: '自动种植', icon: 'breed', color: '#5fcb8a', gameId: [1, 2] },
-  { key: 'order', label: '订单管理', icon: 'order', color: '#f5a623', gameId: [1, 2] },
+  { key: 'enable', label: '启用配置', icon: 'calendar-clock', color: '#5b8def', gameId: [1, 2, 3] },
+  { key: 'plant', label: '自动种植', icon: 'breed', color: '#5fcb8a', gameId: [1, 2, 3] },
+  { key: 'order', label: '订单管理', icon: 'order', color: '#f5a623', gameId: [1, 2, 3] },
   { key: 'alt', label: '小号管理', icon: 'users', color: '#fc7b6b', gameId: [1] },
   { key: 'stealFlower', label: '摸花管理', icon: 'flower', color: '#a29bfe', gameId: [1] },
   { key: 'steal', label: '摸花/爬架', icon: 'flower', color: '#a29bfe', gameId: [2] },
@@ -254,7 +251,7 @@ const allModuleDefs = computed(() => [
   { key: 'guild', label: '公会配置', icon: 'bank', color: '#f0932b', gameId: [1, 2] },
   { key: 'exchangeCode', label: '兑换码', icon: 'gift-voucher', color: '#eb4d4b', gameId: [2] },
   { key: 'activity', label: '活动配置', icon: 'calendar-heart', color: '#6c5ce7', gameId: [2] },
-  { key: 'autoAd', label: '自动广告', icon: 'ad-slash', color: '#00cec9', gameId: [2] },
+  { key: 'autoAd', label: '自动广告', icon: 'ad-slash', color: '#00cec9', gameId: [2, 3] },
   { key: 'other', label: '其他配置', icon: 'settings', color: '#636e72', gameId: [1, 2] },
 ])
 

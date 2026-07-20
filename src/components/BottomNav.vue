@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <div class="bottom-nav">
     <div class="nav-container">
       <!-- 保存配置 -->
@@ -47,7 +48,7 @@
       </div>
 
       <!-- 更多 -->
-      <div class="nav-item" @click.stop="showMoreMenu = !showMoreMenu">
+      <div class="nav-item" data-guide="more-entry" @click.stop="showMoreMenu = !showMoreMenu">
         <div class="more-icon-wrapper">
           <cute-icon name="more" />
           <span v-if="totalUnreadCount > 0" class="more-badge">{{
@@ -58,7 +59,7 @@
       </div>
 
       <!-- 用户 -->
-      <div class="nav-item user-nav-item" @click="handleUserAction">
+      <div class="nav-item user-nav-item" data-guide="login-entry" @click="handleUserAction">
         <cute-icon :name="systemUser ? 'user' : 'login'" />
         <span class="user-status-text">{{ systemUser ? '个人中心' : '登录' }}</span>
       </div>
@@ -142,6 +143,8 @@
 
     <van-popup
       v-model:show="showActivityPanel"
+      :teleport="'body'"
+      :z-index="5000"
       :position="isMobile ? 'bottom' : 'right'"
       :style="
         isMobile
@@ -171,6 +174,8 @@
     <!-- 站内信面板（重构版） -->
     <van-popup
       v-model:show="showNotificationPanel"
+      :teleport="'body'"
+      :z-index="5000"
       :position="isMobile ? 'bottom' : 'right'"
       :style="
         isMobile
@@ -236,10 +241,11 @@
     <!-- 🍎 个人中心 – 内嵌编辑功能的子组件 -->
     <UserProfileSheet v-model="showUserMenu" @logout="logout" />
   </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, nextTick } from 'vue'
 import { showNotify, Button as VanButton } from 'vant'
 import router from '@/router'
 import { storeToRefs } from 'pinia'
@@ -284,7 +290,9 @@ const openActivityPanel = () => {
     return
   }
   showMoreMenu.value = false
-  showActivityPanel.value = true
+  nextTick(() => {
+    showActivityPanel.value = true
+  })
 }
 
 // 开卡购买
@@ -507,6 +515,10 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  pointer-events: none;
 }
 .nav-container {
   display: flex;
@@ -522,6 +534,7 @@ defineExpose({
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
   position: relative;
+  pointer-events: auto;
 }
 .nav-item {
   display: flex;

@@ -39,7 +39,10 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">测试用户管理</span>
-        <span class="card-subtitle">已选 {{ selectedUserIds.length }} 个用户</span>
+        <span class="card-subtitle">
+          已选 {{ selectedUserIds.length }} 个用户
+          <template v-if="cachedTestUserCount"> · 本地名单 {{ cachedTestUserCount }} 人</template>
+        </span>
       </div>
       <div class="user-panel">
         <!-- 左栏：搜索 -->
@@ -59,16 +62,14 @@
           <div class="search-results" v-if="searchResults.length > 0">
             <div
               class="search-result-item"
-              :class="{ selected: selectedUserIds.includes(user.id) }"
+              :class="{ selected: isUserSelected(user) }"
               v-for="user in searchResults"
               :key="user.id"
               @click="toggleUser(user)"
             >
-              <span class="user-display"
-                >{{ user.nickName }}(id: {{ user.userId || user.id }})</span
-              >
+              <span class="user-display">{{ getUserDisplayName(user) }}(id: {{ getUserId(user) }})</span>
               <van-icon
-                v-if="selectedUserIds.includes(user.id)"
+                v-if="isUserSelected(user)"
                 name="success"
                 color="#07c160"
                 size="18"
@@ -89,15 +90,13 @@
                   :class="getStatusClass(user)"
                   :title="user.userStatusText || '未获取状态'"
                 ></span>
-                <span class="user-display"
-                  >{{ user.nickName }}(id: {{ user.userId || user.id }})</span
-                >
+                <span class="user-display">{{ getUserDisplayName(user) }}(id: {{ getUserId(user) }})</span>
                 <van-icon
                   name="cross"
                   color="#999"
                   size="16"
                   class="remove-btn"
-                  @click="removeUser(user.id)"
+                  @click="removeUser(getUserId(user))"
                 />
               </div>
               <div class="user-status-row" v-if="user.nodeId">
@@ -112,10 +111,22 @@
         </div>
       </div>
       <!-- 刷新状态按钮 -->
-      <div class="status-actions" v-if="selectedUserIds.length > 0">
-        <button class="action-btn refresh-status-btn" @click="refreshUserStatus">
+      <div class="status-actions">
+        <button
+          class="action-btn refresh-status-btn"
+          @click="refreshUserStatus"
+          :disabled="selectedUserIds.length === 0"
+        >
           <van-icon name="replay" size="14" />
           刷新用户状态
+        </button>
+        <button
+          class="action-btn import-cache-btn"
+          @click="importCachedTestUsers"
+          :disabled="cachedTestUserCount === 0"
+        >
+          <van-icon name="down" size="14" />
+          导入测试名单
         </button>
       </div>
     </div>
@@ -193,6 +204,7 @@ const transferTargetNodeId = ref('')
 const searching = ref(false)
 const searchKeyword = ref('')
 const searchResults = ref([])
+const cachedTestUserCount = ref(0)
 
 // 节点列表
 const allNodeList = ref([])
@@ -205,6 +217,114 @@ const userStatusMap = ref({}) // userId -> { userId, status, statusText, nodeId 
 
 // 配置key
 const CONFIG_MODULE_KEY = 'test_node_config'
+const TEST_USER_CACHE_KEY = 'test_node_cached_users'
+
+const LONG_NUMBER_RE = /"((?:userId|id|testUserIds|userIds))"\s*:\s*(-?\d{16,})/g
+const LONG_NUMBER_ARRAY_RE =
+  /"((?:testUserIds|userIds))"\s*:\s*\[([^\]]*?\d{16,}[^\]]*?)\]/g
+
+const parseLongIdSafeJson = (text) => {
+  if (typeof text !== 'string') return text
+  const safeText = text
+    .replace(LONG_NUMBER_RE, '"$1":"$2"')
+    .replace(LONG_NUMBER_ARRAY_RE, (match, key, body) => {
+      const safeBody = body.replace(/(?<=\[|,)\s*(-?\d{16,})\s*(?=,|\])/g, '"$1"')
+      return `"${key}":[${safeBody}]`
+    })
+  return JSON.parse(safeText)
+}
+
+const safeRequest = async (config) => {
+  const response = await request({
+    ...config,
+    transformResponse: [
+      (data) => {
+        if (!data) return data
+        try {
+          return parseLongIdSafeJson(data)
+        } catch {
+          return data
+        }
+      },
+    ],
+  })
+  return response
+}
+
+const normalizeId = (id) => {
+  if (id === null || id === undefined) return ''
+  return String(id).trim()
+}
+
+const getUserId = (user) => normalizeId(user?.userId ?? user?.id)
+
+const normalizeUser = (user, fallbackId = '') => {
+  const uid = getUserId(user) || normalizeId(fallbackId)
+  return {
+    ...user,
+    id: uid,
+    userId: uid,
+    nickName: user?.nickName || user?.userName || uid,
+  }
+}
+
+const normalizeIdList = (ids) => {
+  if (typeof ids === 'string') {
+    return ids
+      .split(',')
+      .map(normalizeId)
+      .filter(Boolean)
+  }
+  if (!Array.isArray(ids)) return []
+  return ids.map(normalizeId).filter(Boolean)
+}
+
+const normalizeUserList = (users = []) => {
+  if (!Array.isArray(users)) return []
+  const seen = new Set()
+  return users.map((user) => normalizeUser(user)).filter((user) => {
+    if (!user.id || seen.has(user.id)) return false
+    seen.add(user.id)
+    return true
+  })
+}
+
+const getUserDisplayName = (user) => user?.nickName || user?.userName || getUserId(user)
+
+const isUserSelected = (user) => selectedUserIds.value.includes(getUserId(user))
+
+const loadCachedTestUsers = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(TEST_USER_CACHE_KEY) || '[]')
+    const users = normalizeUserList(cached)
+    cachedTestUserCount.value = users.length
+    return users
+  } catch {
+    cachedTestUserCount.value = 0
+    return []
+  }
+}
+
+const cacheCurrentTestUsers = () => {
+  const users = selectedUserIds.value.map((uid) => {
+    const detail = selectedUsers.value.find((user) => getUserId(user) === uid)
+    return normalizeUser(detail || { id: uid, userId: uid, nickName: uid })
+  })
+  localStorage.setItem(TEST_USER_CACHE_KEY, JSON.stringify(users))
+  cachedTestUserCount.value = users.length
+}
+
+const importCachedTestUsers = () => {
+  const cachedUsers = loadCachedTestUsers()
+  if (cachedUsers.length === 0) {
+    showNotify({ type: 'warning', message: '暂无可导入的本地测试名单' })
+    return
+  }
+  selectedUsers.value = cachedUsers
+  selectedUserIds.value = cachedUsers.map((user) => user.id)
+  refreshUserStatus()
+  showNotify({ type: 'success', message: `已导入 ${cachedUsers.length} 个测试用户` })
+}
 
 // ================= 计算属性 =================
 const runningNodes = computed(() => {
@@ -213,6 +333,7 @@ const runningNodes = computed(() => {
 
 // ================= 初始化加载 =================
 onMounted(() => {
+  loadCachedTestUsers()
   loadAllData()
 })
 
@@ -237,7 +358,7 @@ const fetchNodeList = async () => {
 // 获取配置
 const fetchConfig = async () => {
   try {
-    const detailRes = await request({
+    const detailRes = await safeRequest({
       url: '/manage/config/get',
       method: 'GET',
       params: { moduleKey: CONFIG_MODULE_KEY },
@@ -257,7 +378,7 @@ const applyConfig = (configData) => {
   let config
   if (typeof configData === 'string') {
     try {
-      config = JSON.parse(configData)
+      config = parseLongIdSafeJson(configData)
     } catch {
       config = configData
     }
@@ -268,7 +389,12 @@ const applyConfig = (configData) => {
   if (config) {
     enabled.value = !!config.enabled
     selectedNodeIds.value = config.testNodeIds || []
-    selectedUserIds.value = config.testUserIds || []
+    selectedUserIds.value = normalizeIdList(config.testUserIds)
+    const cachedUsers = loadCachedTestUsers()
+    selectedUsers.value = selectedUserIds.value.map((uid) => {
+      const cachedUser = cachedUsers.find((user) => user.id === uid)
+      return normalizeUser(cachedUser || { id: uid, userId: uid, nickName: uid })
+    })
     // 加载用户状态
     if (selectedUserIds.value.length > 0) {
       refreshUserStatus()
@@ -286,7 +412,7 @@ const onSwitchChange = async (val) => {
       data: {
         enabled: val,
         testNodeIds: selectedNodeIds.value,
-        testUserIds: selectedUserIds.value,
+        testUserIds: [...selectedUserIds.value],
       },
     })
     if (typeof res === 'string' && res.startsWith('✅')) {
@@ -329,16 +455,13 @@ const fetchUsers = async () => {
   }
   searching.value = true
   try {
-    const res = await request({
+    const res = await safeRequest({
       url: '/manage/user/search',
       method: 'GET',
       params: { type: 1, nickName: searchKeyword.value.trim() },
     })
     if (res.code === 200) {
-      searchResults.value = (res.data || []).map((u) => ({
-        ...u,
-        userId: u.userId || u.id,
-      }))
+      searchResults.value = normalizeUserList(res.data || [])
     }
   } catch (err) {
     console.error('搜索用户失败：', err)
@@ -350,21 +473,22 @@ const fetchUsers = async () => {
 
 // ================= 用户选择管理 =================
 const toggleUser = (user) => {
-  const uid = user.userId || user.id
+  const normalizedUser = normalizeUser(user)
+  const uid = normalizedUser.id
+  if (!uid) return
   const idx = selectedUserIds.value.indexOf(uid)
   if (idx > -1) {
     selectedUserIds.value.splice(idx, 1)
     // 从已选列表中移除
-    const userIdx = selectedUsers.value.findIndex((u) => (u.userId || u.id) === uid)
+    const userIdx = selectedUsers.value.findIndex((u) => getUserId(u) === uid)
     if (userIdx > -1) selectedUsers.value.splice(userIdx, 1)
   } else {
     selectedUserIds.value.push(uid)
     // 添加到已选列表
-    const existing = selectedUsers.value.find((u) => (u.userId || u.id) === uid)
+    const existing = selectedUsers.value.find((u) => getUserId(u) === uid)
     if (!existing) {
       selectedUsers.value.push({
-        ...user,
-        id: uid,
+        ...normalizedUser,
         userStatusText: '',
         nodeId: '',
         status: -1,
@@ -376,16 +500,18 @@ const toggleUser = (user) => {
 }
 
 const removeUser = (uid) => {
+  uid = normalizeId(uid)
   const idx = selectedUserIds.value.indexOf(uid)
   if (idx > -1) selectedUserIds.value.splice(idx, 1)
-  const userIdx = selectedUsers.value.findIndex((u) => (u.userId || u.id) === uid)
+  const userIdx = selectedUsers.value.findIndex((u) => getUserId(u) === uid)
   if (userIdx > -1) selectedUsers.value.splice(userIdx, 1)
 }
 
 // ================= 用户状态查询 =================
 const fetchSingleUserStatus = async (uid) => {
   try {
-    const res = await request({
+    uid = normalizeId(uid)
+    const res = await safeRequest({
       url: '/manage/test/users/status',
       method: 'GET',
       params: { userIds: uid },
@@ -408,7 +534,7 @@ const fetchSingleUserStatus = async (uid) => {
 const refreshUserStatus = async () => {
   if (selectedUserIds.value.length === 0) return
   try {
-    const res = await request({
+    const res = await safeRequest({
       url: '/manage/test/users/status',
       method: 'GET',
       params: { userIds: selectedUserIds.value.join(',') },
@@ -427,12 +553,15 @@ const refreshUserStatus = async () => {
 
 const updateUserStatus = (statusData) => {
   if (!statusData || !statusData.userId) return
-  const uid = statusData.userId
-  const userInList = selectedUsers.value.find((u) => (u.userId || u.id) === uid)
+  const uid = normalizeId(statusData.userId)
+  const userInList = selectedUsers.value.find((u) => getUserId(u) === uid)
   if (userInList) {
     userInList.userStatus = statusData.status
     userInList.userStatusText = statusData.statusText
     userInList.nodeId = statusData.nodeId
+    if (statusData.nickName || statusData.userName) {
+      userInList.nickName = statusData.nickName || statusData.userName
+    }
   }
   userStatusMap.value[uid] = {
     status: statusData.status,
@@ -443,14 +572,14 @@ const updateUserStatus = (statusData) => {
 
 // ================= 状态展示样式 =================
 const getStatusClass = (user) => {
-  const status = user.userStatus ?? userStatusMap.value[user.userId || user.id]?.status
+  const status = user.userStatus ?? userStatusMap.value[getUserId(user)]?.status
   if (status === 1) return 'dot-green' // 运行中
   if (status === 2) return 'dot-orange' // 等待中
   return 'dot-gray' // 未运行或未知
 }
 
 const getStatusTextClass = (user) => {
-  const status = user.userStatus ?? userStatusMap.value[user.userId || user.id]?.status
+  const status = user.userStatus ?? userStatusMap.value[getUserId(user)]?.status
   if (status === 1) return 'text-green'
   if (status === 2) return 'text-orange'
   return 'text-gray'
@@ -463,7 +592,7 @@ const saveConfig = async () => {
     const payload = {
       enabled: enabled.value,
       testNodeIds: selectedNodeIds.value,
-      testUserIds: selectedUserIds.value,
+      testUserIds: [...selectedUserIds.value],
     }
     const res = await request({
       url: '/manage/test/node-config',
@@ -475,6 +604,7 @@ const saveConfig = async () => {
         resultDialogTitle.value = '保存成功'
         resultDialogMessage.value = res
         showResultDialog.value = true
+        cacheCurrentTestUsers()
         emit('config-saved', payload)
       } else {
         resultDialogTitle.value = '保存失败'
@@ -485,6 +615,7 @@ const saveConfig = async () => {
       resultDialogTitle.value = '保存成功'
       resultDialogMessage.value = '配置已保存'
       showResultDialog.value = true
+      cacheCurrentTestUsers()
       emit('config-saved', payload)
     }
   } catch (err) {
@@ -513,7 +644,7 @@ const confirmTransfer = async () => {
       method: 'POST',
       data: {
         targetNodeId: transferTargetNodeId.value,
-        userIds: selectedUserIds.value,
+        userIds: [...selectedUserIds.value],
       },
     })
     if (typeof res === 'string') {
@@ -543,7 +674,8 @@ watch(
       if (added.length > 0) {
         // 只查询新增用户的详情
         added.forEach((uid) => {
-          const exists = selectedUsers.value.find((u) => (u.userId || u.id) === uid)
+          uid = normalizeId(uid)
+          const exists = selectedUsers.value.find((u) => getUserId(u) === uid)
           if (!exists) {
             selectedUsers.value.push({
               id: uid,

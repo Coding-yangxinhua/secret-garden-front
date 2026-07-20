@@ -289,11 +289,17 @@ const boundAccounts = ref([])
 const gameOptions = [
   { name: '秘密花园', value: 1 },
   { name: '深海花园', value: 2 },
+  { name: '我的花园世界', value: 3 },
 ]
-const platformOptions = [
+const rawPlatformOptions = [
   { name: 'IOS', value: 1 },
   { name: 'Android', value: 2 },
 ]
+
+const isMyGardenWorld = computed(() => Number(newAccount.gameId) === 3)
+const platformOptions = computed(() =>
+  isMyGardenWorld.value ? rawPlatformOptions.filter((p) => p.value === 1) : rawPlatformOptions,
+)
 
 const selectedGameName = computed(() => {
   if (!newAccount.gameId) return ''
@@ -302,7 +308,7 @@ const selectedGameName = computed(() => {
 })
 const selectedPlatformName = computed(() => {
   if (!newAccount.userType) return ''
-  const platform = platformOptions.find((p) => p.value === newAccount.userType)
+  const platform = rawPlatformOptions.find((p) => p.value == newAccount.userType)
   return platform ? platform.name : ''
 })
 const canBind = computed(() => {
@@ -311,7 +317,8 @@ const canBind = computed(() => {
     newAccount.password.trim() !== '' &&
     newAccount.gameId !== '' &&
     newAccount.userType !== '' &&
-    newAccount.serverId != ''
+    newAccount.serverId != '' &&
+    (!isMyGardenWorld.value || Number(newAccount.userType) === 1)
   )
 })
 
@@ -361,11 +368,24 @@ const resetForm = () => {
 const showGameSelection = () => (showGamePicker.value = true)
 const showPlatformSelection = () => (showPlatformPicker.value = true)
 const onGameSelect = (action) => {
-  if (action.name !== '取消') newAccount.gameId = action.value
+  if (action.name !== '取消') {
+    newAccount.gameId = action.value
+    if (Number(action.value) === 3 && Number(newAccount.userType) !== 1) {
+      newAccount.userType = 1
+      showToast('我的花园世界目前仅支持 iOS，已自动选择 IOS')
+    }
+  }
   showGamePicker.value = false
 }
 const onPlatformSelect = (action) => {
-  if (action.name !== '取消') newAccount.userType = action.value
+  if (action.name !== '取消') {
+    if (isMyGardenWorld.value && Number(action.value) !== 1) {
+      showToast('我的花园世界目前仅支持 iOS')
+      showPlatformPicker.value = false
+      return
+    }
+    newAccount.userType = action.value
+  }
   showPlatformPicker.value = false
 }
 
@@ -380,7 +400,7 @@ const getGameName = (gameId) => {
   return game ? game.name : '未知游戏'
 }
 const getPlatformName = (userType) => {
-  const platform = platformOptions.find((p) => p.value == userType)
+  const platform = rawPlatformOptions.find((p) => p.value == userType)
   return platform ? platform.name : '未知平台'
 }
 
@@ -465,6 +485,10 @@ const switchToMainView = () => {
 const handleBind = async () => {
   if (!canBind.value) {
     showToast('请填写完整的账号信息')
+    return
+  }
+  if (isMyGardenWorld.value && Number(newAccount.userType) !== 1) {
+    showToast('我的花园世界目前仅支持 iOS')
     return
   }
   try {
