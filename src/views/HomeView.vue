@@ -37,7 +37,7 @@
             v-model="selectedModule"
             v-model:direction="swipeDirection"
             :game-id="currentUser.gameId"
-            :module-defs="allSwipeModules"
+            :module-defs="visibleSwipeModules"
           >
             <template #enable>
               <LoginConfig
@@ -205,6 +205,7 @@ import BottomNav from '@/components/BottomNav.vue'
 import SwipeModule from '@/components/SwipeModule.vue'
 import SetupGuide from '@/components/SetupGuide.vue'
 import { isEqual, cloneDeep } from 'lodash-es'
+import { filterVisibleGameIds, isGameVisible } from '@/config/gameVisibility'
 
 // 异步加载组件（按需加载，减少首屏 JS 体积）
 const VersionChecker = defineAsyncComponent(() => import('@/components/VersionChecker.vue'))
@@ -226,6 +227,24 @@ const ModuleSelector = defineAsyncComponent(() => import('@/components/ModuleSel
 const userStore = useUserStore()
 const { userInfo: systemUserLocal } = storeToRefs(userStore)
 
+const CURRENT_USER_ID_KEY = 'currentUserId'
+const getCurrentUserIdStorageKey = () => {
+  const accountKey = systemUserLocal.value?.id || systemUserLocal.value?.userName
+  return accountKey ? `${CURRENT_USER_ID_KEY}:${accountKey}` : CURRENT_USER_ID_KEY
+}
+const loadCurrentUserId = () => localStorage.getItem(getCurrentUserIdStorageKey()) || ''
+const persistCurrentUserId = (userId) => {
+  const storageKey = getCurrentUserIdStorageKey()
+  if (userId) {
+    localStorage.setItem(storageKey, userId)
+  } else {
+    localStorage.removeItem(storageKey)
+  }
+  if (storageKey !== CURRENT_USER_ID_KEY) {
+    localStorage.removeItem(CURRENT_USER_ID_KEY)
+  }
+}
+
 // 引用
 const updateModalRef = ref(null)
 const bottomNavRef = ref(null)
@@ -239,7 +258,7 @@ const selectedModule = ref(localStorage.getItem('currentSelectedModule') || 'ena
 const swipeDirection = ref(localStorage.getItem('swipeDirection') || 'horizontal')
 
 // 用户与配置
-const currentUserId = ref(localStorage.getItem('currentUserId') || '')
+const currentUserId = ref(loadCurrentUserId())
 const accountInfo = ref({ config: {} })
 const nextRunTime = ref(0)
 const friends = ref([])
@@ -271,14 +290,25 @@ const allFlowers = flowerUtil.getAllFlowers()
 
 // 系统用户
 const systemUser = computed(
-  () =>
-    accountInfo.value.systemUser || {
+  () => {
+    const user = accountInfo.value.systemUser
+    if (!user) {
+      return {
       otherUsers: [],
       currentUser: null,
       times: {},
       userName: '',
       nickName: '',
-    },
+      }
+    }
+    const otherUsers = (user.otherUsers || []).filter((otherUser) => isGameVisible(otherUser.gameId))
+    const currentUser = isGameVisible(user.currentUser?.gameId) ? user.currentUser : null
+    return {
+      ...user,
+      otherUsers,
+      currentUser,
+    }
+  },
 )
 
 const currentUser = computed(
@@ -516,6 +546,13 @@ const allSwipeModules = [
   { key: 'other', label: '其他配置', gameId: [1, 2] },
 ]
 
+const visibleSwipeModules = computed(() =>
+  allSwipeModules.map((module) => ({
+    ...module,
+    gameId: filterVisibleGameIds(module.gameId),
+  })),
+)
+
 // 运行状态
 const runningStatus = computed(() => {
   if (currentUser.value.refreshNeed == 1) return -1
@@ -560,6 +597,31 @@ function clearAccountInfoCache() {
   localStorage.removeItem(CACHE_USER_ID_KEY)
 }
 
+function clearCurrentUserSelection() {
+  currentUserId.value = ''
+  localStorage.removeItem(getCurrentUserIdStorageKey())
+  localStorage.removeItem(CURRENT_USER_ID_KEY)
+  lastUserId.value = null
+  clearAccountInfoCache()
+}
+
+const switchFromHiddenGameIfNeeded = async (data, force) => {
+  const current = data?.systemUser?.currentUser
+  if (!current || isGameVisible(current.gameId)) return false
+
+  const nextUser = (data.systemUser.otherUsers || []).find((user) => isGameVisible(user.gameId))
+  if (!nextUser) {
+    clearCurrentUserSelection()
+    return false
+  }
+
+  currentUserId.value = nextUser.id
+  persistCurrentUserId(currentUserId.value)
+  clearAccountInfoCache()
+  await getConfig(force)
+  return true
+}
+
 // 获取配置
 const getConfig = async (force = false) => {
   // 如果有未保存的修改且不是强制刷新，则只更新 systemUser 部分（用户状态），不覆盖 config
@@ -582,6 +644,7 @@ const getConfig = async (force = false) => {
       showNotify({ type: 'warning', message: '请先登陆游戏！' })
       return
     }
+    if (await switchFromHiddenGameIfNeeded(data, force)) return
     if (skipConfig) {
       // 只更新 systemUser 部分（runStatus、refreshNeed 等用户状态），保留用户正在修改的 config
       const oldConfig = accountInfo.value?.config
@@ -616,7 +679,7 @@ const getConfig = async (force = false) => {
     // 首次无用户时自动选第一个
     if (!currentUserId.value && accountInfo.value.systemUser?.otherUsers?.length) {
       currentUserId.value = accountInfo.value.systemUser.otherUsers[0].id
-      localStorage.setItem('currentUserId', currentUserId.value)
+      persistCurrentUserId(currentUserId.value)
     }
 
     // 写入缓存，供下次快速回显
@@ -716,7 +779,7 @@ const triggerRobot = async (isBatch = false) => {
 // 用户切换
 const handleUserChange = async (newUserId, restart = false) => {
   currentUserId.value = newUserId
-  localStorage.setItem('currentUserId', newUserId)
+  persistCurrentUserId(newUserId)
   lastUserId.value = null
   // 切换用户，清除旧缓存；接口返回后会重新写入新缓存
   clearAccountInfoCache()
@@ -803,9 +866,9 @@ const goToProfile = () => {}
 const goToSecurity = () => {}
 const logout = () => {
   userStore.clearUserInfo()
+  clearCurrentUserSelection()
   clearAccountInfoCache()
   isDataReady.value = false
-  showNotify({ type: 'success', message: '已退出登录' })
 }
 const handleConfigUpdate = (newConfig) => {
   Object.assign(accountInfo.value.config, newConfig)
@@ -876,7 +939,7 @@ watch(
 watch(
   gameId,
   (id) => {
-    const modules = allSwipeModules.filter((m) => m.gameId.includes(id))
+    const modules = visibleSwipeModules.value.filter((m) => m.gameId.includes(id))
     if (modules.length > 0 && !modules.some((m) => m.key === selectedModule.value)) {
       selectedModule.value = modules[0].key
       localStorage.setItem('currentSelectedModule', selectedModule.value)

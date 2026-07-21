@@ -446,6 +446,46 @@ const localConfig = ref({})
 const showTimeSelect = ref(false)
 const timeSelectType = ref('start')
 
+const toSwitchBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null) return defaultValue
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'string') return value === '1' || value === 'true'
+  return Boolean(value)
+}
+
+const normalizeBooleanSwitches = () => {
+  const ad = localConfig.value.ad
+  if (!ad) return
+
+  if (ad.water) {
+    ad.water.autoWaterAd = toSwitchBoolean(ad.water.autoWaterAd, true)
+    ad.water.autoWater = toSwitchBoolean(ad.water.autoWater, true)
+    ad.water.lackGet = toSwitchBoolean(ad.water.lackGet, false)
+  }
+  if (ad.pearl) {
+    ad.pearl.autoPearlAd = toSwitchBoolean(ad.pearl.autoPearlAd, true)
+    ad.pearl.autoPearlHarvest = toSwitchBoolean(ad.pearl.autoPearlHarvest, false)
+    ad.pearl.autoPearlDraw = toSwitchBoolean(ad.pearl.autoPearlDraw, false)
+  }
+  if (ad.land) {
+    ad.land.autoSpeedAd = toSwitchBoolean(ad.land.autoSpeedAd, false)
+    ad.land.autoSpeedCard = toSwitchBoolean(ad.land.autoSpeedCard, false)
+  }
+
+  ad.autoWelfare = toSwitchBoolean(ad.autoWelfare, true)
+  ad.autoStory = toSwitchBoolean(ad.autoStory, true)
+  ad.autoShopAd = toSwitchBoolean(ad.autoShopAd, true)
+  ad.autoAdExpired = toSwitchBoolean(ad.autoAdExpired, true)
+  ad.autoLike = toSwitchBoolean(ad.autoLike, true)
+  ad.autoShare = toSwitchBoolean(ad.autoShare, true)
+  ad.autoRandEvent = toSwitchBoolean(ad.autoRandEvent, true)
+  ad.autoFosterAd = toSwitchBoolean(ad.autoFosterAd, true)
+  ad.autoSign = toSwitchBoolean(ad.autoSign, true)
+  ad.antoAntiFraud = toSwitchBoolean(ad.antoAntiFraud, true)
+  ad.autoMail = toSwitchBoolean(ad.autoMail, false)
+  ad.autoBox = toSwitchBoolean(ad.autoBox, false)
+}
+
 // 监听props.config的变化，同步到本地配置
 watch(
   () => props.config,
@@ -457,23 +497,21 @@ watch(
       if (!localConfig.value.ad) localConfig.value.ad = {}
       if (!localConfig.value.ad.water) {
         localConfig.value.ad.water = {
-          autoWaterAd: 1,
-          autoWater: 1,
+          autoWaterAd: true,
+          autoWater: true,
           maxWaterNum: 60,
-          lackGet: 0,
+          lackGet: false,
         }
       }
       if (!localConfig.value.ad.pearl) {
         localConfig.value.ad.pearl = {
-          autoPearlAd: 0,
-          autoPearlHarvest: 0,
-          autoPearlDraw: 0,
+          autoPearlAd: true,
+          autoPearlHarvest: false,
+          autoPearlDraw: false,
         }
       }
       if (!localConfig.value.ad.land) localConfig.value.ad.land = {}
-      localConfig.value.ad.autoWelfare = localConfig.value.ad.autoWelfare ?? 1
-      localConfig.value.ad.autoSign = localConfig.value.ad.autoSign ?? 1
-      localConfig.value.ad.autoMail = localConfig.value.ad.autoMail ?? 0
+      normalizeBooleanSwitches()
       // 兼容旧字段：如果存在 autoSpeedAd 布尔，则把 true 映射为 1（所有花），false -> 0
       if (typeof localConfig.value.ad.land.autoSpeedMode === 'undefined') {
         if (typeof localConfig.value.ad.land.autoSpeedAd !== 'undefined') {

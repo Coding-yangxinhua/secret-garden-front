@@ -54,6 +54,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import CuteIcon from './CuteIcon.vue'
 import ModernSheet from './ModernSheet.vue'
+import { filterVisibleGameIds } from '@/config/gameVisibility'
 
 const STORAGE_KEY = 'currentSelectedModule'
 const SIZE = 44
@@ -240,7 +241,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-const allModuleDefs = computed(() => [
+const moduleDefs = [
   { key: 'enable', label: '启用配置', icon: 'calendar-clock', color: '#5b8def', gameId: [1, 2, 3] },
   { key: 'plant', label: '自动种植', icon: 'breed', color: '#5fcb8a', gameId: [1, 2, 3] },
   { key: 'order', label: '订单管理', icon: 'order', color: '#f5a623', gameId: [1, 2, 3] },
@@ -253,7 +254,14 @@ const allModuleDefs = computed(() => [
   { key: 'activity', label: '活动配置', icon: 'calendar-heart', color: '#6c5ce7', gameId: [2] },
   { key: 'autoAd', label: '自动广告', icon: 'ad-slash', color: '#00cec9', gameId: [2, 3] },
   { key: 'other', label: '其他配置', icon: 'settings', color: '#636e72', gameId: [1, 2] },
-])
+]
+
+const allModuleDefs = computed(() =>
+  moduleDefs.map((moduleDef) => ({
+    ...moduleDef,
+    gameId: filterVisibleGameIds(moduleDef.gameId),
+  })),
+)
 
 const filteredModules = computed(() =>
   allModuleDefs.value.filter((m) => m.gameId.includes(props.gameId)),

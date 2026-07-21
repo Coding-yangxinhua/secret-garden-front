@@ -335,7 +335,7 @@ const handleUserAction = () => {
 // ==================== 退出登录 ====================
 const logout = async () => {
   showUserMenu.value = false
-  userStore.clearUserInfo()
+  emit('logout')
   showNotify({ type: 'success', message: '已成功退出登录', duration: 2000 })
 }
 

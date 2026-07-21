@@ -169,6 +169,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { showToast, showConfirmDialog, showDialog } from 'vant'
 import ModernSheet from './ModernSheet.vue'
 import request from '@/utils/request'
+import { filterVisibleGames, isGameVisible } from '@/config/gameVisibility'
 
 const emit = defineEmits(['account-updated'])
 
@@ -212,11 +213,12 @@ const form = reactive({
 })
 
 // ---- 选项 ----
-const gameOptions = [
+const rawGameOptions = [
   { name: '秘密花园', value: 1 },
   { name: '深海花园', value: 2 },
   { name: '我的花园世界', value: 3 },
 ]
+const gameOptions = filterVisibleGames(rawGameOptions)
 const rawPlatformOptions = [
   { name: 'IOS', value: 1 },
   { name: 'Android', value: 2 },
@@ -229,7 +231,7 @@ const platformOptions = computed(() =>
 
 const selectedGameName = computed(() => {
   if (!form.gameId) return ''
-  return gameOptions.find((g) => g.value === form.gameId)?.name || ''
+  return rawGameOptions.find((g) => g.value === form.gameId)?.name || ''
 })
 const selectedPlatformName = computed(() => {
   if (!form.userType) return ''
@@ -249,7 +251,9 @@ const canBind = computed(
 const listAccounts = async () => {
   try {
     const res = await request({ url: '/user/bindAccounts', method: 'GET' })
-    if (res.code === 200) boundAccounts.value = res.data || []
+    if (res.code === 200) {
+      boundAccounts.value = (res.data || []).filter((account) => isGameVisible(account.gameId))
+    }
     else showSheetToast(res.remark || '获取账号列表失败')
   } catch {
     showSheetToast('网络异常')
@@ -287,6 +291,7 @@ const switchToBindForm = () => {
 
 const onGameSelect = (action) => {
   if (action.name !== '取消') {
+    if (!isGameVisible(action.value)) return
     form.gameId = action.value
     if (Number(action.value) === 3 && Number(form.userType) !== 1) {
       form.userType = 1
@@ -307,7 +312,7 @@ const onPlatformSelect = (action) => {
   showPlatformPicker.value = false
 }
 
-const getGameName = (id) => gameOptions.find((g) => g.value == id)?.name || '未知'
+const getGameName = (id) => rawGameOptions.find((g) => g.value == id)?.name || '未知'
 const getPlatformName = (t) => rawPlatformOptions.find((p) => p.value == t)?.name || '未知'
 
 const editAccount = (index) => {
